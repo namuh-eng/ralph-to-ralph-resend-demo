@@ -956,3 +956,38 @@
 - src/app/api/broadcasts/[id]/route.ts — GET + PATCH + DELETE API routes
 - tests/broadcasts-list.test.ts — 12 unit tests
 - tests/e2e/broadcasts-list.spec.ts — 3 E2E tests
+
+## Iteration 31 — feature-009: Broadcast Editor Form Fields (2026-03-29)
+
+### What was built
+- BroadcastEditor client component (`src/components/broadcast-editor.tsx`) with:
+  - Header: back arrow + "Broadcasts" breadcrumb + inline-editable title + status badge (Draft) + Test email button + Review button
+  - From field with autocomplete suggestions from verified domains (via `/api/domains`)
+  - Reply-To field (hidden by default, toggleable via button)
+  - To field with autocomplete from segments (via `/api/segments`)
+  - When field (hidden by default, toggleable, datetime-local input for scheduling)
+  - Subscribe to field with topic dropdown (via `/api/topics`)
+  - Subject field
+  - Preview text field (hidden by default, toggleable, maxLength 150)
+  - Auto-save on field changes (debounced 1s PATCH to `/api/broadcasts/:id`)
+- Domains list API route (`src/app/api/domains/route.ts`) — GET returns all domains with id, name, status
+- Updated broadcast editor page to render BroadcastEditor component
+
+### Test results
+- 8 new unit tests passing (form fields visible, toggleable fields, header elements, inline title edit, preview text maxlength, From autocomplete, To segments, Subscribe to topics)
+- 1 E2E test written (edit broadcast title inline with auto-save persistence)
+- 352 total unit tests passing (344 previous + 8 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Used `<span>` instead of `<label>` for field labels to satisfy Biome a11y rules (labels need htmlFor but inputs are in sibling divs)
+- From autocomplete shows all verified domains when focused (not filtered by input text) — matches Resend behavior
+- Toggle buttons for Reply-To, When, Preview text placed inline next to related fields matching screenshot layout
+- Auto-save debounced at 1s to avoid excessive API calls
+
+### Files changed
+- src/components/broadcast-editor.tsx — Full broadcast editor component with all form fields
+- src/app/api/domains/route.ts — New GET endpoint for listing domains
+- src/app/(dashboard)/broadcasts/[id]/editor/page.tsx — Updated to use BroadcastEditor component
+- tests/broadcast-editor.test.tsx — 8 unit tests for broadcast editor
+- tests/e2e/broadcast-editor.spec.ts — E2E test for inline title editing
