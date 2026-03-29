@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface Column<T> {
   key: string;
@@ -26,6 +26,27 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
+type SortDirection = "asc" | "desc";
+
+function compareValues(a: unknown, b: unknown): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+
+  if (a instanceof Date && b instanceof Date) {
+    return a.getTime() - b.getTime();
+  }
+
+  if (typeof a === "number" && typeof b === "number") {
+    return a - b;
+  }
+
+  return String(a).localeCompare(String(b), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 export function DataTable<T>({
   columns,
   rows,
@@ -37,6 +58,10 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sortState, setSortState] = useState<{
+    key: string;
+    direction: SortDirection;
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const allSelected = rows.length > 0 && selectedIds.size === rows.length;
@@ -76,6 +101,31 @@ export function DataTable<T>({
   const hasActions = actions && actions.length > 0;
   const totalCols =
     columns.length + (checkboxEnabled ? 1 : 0) + (hasActions ? 1 : 0);
+  const displayRows = useMemo(() => {
+    if (!sortState) return rows;
+
+    const sorted = [...rows].sort((left, right) =>
+      compareValues(
+        (left as Record<string, unknown>)[sortState.key],
+        (right as Record<string, unknown>)[sortState.key],
+      ),
+    );
+
+    return sortState.direction === "desc" ? sorted.reverse() : sorted;
+  }, [rows, sortState]);
+
+  const toggleSort = useCallback((key: string) => {
+    setSortState((prev) => {
+      if (!prev || prev.key !== key) {
+        return { key, direction: "asc" };
+      }
+
+      return {
+        key,
+        direction: prev.direction === "asc" ? "desc" : "asc",
+      };
+    });
+  }, []);
 
   return (
     <table className="w-full">
@@ -96,8 +146,32 @@ export function DataTable<T>({
             <th
               key={col.key}
               className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5] tracking-normal"
+              aria-sort={
+                sortState?.key === col.key
+                  ? sortState.direction === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none"
+              }
             >
-              {col.header}
+              {col.sortable ? (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[#F0F0F0]"
+                  onClick={() => toggleSort(col.key)}
+                >
+                  {col.header}
+                  <span aria-hidden="true" className="text-[10px]">
+                    {sortState?.key === col.key
+                      ? sortState.direction === "asc"
+                        ? "↑"
+                        : "↓"
+                      : "↕"}
+                  </span>
+                </button>
+              ) : (
+                col.header
+              )}
             </th>
           ))}
           {hasActions && <th className="w-10 px-3 py-2" />}
@@ -114,7 +188,7 @@ export function DataTable<T>({
             </td>
           </tr>
         ) : (
-          rows.map((row) => {
+          displayRows.map((row) => {
             const id = getRowId(row);
             return (
               <tr
