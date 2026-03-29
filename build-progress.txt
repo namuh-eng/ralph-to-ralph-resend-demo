@@ -423,3 +423,37 @@
 - src/app/(dashboard)/emails/page.tsx — Server component fetching API keys, rendering client page
 - tests/emails-filter-bar.test.tsx — 12 unit tests for filter bar
 - tests/e2e/emails-filter-bar.spec.ts — 3 E2E tests for filter interactions
+
+## Iteration 15 — feature-003: Emails Sending Tab Data Table (2026-03-29)
+
+### What was built
+- EmailsSendingDataTable client component (`src/components/emails-sending-data-table.tsx`) with:
+  - 4 columns: To (avatar + email link), Status (colored badge), Subject (plain text), Sent (relative time with tooltip)
+  - Avatar circle with initial letter and deterministic color based on email hash
+  - Email links navigate to `/emails/:id` detail page
+  - Status badges with color-coded variants (success=delivered/sent, error=bounced/failed, info=opened/clicked, warning=delivery_delayed/complained, default=queued/scheduled/canceled/suppressed)
+  - Relative time formatting ("about X hours/minutes/days ago") with full datetime tooltip
+  - Three-dot "More actions" button per row
+  - Empty state "No emails found" when no emails
+- Updated EmailsSendingPage to integrate data table with client-side filtering (search by to/subject, filter by status)
+- Updated /emails server page to fetch emails from DB (ordered by created_at desc, limit 100)
+- `formatRelativeTime()` and `getStatusVariant()` exported for reuse and testing
+
+### Test results
+- 8 new unit tests passing (rows with columns, status badges, email links, avatars, action buttons, empty state, relative time formatting, status variant mapping)
+- 1 E2E test written (click email navigates to detail page)
+- 200 total unit tests passing (192 previous + 8 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Built standalone data table component rather than using generic DataTable — email table has unique cell rendering (avatar, link, badge) that doesn't fit generic column approach cleanly
+- Client-side filtering for search and status applied via useMemo in EmailsSendingPage
+- Relative time uses simple math (no library) for "about X ago" format matching Resend's style
+- Avatar color derived from email string hash for consistent colors per recipient
+
+### Files changed
+- src/components/emails-sending-data-table.tsx — Data table component with all email-specific rendering
+- src/components/emails-sending-page.tsx — Updated to include data table + client-side filtering
+- src/app/(dashboard)/emails/page.tsx — Updated to fetch emails from DB
+- tests/emails-data-table.test.tsx — 8 unit tests for data table
+- tests/e2e/emails-data-table.spec.ts — E2E test for email navigation

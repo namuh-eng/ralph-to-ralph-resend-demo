@@ -562,7 +562,7 @@
     "data_model": "Email list item: { id: string, to: string, status: EmailStatus, subject: string, sent_at: Date }. EmailStatus enum: bounced | canceled | clicked | complained | delivered | delivery_delayed | failed | opened | scheduled | sent | queued | suppressed",
     "priority": 5,
     "core": true,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
