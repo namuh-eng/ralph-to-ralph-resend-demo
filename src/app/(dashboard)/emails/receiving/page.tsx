@@ -1,9 +1,9 @@
 import { EmailsHeader } from "@/components/emails-header";
 
-export default function EmailsPage() {
+export default function EmailsReceivingPage() {
   return (
     <div>
-      <EmailsHeader activeTab="sending" />
+      <EmailsHeader activeTab="receiving" />
     </div>
   );
 }

@@ -362,3 +362,32 @@
 - src/app/api/api-keys/[id]/route.ts — GET, PATCH, DELETE endpoints for single API key
 - tests/api-key-detail.test.tsx — 8 unit tests for API Key detail page
 - tests/e2e/api-key-detail.spec.ts — E2E test for editing API key name
+
+## Iteration 13 — feature-001: Emails Page Layout (2026-03-29)
+
+### What was built
+- EmailsHeader client component (`src/components/emails-header.tsx`) with:
+  - "Emails" h1 page title
+  - Sending/Receiving tab bar using Next.js Link for URL-based navigation
+  - Active tab underline indicator with data-state attribute
+  - Sending tab links to /emails, Receiving tab links to /emails/receiving
+  - Three-dot More actions button with dropdown menu containing "Go to docs" link
+  - Click-outside-to-close for dropdown menu
+- Updated /emails page to use EmailsHeader with activeTab="sending"
+- Created /emails/receiving page with EmailsHeader activeTab="receiving"
+
+### Test results
+- 8 new unit tests passing (page title, tabs render, Sending active, Receiving active, Sending href, Receiving href, More actions button, Go to docs dropdown)
+- 180 total tests passing (172 previous + 8 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Used Link components (not Tabs state) for tab navigation since tabs change URL routes
+- EmailsHeader is a reusable client component that takes activeTab prop from server pages
+- More actions dropdown uses same click-outside pattern as other components
+
+### Files changed
+- src/components/emails-header.tsx — EmailsHeader component with tabs, title, more actions
+- src/app/(dashboard)/emails/page.tsx — Updated to use EmailsHeader
+- src/app/(dashboard)/emails/receiving/page.tsx — New receiving page with EmailsHeader
+- tests/emails-page.test.tsx — 8 unit tests for emails page layout

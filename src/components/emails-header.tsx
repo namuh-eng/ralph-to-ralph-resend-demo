@@ -1,0 +1,91 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+
+interface EmailsHeaderProps {
+  activeTab: "sending" | "receiving";
+}
+
+const tabs = [
+  { value: "sending", label: "Sending", href: "/emails" },
+  { value: "receiving", label: "Receiving", href: "/emails/receiving" },
+] as const;
+
+export function EmailsHeader({ activeTab }: EmailsHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold text-[#F0F0F0]">Emails</h1>
+      </div>
+      <div className="flex items-center justify-between border-b border-[rgba(176,199,217,0.145)]">
+        <div className="flex items-center gap-0">
+          {tabs.map((tab) => {
+            const isActive = tab.value === activeTab;
+            return (
+              <Link
+                key={tab.value}
+                href={tab.href}
+                data-state={isActive ? "active" : "inactive"}
+                className={`px-4 py-2 text-[14px] font-medium transition-colors relative ${
+                  isActive
+                    ? "text-[#F0F0F0]"
+                    : "text-[#A1A4A5] hover:text-[#F0F0F0]"
+                }`}
+              >
+                {tab.label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#F0F0F0]" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            aria-label="More actions"
+            className="p-1.5 rounded hover:bg-[rgba(24,25,28,0.5)] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="3" r="1.5" />
+              <circle cx="8" cy="8" r="1.5" />
+              <circle cx="8" cy="13" r="1.5" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-[8px] py-1 z-10">
+              <a
+                href="/docs"
+                className="block px-3 py-2 text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] hover:bg-[rgba(176,199,217,0.1)] transition-colors"
+              >
+                Go to docs
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
