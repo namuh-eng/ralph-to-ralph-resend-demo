@@ -25,11 +25,11 @@ You are an AI product builder. Your job is to build a working clone of a real pr
    - Match the original product's UI as closely as possible
    - Use `behavior` and `ui_details` fields in prd.json for guidance
    - Check `screenshots/` for visual reference
-6. **Run feedback loops:**
+6. **Run feedback loops (ALL existing tests, not just new ones — catches regressions):**
    - `make check` — typecheck + lint/format (must pass)
-   - `make test` — all unit tests (must pass)
-   - `make test-e2e` — Playwright E2E tests (must pass)
-   - Do NOT proceed if any fail. Fix issues first.
+   - `make test` — ALL unit tests (must pass, including previous features)
+   - `make test-e2e` — ALL Playwright E2E tests (must pass, including previous features)
+   - If any fail, fix the issue and re-run. Do NOT proceed until all green.
 7. Update `prd.json`: set `passes` to true ONLY after all tests pass.
 8. Append to `build-progress.txt`: what you built, test results, decisions, files changed.
 9. **Commit and push:**
