@@ -12,9 +12,9 @@
   "dispatch_drain": {
     "enabled": true,
     "max_per_tick": 5,
-    "run_count": 2739,
+    "run_count": 9723,
     "leader_only": true,
-    "last_tick_at": "2026-03-29T08:24:28.838Z",
+    "last_tick_at": "2026-03-29T09:06:21.498Z",
     "last_result": {
       "processed": 0,
       "skipped": 0,
@@ -26,17 +26,17 @@
     "enabled": true,
     "leader_only": true,
     "stale_threshold_ms": 180000,
-    "precomputed_leader_stale": true,
-    "last_tick_at": "2026-03-29T08:24:28.838Z",
+    "precomputed_leader_stale": false,
+    "last_tick_at": "2026-03-29T09:06:21.498Z",
     "last_error": null,
-    "run_count": 2739
+    "run_count": 9723
   },
   "ralph_continue_steer": {
     "enabled": true,
     "cadence_ms": 60000,
     "message": "Ralph loop active continue",
     "active": false,
-    "last_state_check_at": "2026-03-29T08:24:28.922Z",
+    "last_state_check_at": "2026-03-29T09:06:21.638Z",
     "last_sent_at": "",
     "cooldown_anchor_at": "",
     "last_reason": "cleared",
@@ -52,13 +52,13 @@
   "fallback_auto_nudge": {
     "enabled": true,
     "stall_ms": 5000,
-    "last_tick_at": "2026-03-29T08:24:28.922Z",
+    "last_tick_at": "2026-03-29T09:06:21.638Z",
     "last_turn_at": "2026-03-29T08:09:07.091Z",
     "last_turn_count": 0,
     "last_message": "",
     "last_reason": "hud_state_incomplete",
     "last_error": null,
-    "last_nudged_signature": "hud:4|2026-03-29T06:20:25.836Z|Yes — here’s the **fastest practical OMX plan**.\n\n### Best answer\n- **Yes, you can do this**\n- Use *",
+    "last_nudged_signature": "hud:2|2026-03-29T08:48:57.382Z|Done.\n\nI took the next item after `infra-004`, `layout-001`, and used Ever CLI for the manual pass.",
     "last_nudged_at": "2026-03-29T06:20:34.924Z"
   }
 }
