@@ -4,7 +4,13 @@ dist/
 .env
 .DS_Store
 .omc/
-.omx/
+.omx/state/
+.omx/metrics.json
+# Track only QA/review-relevant logs; ignore noisy runtime hook logs.
+.omx/logs/*.jsonl
+!.omx/logs/omx-*.jsonl
+!.omx/logs/session-history.jsonl
+!.omx/logs/notify-fallback-*.jsonl
 
 # Runtime files
 *.log
