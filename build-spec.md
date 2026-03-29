@@ -296,6 +296,95 @@ contact.created, contact.updated, contact.deleted
    - CSS code editor (contenteditable) with syntax highlighting
    - Quick-insert buttons: `@media (prefers-color-scheme: dark)`, `@media screen and (max-width: 480px)`, `.button`
 
+### 6.6 Templates — List Page (`/templates`)
+
+**Layout**: Page title "Templates" + "Create template" button + API drawer button → filter bar → card grid
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Status filter** (combobox, default "All Statuses") — 3 options:
+   - All Statuses, Draft, Published
+
+**Card Grid** (not a table — card layout):
+- Each card: preview image thumbnail (auto-generated screenshot of email content), template name, alias (slug in monospace/code style, e.g., `untitled-template`)
+- Clicking card image/name navigates to `/templates/:id/editor`
+- **Card actions**: three-dot "More actions" button → dropdown with:
+  - View details
+  - Edit template
+  - Rename template
+  - Duplicate template
+  - *(separator)*
+  - Remove template
+
+**Create template**: Button creates a new template and navigates to the editor
+
+### 6.7 Templates — Editor (`/templates/:id/editor`)
+
+**Layout**: Very similar to Broadcast editor — header bar → form fields + content editor (center) + style sidebar (right). Shares the same block-based editor component.
+
+**Header**:
+- Back arrow → "Templates" breadcrumb link
+- Editable title button (default "Untitled Template")
+- "Publish" button (disabled until content is ready) — NOT a "Review" button like broadcasts
+- More actions menu (see below)
+
+**More Actions** (in editor):
+- Test email
+- Version history
+- View details
+- Duplicate
+- *(separator)*
+- Delete
+
+**Form Fields** (simpler than broadcasts — no recipients):
+- **From**: text input with autocomplete (placeholder "Acme <acme@example.com>")
+- **Reply-To**: text input (toggleable, hidden by default — "Reply-To" button to show)
+- **Subject**: text input (placeholder "Subject")
+- **Preview text**: text input (maxlength 150 — toggleable, "Preview text" button to show)
+- **NO** To, When, or Subscribe to fields (unlike broadcasts — templates don't have recipients)
+
+**Content Editor**: Identical to Broadcast editor — same block-based rich text editor with '/' slash commands, same 4 toolbar tabs (Text, Image, Components, Variables), same file upload.
+
+**Right Sidebar**: Identical to Broadcast editor — Page style, Theme (minimal/basic presets, 4 text levels), Global CSS with quick-insert buttons.
+
+**Version History**: Available in right sidebar — tracks template revisions.
+
+**Key Differences from Broadcast Editor**:
+| Aspect | Template Editor | Broadcast Editor |
+|--------|----------------|-----------------|
+| Publish action | "Publish" button | "Review" → slide-to-send |
+| Recipients | No To field | To (audience/segment) |
+| Scheduling | No When field | When (date/time) |
+| Topics | No Subscribe to | Subscribe to (topic) |
+| Status flow | Draft → Published | Draft → Scheduled/Queued → Sent |
+| Version history | In sidebar | Not observed |
+| More actions | Test email, Version history, View details, Duplicate, Delete | (via header buttons) |
+
+### 6.8 Templates — Detail Page (`/templates/:id`)
+
+**Layout**: "Template" breadcrumb label + template name as h1 heading + API drawer button + More actions button
+
+**Metadata** (horizontal key-value pairs):
+- **Status**: badge (e.g., "published")
+- **Variables**: count or "No variables"
+- **Alias**: slug with copy-to-clipboard button (e.g., `untitled-template`)
+- **Created**: relative timestamp
+- **Creator**: email address of who created it
+
+**More Actions** (on details page):
+- Edit template
+- Rename template
+- Duplicate template
+- *(separator)*
+- Remove template
+
+**Content Tabs** (3 tabs — NOT 4 like email detail):
+1. **Preview** — rendered template in iframe (default active)
+2. **HTML** — raw HTML source
+3. **Plain Text** — plain text version
+- Copy button next to tabs (copies content of active tab)
+- **No Insights tab** (unlike email detail)
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout

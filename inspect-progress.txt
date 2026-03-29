@@ -101,7 +101,7 @@
 - screenshots/inspect/ — emails-sending.jpg, emails-date-range-picker.jpg, emails-status-filter.jpg, emails-api-drawer.jpg, email-detail.jpg, email-detail-insights.jpg, emails-receiving.jpg
 
 ### Next:
-- Iteration 4: Deep dive — Templates page
+- Iteration 5: Deep dive — Audience page
 
 ---
 
@@ -139,4 +139,44 @@
 - screenshots/inspect/ — broadcasts-list.jpg, broadcasts-editor.jpg, broadcasts-review-panel.jpg, broadcasts-editor-variables.jpg
 
 ### Next:
-- Iteration 4: Deep dive — Templates page
+- Iteration 5: Deep dive — Audience page
+
+---
+
+## Iteration 4: Templates Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Templates list page, inspected all interactive elements
+- Opened and inspected Status filter: 3 options (All Statuses, Draft, Published)
+- Inspected template card layout: preview image thumbnail, name, alias in monospace
+- Inspected card actions: View details, Edit template, Rename template, Duplicate template, Remove template
+- Navigated to Template Editor (/templates/:id/editor)
+- Inspected editor header: back arrow, breadcrumb, editable title, Publish button (disabled until ready), More actions
+- Inspected form fields: From (autocomplete), Reply-To (toggleable), Subject, Preview text (toggleable, maxlength 150)
+- Confirmed NO To, When, or Subscribe to fields (templates don't have recipients)
+- Confirmed same block-based content editor as broadcasts (slash commands, toolbar tabs, right sidebar)
+- Inspected right sidebar: Page style, Theme (minimal/basic), Global CSS — identical to broadcast editor
+- Inspected More actions in editor: Test email, Version history, View details, Duplicate, Delete
+- Navigated to Template Detail page (/templates/:id)
+- Inspected detail metadata: Status (published badge), Variables (No variables), Alias (with copy button), Created (relative time), Creator (email)
+- Inspected content tabs: Preview (iframe), HTML, Plain Text — NO Insights tab (unlike email detail)
+- Inspected detail More actions: Edit template, Rename template, Duplicate template, Remove template
+
+### Key findings:
+- Templates use CARD GRID layout (not a table like other list pages)
+- 2 template statuses: draft, published (vs 5 broadcast statuses, 12 email statuses)
+- Template editor shares the same block-based editor component as broadcasts
+- Template editor is simpler than broadcast editor: no To, When, Subscribe to fields
+- Templates use "Publish" action instead of "Review" → "Slide to send"
+- Template editor has Version history in sidebar (not observed in broadcast editor)
+- Template detail page has 3 content tabs (Preview, HTML, Plain Text) — no Insights tab
+- Template detail shows metadata: Status, Variables, Alias, Created, Creator
+- Template alias is a URL-safe slug with copy-to-clipboard
+
+### Files created/updated:
+- build-spec.md — Added sections 6.6 (Templates List), 6.7 (Template Editor), 6.8 (Template Detail)
+- prd.json — Added 3 feature entries (feature-013 through feature-015)
+- screenshots/inspect/ — templates-list.jpg, template-editor.jpg, template-details.jpg
+
+### Next:
+- Iteration 5: Deep dive — Audience page (Contacts, Properties, Segments, Topics tabs)

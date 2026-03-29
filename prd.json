@@ -546,5 +546,161 @@
       ],
       "edge_cases": []
     }
+  },
+  {
+    "id": "feature-013",
+    "category": "crud",
+    "description": "Templates list page — card grid with name, alias, preview thumbnail, status filter, search, create button",
+    "page": "Templates",
+    "ui_details": "Page title 'Templates' + 'Create template' button (right of title) + API drawer button. Filter bar: Search input (Shadow DOM), Status combobox (All Statuses, Draft, Published). Card grid layout (not table): each card has preview image thumbnail, template name (link to /templates/:id/editor), alias in monospace (e.g., 'untitled-template'). Card actions button (three-dot menu).",
+    "behavior": "Clicking card navigates to template editor. Create template button creates new template and navigates to editor. Status filter narrows by draft/published. Card actions dropdown: View details, Edit template, Rename template, Duplicate template, (separator), Remove template.",
+    "data_model": "Template list item: { id: string, name: string, alias: string, status: TemplateStatus, preview_url: string, created_at: Date }. TemplateStatus enum: draft | published",
+    "priority": 10,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders template cards with name and alias",
+          "description": "Each template card displays preview image, name, and alias",
+          "input": "Array of template objects",
+          "expected_output": "Card grid with all templates showing name and alias"
+        },
+        {
+          "name": "status filter shows Draft and Published options",
+          "description": "Status combobox shows All Statuses, Draft, Published",
+          "input": "Click status combobox",
+          "expected_output": "3 options: All Statuses, Draft, Published"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "navigate to template editor from card",
+          "steps": [
+            "Navigate to /templates",
+            "Click on a template card",
+            "Verify URL changes to /templates/:id/editor"
+          ],
+          "expected": "Navigation to template editor page"
+        },
+        {
+          "name": "create new template",
+          "steps": [
+            "Navigate to /templates",
+            "Click 'Create template' button",
+            "Verify new template editor opens"
+          ],
+          "expected": "New template created and editor opens"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "card action — remove template",
+          "steps": ["Click three-dot menu on a template card", "Click 'Remove template'"],
+          "expected": "Confirmation dialog or template removed from grid"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-014",
+    "category": "crud",
+    "description": "Template editor — form fields (From, Reply-To, Subject, Preview text) and shared block editor",
+    "page": "Templates > Editor",
+    "ui_details": "Full-page editor layout. Header: back arrow + breadcrumb 'Templates' + editable title + 'Publish' button (disabled until ready) + More actions button. Form fields: From (autocomplete input), Reply-To (toggleable), Subject (text input), Preview text (toggleable, maxlength 150). NO To, When, or Subscribe to fields. Same block-based content editor as broadcasts with slash commands and toolbar tabs (Text, Image, Components, Variables).",
+    "behavior": "Title is inline-editable. Reply-To and Preview text hidden by default — toggle buttons show them. Publish button publishes the template (vs Review/Send for broadcasts). More actions: Test email, Version history, View details, Duplicate, Delete. Same content editor as broadcasts with same slash commands, toolbar, and right sidebar (Page style, Theme, Global CSS).",
+    "data_model": "Template editor: { id: string, name: string, alias: string, from: string, reply_to: string, subject: string, preview_text: string, html: string, status: TemplateStatus }",
+    "priority": 10,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders template editor form fields",
+          "description": "Editor shows From and Subject fields; Reply-To and Preview text are toggleable",
+          "input": "Navigate to template editor",
+          "expected_output": "From and Subject visible; Reply-To and Preview text hidden until toggled"
+        },
+        {
+          "name": "no recipient or scheduling fields",
+          "description": "Template editor does not have To, When, or Subscribe to fields",
+          "input": "Navigate to template editor",
+          "expected_output": "No To, When, or Subscribe to fields present"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "edit template title inline",
+          "steps": [
+            "Navigate to a template editor",
+            "Click on the title",
+            "Type 'My Template'",
+            "Click outside the title",
+            "Verify title updates"
+          ],
+          "expected": "Title changes to 'My Template'"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "preview text maxlength enforcement",
+          "steps": ["Toggle Preview text field", "Type 160 characters"],
+          "expected": "Input blocked or truncated at 150 characters"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-015",
+    "category": "ui",
+    "description": "Template detail page — metadata display with status, variables, alias, creator, and content preview tabs",
+    "page": "Template Detail",
+    "ui_details": "Page header: 'Template' label + template name as h1. Metadata section: Status (badge: draft/published), Variables (count or 'No variables'), Alias (slug with copy button), Created (relative time), Creator (email). Content tabs: Preview (default, iframe), HTML, Plain Text. Copy button next to tabs. API drawer button + More actions button.",
+    "behavior": "Copy button copies alias to clipboard. Tabs switch between rendered preview, HTML source, and plain text. More actions: Edit template, Rename template, Duplicate template, (separator), Remove template. No Insights tab (unlike email detail).",
+    "data_model": "Template detail: { id: string, name: string, alias: string, status: TemplateStatus, variables: Array<{ name: string, type: string }>, from: string, subject: string, html: string, text: string, created_at: Date, creator: string }",
+    "priority": 10,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders template metadata fields",
+          "description": "Shows Status, Variables, Alias, Created, Creator fields",
+          "input": "Template detail object",
+          "expected_output": "All 5 metadata fields displayed with correct values"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view template detail page",
+          "steps": [
+            "Navigate to /templates",
+            "Click three-dot menu on a template card",
+            "Click 'View details'",
+            "Verify detail page loads with metadata",
+            "Verify Preview tab is active with rendered content"
+          ],
+          "expected": "Template detail page shows metadata and content preview"
+        },
+        {
+          "name": "switch between content tabs",
+          "steps": [
+            "On template detail page",
+            "Click 'HTML' tab",
+            "Verify HTML source is displayed",
+            "Click 'Plain Text' tab",
+            "Verify plain text is displayed"
+          ],
+          "expected": "Tab switching works, content updates for each tab"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "copy alias to clipboard",
+          "steps": ["Click copy button next to alias"],
+          "expected": "Alias copied to clipboard, button shows success state"
+        }
+      ]
+    }
   }
 ]
