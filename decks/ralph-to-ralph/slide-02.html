@@ -9,7 +9,7 @@
       height: 405pt;
       font-family: 'Pretendard', sans-serif;
       background: #0f0f0f;
-      padding: 40pt 48pt;
+      padding: 28pt 36pt;
       display: flex;
       flex-direction: column;
     }
@@ -17,64 +17,25 @@
 </head>
 <body>
   <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12pt;">
     <div style="display: flex; align-items: center; gap: 12pt;">
-      <p style="display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">PROBLEM</p>
-      <h2 style="font-size: 24pt; font-weight: 600; color: #ffffff;">The Gap Between Vision and Production</h2>
+      <p style="display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">OVERVIEW</p>
+      <h2 style="font-size: 18pt; font-weight: 600; color: #ffffff;">Architecture</h2>
     </div>
     <p style="font-size: 10pt; color: #666;">02</p>
   </div>
 
-  <!-- Content -->
-  <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 32pt;">
-    <!-- Left: Who & What -->
-    <div style="display: flex; flex-direction: column; gap: 20pt;">
-      <div>
-        <div style="display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;">
-          <div style="width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <p style="font-size: 12pt;">👤</p>
-          </div>
-          <h3 style="font-size: 14pt; font-weight: 600; color: #ffffff;">Who</h3>
-        </div>
-        <p style="font-size: 12pt; color: #b0b0b0; line-height: 1.6;">
-          Non-technical founders who want to build or clone a SaaS product.
-        </p>
-      </div>
-      <div>
-        <div style="display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;">
-          <div style="width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <p style="font-size: 12pt;">⚡</p>
-          </div>
-          <h3 style="font-size: 14pt; font-weight: 600; color: #ffffff;">The Pain</h3>
-        </div>
-        <p style="font-size: 12pt; color: #b0b0b0; line-height: 1.6;">
-          They know <em style="color: #ffffff; font-weight: 500;">exactly</em> what to build — but can't build and launch it at production quality themselves.
-        </p>
-      </div>
-      <div style="background: #1a1a1a; border-radius: 8pt; padding: 14pt 16pt; border-left: 3pt solid #dc2626;">
-        <p style="font-size: 11pt; color: #b0b0b0; line-height: 1.6;">
-          Getting to production takes <span style="color: #ffffff; font-weight: 600;">months or years</span>, requires <span style="color: #ffffff; font-weight: 600;">entire engineering teams</span>, and costs <span style="color: #ffffff; font-weight: 600;">significant money</span>.
-        </p>
-      </div>
-    </div>
-
-    <!-- Right: Story -->
-    <div style="display: flex; flex-direction: column; justify-content: center;">
-      <div style="background: #1a1a1a; border-radius: 8pt; padding: 24pt; border: 1px solid #333;">
-        <p style="font-size: 9pt; font-weight: 600; color: #dc2626; letter-spacing: 0.1em; margin-bottom: 12pt;">REAL SCENARIO</p>
-        <p style="font-size: 13pt; color: #e0e0e0; line-height: 1.7;">
-          A solo founder sees a product like <span style="color: #ffffff; font-weight: 600;">Resend</span>. They know customers want it. They know exactly which features to copy.
-        </p>
-        <p style="font-size: 13pt; color: #e0e0e0; line-height: 1.7; margin-top: 12pt;">
-          But they get stuck — because turning that into a real app means <span style="color: #b0b0b0;">frontend, backend, infra, APIs, auth, deployment, and ops</span> they cannot do alone.
-        </p>
-      </div>
+  <!-- Architecture diagram -->
+  <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+    <div style="width: 100%; height: 100%; border-radius: 8pt; overflow: hidden; border: 1px solid #333; background: #ffffff;">
+      <img src="./assets/architecture-diagram.png" style="width: 100%; height: 100%; object-fit: contain;" alt="Ralph-to-Ralph Architecture Diagram">
     </div>
   </div>
 
   <!-- Footer -->
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14pt; border-top: 1px solid #252525;">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;">
     <p style="font-size: 9pt; color: #666;">Ralph-to-Ralph</p>
+    <p style="font-size: 9pt; color: #b0b0b0;">Give it any URL → deployed working clone</p>
     <p style="font-size: 9pt; color: #666;">Ralphthon Seoul 2026</p>
   </div>
 </body>

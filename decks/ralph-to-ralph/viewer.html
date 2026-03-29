@@ -114,7 +114,7 @@
     <!-- Navigation -->
     <div class="nav-bar">
       <button id="btn-prev" title="Previous (\u2190)">Prev</button>
-      <span class="slide-counter" id="counter">1 / 7</span>
+      <span class="slide-counter" id="counter">1 / 10</span>
       <button id="btn-next" title="Next (\u2192)">Next</button>
       <button class="btn-fullscreen" id="btn-fs" title="Fullscreen (F)">&#x26F6;</button>
     </div>
@@ -361,7 +361,7 @@
       height: 405pt;
       font-family: 'Pretendard', sans-serif;
       background: #0f0f0f;
-      padding: 40pt 48pt;
+      padding: 28pt 36pt;
       display: flex;
       flex-direction: column;
     }
@@ -369,64 +369,25 @@
 </head>
 <body>
   <!-- Header -->
-  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 12pt;&quot;>
     <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
-      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>PROBLEM</p>
-      <h2 style=&quot;font-size: 24pt; font-weight: 600; color: #ffffff;&quot;>The Gap Between Vision and Production</h2>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>OVERVIEW</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>Architecture</h2>
     </div>
     <p style=&quot;font-size: 10pt; color: #666;&quot;>02</p>
   </div>
 
-  <!-- Content -->
-  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 32pt;&quot;>
-    <!-- Left: Who &amp; What -->
-    <div style=&quot;display: flex; flex-direction: column; gap: 20pt;&quot;>
-      <div>
-        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
-          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
-            <p style=&quot;font-size: 12pt;&quot;>👤</p>
-          </div>
-          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>Who</h3>
-        </div>
-        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
-          Non-technical founders who want to build or clone a SaaS product.
-        </p>
-      </div>
-      <div>
-        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
-          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
-            <p style=&quot;font-size: 12pt;&quot;>⚡</p>
-          </div>
-          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>The Pain</h3>
-        </div>
-        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
-          They know <em style=&quot;color: #ffffff; font-weight: 500;&quot;>exactly</em> what to build — but can't build and launch it at production quality themselves.
-        </p>
-      </div>
-      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 14pt 16pt; border-left: 3pt solid #dc2626;&quot;>
-        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
-          Getting to production takes <span style=&quot;color: #ffffff; font-weight: 600;&quot;>months or years</span>, requires <span style=&quot;color: #ffffff; font-weight: 600;&quot;>entire engineering teams</span>, and costs <span style=&quot;color: #ffffff; font-weight: 600;&quot;>significant money</span>.
-        </p>
-      </div>
-    </div>
-
-    <!-- Right: Story -->
-    <div style=&quot;display: flex; flex-direction: column; justify-content: center;&quot;>
-      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 24pt; border: 1px solid #333;&quot;>
-        <p style=&quot;font-size: 9pt; font-weight: 600; color: #dc2626; letter-spacing: 0.1em; margin-bottom: 12pt;&quot;>REAL SCENARIO</p>
-        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7;&quot;>
-          A solo founder sees a product like <span style=&quot;color: #ffffff; font-weight: 600;&quot;>Resend</span>. They know customers want it. They know exactly which features to copy.
-        </p>
-        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7; margin-top: 12pt;&quot;>
-          But they get stuck — because turning that into a real app means <span style=&quot;color: #b0b0b0;&quot;>frontend, backend, infra, APIs, auth, deployment, and ops</span> they cannot do alone.
-        </p>
-      </div>
+  <!-- Architecture diagram -->
+  <div style=&quot;flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;&quot;>
+    <div style=&quot;width: 100%; height: 100%; border-radius: 8pt; overflow: hidden; border: 1px solid #333; background: #ffffff;&quot;>
+      <img src=&quot;./assets/architecture-diagram.png&quot; style=&quot;width: 100%; height: 100%; object-fit: contain;&quot; alt=&quot;Ralph-to-Ralph Architecture Diagram&quot;>
     </div>
   </div>
 
   <!-- Footer -->
-  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 14pt; border-top: 1px solid #252525;&quot;>
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
     <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Give it any URL → deployed working clone</p>
     <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
   </div>
 </body>
@@ -525,7 +486,7 @@
       height: 405pt;
       font-family: 'Pretendard', sans-serif;
       background: #0f0f0f;
-      padding: 36pt 48pt;
+      padding: 40pt 48pt;
       display: flex;
       flex-direction: column;
     }
@@ -533,87 +494,64 @@
 </head>
 <body>
   <!-- Header -->
-  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
     <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
-      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>SOLUTION</p>
-      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #ffffff;&quot;>How It Works</h2>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>PROBLEM</p>
+      <h2 style=&quot;font-size: 24pt; font-weight: 600; color: #ffffff;&quot;>The Gap Between Vision and Production</h2>
     </div>
     <p style=&quot;font-size: 10pt; color: #666;&quot;>03</p>
   </div>
 
-  <!-- One-sentence definition -->
-  <div style=&quot;margin-bottom: 18pt; padding: 12pt 16pt; background: #1a1a1a; border-radius: 8pt; border-left: 3pt solid #6366f1;&quot;>
-    <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.5;&quot;>
-      <span style=&quot;color: #6366f1; font-weight: 600;&quot;>Ralph-to-Ralph</span> clones real products end-to-end — from browser analysis to deployed production software. <span style=&quot;color: #ffffff; font-weight: 500;&quot;>Real, working products that you now own.</span>
-    </p>
-  </div>
-
-  <!-- 4-phase workflow -->
-  <div style=&quot;flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12pt;&quot;>
-    <!-- Phase 1: Inspect -->
-    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #818cf8;&quot;>
-      <p style=&quot;font-size: 8pt; font-weight: 600; color: #818cf8; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1</p>
-      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Inspect</h3>
-      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #1</p>
-      <div style=&quot;flex: 1;&quot;>
-        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Ever CLI + Claude Opus analyzes the target URL</p>
+  <!-- Content -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 32pt;&quot;>
+    <!-- Left: Who &amp; What -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 20pt;&quot;>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
+          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+            <p style=&quot;font-size: 12pt;&quot;>👤</p>
+          </div>
+          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>Who</h3>
+        </div>
+        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Non-technical founders who want to build or clone a SaaS product.
+        </p>
       </div>
-      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
-        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ PRD.json</p>
-        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ build-spec.md</p>
-        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ sitemap + screenshots</p>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
+          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+            <p style=&quot;font-size: 12pt;&quot;>⚡</p>
+          </div>
+          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>The Pain</h3>
+        </div>
+        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          They know <em style=&quot;color: #ffffff; font-weight: 500;&quot;>exactly</em> what to build — but can't build and launch it at production quality themselves.
+        </p>
       </div>
-    </div>
-
-    <!-- Phase 2: Plan -->
-    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #a78bfa;&quot;>
-      <p style=&quot;font-size: 8pt; font-weight: 600; color: #a78bfa; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1.5</p>
-      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Plan</h3>
-      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Derived from Inspect</p>
-      <div style=&quot;flex: 1;&quot;>
-        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Structured spec becomes the build blueprint</p>
-      </div>
-      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
-        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ PRD.json</p>
-        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ spec.md</p>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 14pt 16pt; border-left: 3pt solid #dc2626;&quot;>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Getting to production takes <span style=&quot;color: #ffffff; font-weight: 600;&quot;>months or years</span>, requires <span style=&quot;color: #ffffff; font-weight: 600;&quot;>entire engineering teams</span>, and costs <span style=&quot;color: #ffffff; font-weight: 600;&quot;>significant money</span>.
+        </p>
       </div>
     </div>
 
-    <!-- Phase 3: Build -->
-    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #3b82f6;&quot;>
-      <p style=&quot;font-size: 8pt; font-weight: 600; color: #3b82f6; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 2</p>
-      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Build</h3>
-      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #2</p>
-      <div style=&quot;flex: 1;&quot;>
-        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Claude Agent (Opus) builds the full stack</p>
-      </div>
-      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
-        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ API Routes + Components</p>
-        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ Tests (Vitest)</p>
-        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ AWS Infra (SES, RDS, S3)</p>
-      </div>
-    </div>
-
-    <!-- Phase 4: QA -->
-    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #22c55e;&quot;>
-      <p style=&quot;font-size: 8pt; font-weight: 600; color: #22c55e; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 3</p>
-      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>QA</h3>
-      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #3</p>
-      <div style=&quot;flex: 1;&quot;>
-        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Codex Agents run parallel verification</p>
-      </div>
-      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
-        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ E2E via Ever CLI</p>
-        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Bug Fixes + Screenshots</p>
-        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Regression Tests</p>
+    <!-- Right: Story -->
+    <div style=&quot;display: flex; flex-direction: column; justify-content: center;&quot;>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 24pt; border: 1px solid #333;&quot;>
+        <p style=&quot;font-size: 9pt; font-weight: 600; color: #dc2626; letter-spacing: 0.1em; margin-bottom: 12pt;&quot;>REAL SCENARIO</p>
+        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7;&quot;>
+          A solo founder sees a product like <span style=&quot;color: #ffffff; font-weight: 600;&quot;>Resend</span>. They know customers want it. They know exactly which features to copy.
+        </p>
+        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7; margin-top: 12pt;&quot;>
+          But they get stuck — because turning that into a real app means <span style=&quot;color: #b0b0b0;&quot;>frontend, backend, infra, APIs, auth, deployment, and ops</span> they cannot do alone.
+        </p>
       </div>
     </div>
   </div>
 
   <!-- Footer -->
-  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 12pt; border-top: 1px solid #252525;&quot;>
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 14pt; border-top: 1px solid #252525;&quot;>
     <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
-    <p style=&quot;font-size: 9pt; color: #dc2626;&quot;>Bug Found → Fix → Retest (up to 5 cycles)</p>
     <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
   </div>
 </body>
@@ -722,76 +660,58 @@
   <!-- Header -->
   <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 18pt;&quot;>
     <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
-      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #f59e0b; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>RALPH SETUP</p>
-      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>AI Agents &amp;amp; Operating Discipline</h2>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #f59e0b; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>PROBLEM #2</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>PRDs Are Hard to Get Right</h2>
     </div>
     <p style=&quot;font-size: 10pt; color: #666;&quot;>04</p>
   </div>
 
   <!-- Content -->
   <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; overflow: hidden;&quot;>
-    <!-- Left: AI Agents -->
-    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
-      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>AI AGENTS &amp;amp; TOOLS</p>
-
-      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
-        <div style=&quot;width: 24pt; height: 24pt; background: #1e3a5f; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
-          <p style=&quot;font-size: 11pt; color: #3b82f6; font-weight: 700;&quot;>E</p>
-        </div>
-        <div>
-          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Ever CLI <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>foreverbrowsing.com</span></p>
-          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Custom browser agent for inspection &amp;amp; E2E</p>
-        </div>
+    <!-- Left: The pain -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 14pt;&quot;>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; border-left: 3pt solid #dc2626;&quot;>
+        <h3 style=&quot;font-size: 13pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>The Old Way</h3>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Writing a <span style=&quot;color: #ffffff; font-weight: 500;&quot;>PRD.json</span> and <span style=&quot;color: #ffffff; font-weight: 500;&quot;>spec.md</span> manually takes hours — sometimes days. And if you get it wrong, it cascades through the entire build loop.
+        </p>
       </div>
-
-      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
-        <div style=&quot;width: 24pt; height: 24pt; background: #3b1f2b; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
-          <p style=&quot;font-size: 11pt; color: #f472b6; font-weight: 700;&quot;>C</p>
-        </div>
-        <div>
-          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Claude Opus <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>Anthropic</span></p>
-          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Powers Inspect + Build loops</p>
-        </div>
-      </div>
-
-      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
-        <div style=&quot;width: 24pt; height: 24pt; background: #1a2e1a; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
-          <p style=&quot;font-size: 11pt; color: #22c55e; font-weight: 700;&quot;>X</p>
-        </div>
-        <div>
-          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Codex <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>OpenAI</span></p>
-          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Parallel QA agents for verification</p>
-        </div>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; border: 1px solid #333;&quot;>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          A bad PRD = bad architecture = bad code = failed QA = <span style=&quot;color: #dc2626; font-weight: 500;&quot;>start over</span>.
+        </p>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6; margin-top: 8pt;&quot;>
+          The spec is the foundation. If it's wrong, everything built on top collapses.
+        </p>
       </div>
     </div>
 
-    <!-- Right: Operating Discipline -->
-    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
-      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>OPERATING DISCIPLINE</p>
-
-      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 14pt 16pt; border: 1px solid #333; flex: 1; display: flex; flex-direction: column;&quot;>
-        <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Watchdog Orchestrator</h3>
-        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.5; margin-bottom: 12pt;&quot;>
-          Strict watchdog that monitors all loops — keeps the train on the tracks.
+    <!-- Right: Our solution -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 14pt;&quot;>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; border-left: 3pt solid #22c55e;&quot;>
+        <h3 style=&quot;font-size: 13pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>The Ralph-to-Ralph Way</h3>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Our <span style=&quot;color: #22c55e; font-weight: 500;&quot;>Inspect loop</span> auto-generates the PRD and spec by analyzing the real product:
         </p>
-        <div style=&quot;display: flex; flex-direction: column; gap: 7pt;&quot;>
-          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
-            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
-            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Auto-restart on failure</p>
-          </div>
-          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
-            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
-            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Git commit + push on every milestone</p>
-          </div>
-          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
-            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
-            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Cron backup for safety</p>
-          </div>
-          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
-            <div style=&quot;width: 5pt; height: 5pt; background: #f59e0b; border-radius: 50%; flex-shrink: 0;&quot;></div>
-            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Bug → Fix → Retest (up to 5 cycles)</p>
-          </div>
+      </div>
+      <div style=&quot;display: flex; flex-direction: column; gap: 8pt;&quot;>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333;&quot;>
+          <div style=&quot;width: 5pt; height: 5pt; background: #6366f1; border-radius: 50%; flex-shrink: 0;&quot;></div>
+          <p style=&quot;font-size: 10pt; color: #e0e0e0;&quot;>Website docs &amp;amp; API reference</p>
         </div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333;&quot;>
+          <div style=&quot;width: 5pt; height: 5pt; background: #6366f1; border-radius: 50%; flex-shrink: 0;&quot;></div>
+          <p style=&quot;font-size: 10pt; color: #e0e0e0;&quot;>Sitemap &amp;amp; XML structure</p>
+        </div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333;&quot;>
+          <div style=&quot;width: 5pt; height: 5pt; background: #6366f1; border-radius: 50%; flex-shrink: 0;&quot;></div>
+          <p style=&quot;font-size: 10pt; color: #e0e0e0;&quot;>UI screenshots of every page</p>
+        </div>
+      </div>
+      <div style=&quot;background: #1a2e1a; border-radius: 8pt; padding: 12pt 14pt; border: 1px solid #2d4a2d;&quot;>
+        <p style=&quot;font-size: 10pt; color: #22c55e; font-weight: 500; text-align: center;&quot;>
+          Zero manual PRD writing. Accurate specs. Stable loops.
+        </p>
       </div>
     </div>
   </div>
@@ -897,6 +817,374 @@
       height: 405pt;
       font-family: 'Pretendard', sans-serif;
       background: #0f0f0f;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>SOLUTION</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #ffffff;&quot;>The Loop <span style=&quot;color: #6366f1;&quot;>IS</span> the Product</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>05</p>
+  </div>
+
+  <!-- One-sentence definition -->
+  <div style=&quot;margin-bottom: 18pt; padding: 12pt 16pt; background: #1a1a1a; border-radius: 8pt; border-left: 3pt solid #6366f1;&quot;>
+    <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.5;&quot;>
+      Our product isn't a tool — it's the <span style=&quot;color: #6366f1; font-weight: 600;&quot;>autonomous loop itself</span>. Give it a URL, and the loop inspects, plans, builds, tests, and deploys a production clone. <span style=&quot;color: #ffffff; font-weight: 500;&quot;>The loop does everything.</span>
+    </p>
+  </div>
+
+  <!-- 4-phase workflow -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12pt;&quot;>
+    <!-- Phase 1: Inspect -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #818cf8;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #818cf8; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Inspect</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #1</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Ever CLI + Claude Opus analyzes the target URL</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ PRD.json</p>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ build-spec.md</p>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ sitemap + screenshots</p>
+      </div>
+    </div>
+
+    <!-- Phase 2: Plan -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #a78bfa;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #a78bfa; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1.5</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Plan</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Derived from Inspect</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Structured spec becomes the build blueprint</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ PRD.json</p>
+        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ spec.md</p>
+      </div>
+    </div>
+
+    <!-- Phase 3: Build -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #3b82f6;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #3b82f6; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 2</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Build</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #2</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Claude Agent (Opus) builds the full stack</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ API Routes + Components</p>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ Tests (Vitest)</p>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ AWS Infra (SES, RDS, S3)</p>
+      </div>
+    </div>
+
+    <!-- Phase 4: QA -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #22c55e;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #22c55e; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 3</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>QA</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #3</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Codex Agents run parallel verification</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ E2E via Ever CLI</p>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Bug Fixes + Screenshots</p>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Regression Tests</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 12pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #dc2626;&quot;>Bug Found → Fix → Retest (up to 5 cycles)</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="6" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-06.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 18pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #f59e0b; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>RALPH SETUP</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>AI Agents &amp;amp; Operating Discipline</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>06</p>
+  </div>
+
+  <!-- Content -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; overflow: hidden;&quot;>
+    <!-- Left: Our Moat + Agents -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>OUR MOAT</p>
+
+      <div style=&quot;background: #1e3a5f; border-radius: 6pt; padding: 12pt 14pt; border: 2px solid #3b82f6; display: flex; align-items: flex-start; gap: 10pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #3b82f6; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 11pt; color: #ffffff; font-weight: 700;&quot;>E</p>
+        </div>
+        <div>
+          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Ever CLI <span style=&quot;font-size: 8pt; color: #93c5fd; font-weight: 400;&quot;>foreverbrowsing.com</span></p>
+          <p style=&quot;font-size: 9pt; color: #93c5fd; line-height: 1.5;&quot;>Our own browser agent. Without it, the Inspect loop can't run. <span style=&quot;color: #ffffff; font-weight: 500;&quot;>We own this.</span></p>
+        </div>
+      </div>
+
+      <p style=&quot;font-size: 10pt; font-weight: 600; color: #888; letter-spacing: 0.05em; margin-top: 4pt;&quot;>ALSO POWERED BY</p>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 8pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
+        <div style=&quot;width: 20pt; height: 20pt; background: #3b1f2b; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 10pt; color: #f472b6; font-weight: 700;&quot;>C</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0;&quot;><span style=&quot;color: #ffffff; font-weight: 500;&quot;>Claude Opus</span> — Inspect + Build loops</p>
+      </div>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 8pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
+        <div style=&quot;width: 20pt; height: 20pt; background: #1a2e1a; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 10pt; color: #22c55e; font-weight: 700;&quot;>X</p>
+        </div>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0;&quot;><span style=&quot;color: #ffffff; font-weight: 500;&quot;>Codex</span> — parallel QA agents</p>
+      </div>
+    </div>
+
+    <!-- Right: Operating Discipline -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>OPERATING DISCIPLINE</p>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 14pt 16pt; border: 1px solid #333; flex: 1; display: flex; flex-direction: column;&quot;>
+        <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Watchdog Orchestrator</h3>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.5; margin-bottom: 12pt;&quot;>
+          Strict watchdog that monitors all loops — keeps the train on the tracks.
+        </p>
+        <div style=&quot;display: flex; flex-direction: column; gap: 7pt;&quot;>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Auto-restart on failure</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Git commit + push on every milestone</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Cron backup for safety</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #f59e0b; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Bug → Fix → Retest (up to 5 cycles)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="7" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-07.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
       padding: 32pt 48pt;
       display: flex;
       flex-direction: column;
@@ -910,7 +1198,7 @@
       <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #22c55e; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>PROGRESS</p>
       <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>Current Status</h2>
     </div>
-    <p style=&quot;font-size: 10pt; color: #666;&quot;>05</p>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>07</p>
   </div>
 
   <!-- Hero stat -->
@@ -952,13 +1240,13 @@
   </div>
 </body>
 </html>" sandbox="allow-same-origin"></iframe>
-        <iframe class="slide-frame" data-slide="6" srcdoc="<!DOCTYPE html>
+        <iframe class="slide-frame" data-slide="8" srcdoc="<!DOCTYPE html>
 <html>
 <head>
 <base href=&quot;./&quot;>
 <script>
 (() => {
-  const slideFile = &quot;slide-06.html&quot;;
+  const slideFile = &quot;slide-08.html&quot;;
   const localAssetPrefix = &quot;./assets/&quot;;
   const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
   const prefix = '[slides-grab:image]';
@@ -1059,7 +1347,7 @@
       <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>DEMO</p>
       <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>The Resend Clone — In Production</h2>
     </div>
-    <p style=&quot;font-size: 10pt; color: #666;&quot;>06</p>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>08</p>
   </div>
 
   <!-- Screenshots grid: 1 large + 4 small -->
@@ -1097,13 +1385,13 @@
   </div>
 </body>
 </html>" sandbox="allow-same-origin"></iframe>
-        <iframe class="slide-frame" data-slide="7" srcdoc="<!DOCTYPE html>
+        <iframe class="slide-frame" data-slide="9" srcdoc="<!DOCTYPE html>
 <html>
 <head>
 <base href=&quot;./&quot;>
 <script>
 (() => {
-  const slideFile = &quot;slide-07.html&quot;;
+  const slideFile = &quot;slide-09.html&quot;;
   const localAssetPrefix = &quot;./assets/&quot;;
   const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
   const prefix = '[slides-grab:image]';
@@ -1204,7 +1492,7 @@
       <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>LIVE DEMO</p>
       <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>Watch It Work</h2>
     </div>
-    <p style=&quot;font-size: 10pt; color: #666;&quot;>07</p>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>09</p>
   </div>
 
   <!-- Video container -->
@@ -1231,12 +1519,147 @@
   </div>
 </body>
 </html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="10" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-10.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main content centered -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;&quot;>
+    <div style=&quot;width: 18pt; height: 18pt; background: #ffffff; border-radius: 3pt; display: flex; align-items: center; justify-content: center; margin-bottom: 20pt;&quot;>
+      <p style=&quot;color: #0f0f0f; font-size: 10pt; font-weight: 700;&quot;>R</p>
+    </div>
+    <h1 style=&quot;font-size: 48pt; font-weight: 600; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 16pt;&quot;>
+      Q &amp;amp; A
+    </h1>
+    <p style=&quot;font-size: 16pt; color: #b0b0b0; margin-bottom: 32pt;&quot;>
+      Thank you! Let's talk.
+    </p>
+    <div style=&quot;display: flex; gap: 32pt;&quot;>
+      <div style=&quot;text-align: center;&quot;>
+        <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 4pt;&quot;>GitHub</p>
+        <p style=&quot;font-size: 11pt; font-weight: 500; color: #6366f1;&quot;>github.com/jaeyunha/ralph-to-ralph-prod</p>
+      </div>
+      <div style=&quot;text-align: center;&quot;>
+        <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 4pt;&quot;>Browser Agent</p>
+        <p style=&quot;font-size: 11pt; font-weight: 500; color: #6366f1;&quot;>foreverbrowsing.com</p>
+      </div>
+    </div>
+    <div style=&quot;margin-top: 24pt; display: flex; gap: 24pt;&quot;>
+      <p style=&quot;font-size: 12pt; color: #ffffff; font-weight: 500;&quot;>Jaeyun Ha</p>
+      <p style=&quot;font-size: 12pt; color: #666;&quot;>·</p>
+      <p style=&quot;font-size: 12pt; color: #ffffff; font-weight: 500;&quot;>Ashley Ha</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026 — Top 5 Finalist</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
       </div>
     </div>
   </div>
 
   <script>
-    const TOTAL = 7;
+    const TOTAL = 10;
     let current = 1;
 
     const frames = document.querySelectorAll('.slide-frame');

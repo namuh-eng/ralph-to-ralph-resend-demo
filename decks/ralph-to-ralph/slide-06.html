@@ -9,7 +9,7 @@
       height: 405pt;
       font-family: 'Pretendard', sans-serif;
       background: #0f0f0f;
-      padding: 28pt 36pt;
+      padding: 32pt 48pt;
       display: flex;
       flex-direction: column;
     }
@@ -17,37 +17,74 @@
 </head>
 <body>
   <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14pt;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18pt;">
     <div style="display: flex; align-items: center; gap: 12pt;">
-      <p style="display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">DEMO</p>
-      <h2 style="font-size: 18pt; font-weight: 600; color: #ffffff;">The Resend Clone — In Production</h2>
+      <p style="display: inline-block; padding: 4pt 10pt; background: #f59e0b; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;">RALPH SETUP</p>
+      <h2 style="font-size: 20pt; font-weight: 600; color: #ffffff;">AI Agents &amp; Operating Discipline</h2>
     </div>
     <p style="font-size: 10pt; color: #666;">06</p>
   </div>
 
-  <!-- Screenshots grid: 1 large + 4 small -->
-  <div style="flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 10pt; overflow: hidden;">
-    <!-- Left: Dashboard (large) -->
-    <div style="display: flex; flex-direction: column; gap: 6pt;">
-      <div style="flex: 1; border-radius: 6pt; overflow: hidden; border: 1px solid #333;">
-        <img src="./assets/screenshot-dashboard.png" style="width: 100%; height: 100%; object-fit: cover;" alt="Resend clone dashboard">
+  <!-- Content -->
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; overflow: hidden;">
+    <!-- Left: Our Moat + Agents -->
+    <div style="display: flex; flex-direction: column; gap: 10pt;">
+      <p style="font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;">OUR MOAT</p>
+
+      <div style="background: #1e3a5f; border-radius: 6pt; padding: 12pt 14pt; border: 2px solid #3b82f6; display: flex; align-items: flex-start; gap: 10pt;">
+        <div style="width: 24pt; height: 24pt; background: #3b82f6; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <p style="font-size: 11pt; color: #ffffff; font-weight: 700;">E</p>
+        </div>
+        <div>
+          <p style="font-size: 11pt; font-weight: 600; color: #ffffff;">Ever CLI <span style="font-size: 8pt; color: #93c5fd; font-weight: 400;">foreverbrowsing.com</span></p>
+          <p style="font-size: 9pt; color: #93c5fd; line-height: 1.5;">Our own browser agent. Without it, the Inspect loop can't run. <span style="color: #ffffff; font-weight: 500;">We own this.</span></p>
+        </div>
       </div>
-      <p style="font-size: 8pt; color: #888; text-align: center;">Dashboard — emails list with full send/receive functionality</p>
+
+      <p style="font-size: 10pt; font-weight: 600; color: #888; letter-spacing: 0.05em; margin-top: 4pt;">ALSO POWERED BY</p>
+
+      <div style="background: #1a1a1a; border-radius: 6pt; padding: 8pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;">
+        <div style="width: 20pt; height: 20pt; background: #3b1f2b; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <p style="font-size: 10pt; color: #f472b6; font-weight: 700;">C</p>
+        </div>
+        <p style="font-size: 10pt; color: #b0b0b0;"><span style="color: #ffffff; font-weight: 500;">Claude Opus</span> — Inspect + Build loops</p>
+      </div>
+
+      <div style="background: #1a1a1a; border-radius: 6pt; padding: 8pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;">
+        <div style="width: 20pt; height: 20pt; background: #1a2e1a; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <p style="font-size: 10pt; color: #22c55e; font-weight: 700;">X</p>
+        </div>
+        <p style="font-size: 10pt; color: #b0b0b0;"><span style="color: #ffffff; font-weight: 500;">Codex</span> — parallel QA agents</p>
+      </div>
     </div>
 
-    <!-- Right: 4 email notifications stacked in 2x2 -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8pt;">
-      <div style="border-radius: 6pt; overflow: hidden; border: 1px solid #333;">
-        <img src="./assets/screenshot-welcome-email.png" style="width: 100%; height: 100%; object-fit: cover;" alt="Welcome email">
-      </div>
-      <div style="border-radius: 6pt; overflow: hidden; border: 1px solid #333;">
-        <img src="./assets/screenshot-broadcast.png" style="width: 100%; height: 100%; object-fit: cover;" alt="Broadcast notification">
-      </div>
-      <div style="border-radius: 6pt; overflow: hidden; border: 1px solid #333;">
-        <img src="./assets/screenshot-tls.png" style="width: 100%; height: 100%; object-fit: cover;" alt="TLS enforcement">
-      </div>
-      <div style="border-radius: 6pt; overflow: hidden; border: 1px solid #333;">
-        <img src="./assets/screenshot-export.png" style="width: 100%; height: 100%; object-fit: cover;" alt="CSV export ready">
+    <!-- Right: Operating Discipline -->
+    <div style="display: flex; flex-direction: column; gap: 10pt;">
+      <p style="font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;">OPERATING DISCIPLINE</p>
+
+      <div style="background: #1a1a1a; border-radius: 6pt; padding: 14pt 16pt; border: 1px solid #333; flex: 1; display: flex; flex-direction: column;">
+        <h3 style="font-size: 14pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;">Watchdog Orchestrator</h3>
+        <p style="font-size: 10pt; color: #b0b0b0; line-height: 1.5; margin-bottom: 12pt;">
+          Strict watchdog that monitors all loops — keeps the train on the tracks.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 7pt;">
+          <div style="display: flex; align-items: center; gap: 8pt;">
+            <div style="width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;"></div>
+            <p style="font-size: 9pt; color: #e0e0e0;">Auto-restart on failure</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8pt;">
+            <div style="width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;"></div>
+            <p style="font-size: 9pt; color: #e0e0e0;">Git commit + push on every milestone</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8pt;">
+            <div style="width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;"></div>
+            <p style="font-size: 9pt; color: #e0e0e0;">Cron backup for safety</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8pt;">
+            <div style="width: 5pt; height: 5pt; background: #f59e0b; border-radius: 50%; flex-shrink: 0;"></div>
+            <p style="font-size: 9pt; color: #e0e0e0;">Bug → Fix → Retest (up to 5 cycles)</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -55,7 +92,6 @@
   <!-- Footer -->
   <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;">
     <p style="font-size: 9pt; color: #666;">Ralph-to-Ralph</p>
-    <p style="font-size: 9pt; color: #b0b0b0;">Real emails sent via AWS SES · Live on App Runner</p>
     <p style="font-size: 9pt; color: #666;">Ralphthon Seoul 2026</p>
   </div>
 </body>
