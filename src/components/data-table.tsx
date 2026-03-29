@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface Column<T> {
   key: string;
@@ -26,6 +26,16 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
+type SortDirection = "asc" | "desc";
+
+function getComparableValue(value: unknown): number | string | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  return String(value).toLowerCase();
+}
+
 export function DataTable<T>({
   columns,
   rows,
@@ -37,17 +47,44 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const allSelected = rows.length > 0 && selectedIds.size === rows.length;
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return rows;
+
+    return [...rows].sort((left, right) => {
+      const leftValue = getComparableValue(
+        (left as Record<string, unknown>)[sortKey],
+      );
+      const rightValue = getComparableValue(
+        (right as Record<string, unknown>)[sortKey],
+      );
+
+      if (leftValue == null && rightValue == null) return 0;
+      if (leftValue == null) return 1;
+      if (rightValue == null) return -1;
+
+      const order =
+        typeof leftValue === "number" && typeof rightValue === "number"
+          ? leftValue - rightValue
+          : String(leftValue).localeCompare(String(rightValue));
+
+      return sortDirection === "asc" ? order : -order;
+    });
+  }, [rows, sortDirection, sortKey]);
+
+  const allSelected =
+    sortedRows.length > 0 && selectedIds.size === sortedRows.length;
 
   const toggleAll = useCallback(() => {
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(rows.map(getRowId)));
+      setSelectedIds(new Set(sortedRows.map(getRowId)));
     }
-  }, [allSelected, rows, getRowId]);
+  }, [allSelected, sortedRows, getRowId]);
 
   const toggleRow = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -60,6 +97,25 @@ export function DataTable<T>({
       return next;
     });
   }, []);
+
+  const toggleSort = useCallback(
+    (key: string) => {
+      if (sortKey !== key) {
+        setSortKey(key);
+        setSortDirection("asc");
+        return;
+      }
+
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+        return;
+      }
+
+      setSortKey(null);
+      setSortDirection("asc");
+    },
+    [sortDirection, sortKey],
+  );
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -95,9 +151,33 @@ export function DataTable<T>({
           {columns.map((col) => (
             <th
               key={col.key}
+              aria-sort={
+                col.sortable && sortKey === col.key
+                  ? sortDirection === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none"
+              }
               className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5] tracking-normal"
             >
-              {col.header}
+              {col.sortable ? (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 hover:text-[#F0F0F0] transition-colors"
+                  onClick={() => toggleSort(col.key)}
+                >
+                  {col.header}
+                  <span aria-hidden="true" className="text-[10px]">
+                    {sortKey === col.key
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "↕"}
+                  </span>
+                </button>
+              ) : (
+                col.header
+              )}
             </th>
           ))}
           {hasActions && <th className="w-10 px-3 py-2" />}
@@ -114,7 +194,7 @@ export function DataTable<T>({
             </td>
           </tr>
         ) : (
-          rows.map((row) => {
+          sortedRows.map((row) => {
             const id = getRowId(row);
             return (
               <tr

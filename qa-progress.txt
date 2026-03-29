@@ -4,6 +4,7 @@ infra-001: SKIP
 infra-002: PASS
 infra-004: PASS
 layout-001: PASS
+design-001: PASS
 
 2026-03-29 — QA restarted from PRD top on branch `qa/20260329-171503-topdown` after rebasing onto `origin/main` (`6af934e`).
 

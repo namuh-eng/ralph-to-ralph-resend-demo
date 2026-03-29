@@ -113,5 +113,31 @@
       }
     ],
     "fixes_applied": []
+  },
+  {
+    "feature_id": "design-001",
+    "status": "pass",
+    "category": "ui",
+    "tested_steps": [
+      "Reviewed prd.json item design-001 and verified the shared DataTable implementation plus current consumers in src/components/logs-list-page.tsx and src/components/api-keys-list.tsx.",
+      "Ran automated regression after the fix: make check passed and make test passed with 35/35 files and 393/393 tests green.",
+      "Ran Playwright smoke against an isolated webpack dev server on http://localhost:3016 after the fix: tests/e2e/smoke.spec.ts passed 5/5.",
+      "Ran an Ever CLI manual pass on http://localhost:3016/logs: ever snapshot confirmed the shared table headers and empty state, and ever click on the Method header changed the visible sort indicator and aria-sort state from none to ascending.",
+      "Verified row rendering, select-all, independent checkbox selection, actions menu rendering, and sortable-column toggling through unit coverage in tests/data-table.test.tsx because the running app had no seeded table rows available in this environment."
+    ],
+    "bugs_found": [
+      {
+        "severity": "major",
+        "description": "The shared DataTable exposed a sortable column contract but ignored it, so sortable headers never rendered interactive controls and the table could not sort rows.",
+        "expected": "Columns marked sortable should expose an interactive header control and reorder rows when toggled.",
+        "actual": "The sortable flag was unused, headers rendered as plain text, and row order never changed.",
+        "reproduction": "Render DataTable with columns that set sortable: true and click the header. Before the fix there is no sort control and the row order does not change."
+      }
+    ],
+    "fixes_applied": [
+      "Implemented internal sort state in src/components/data-table.tsx with ascending, descending, and reset states plus aria-sort metadata and visible indicators for sortable headers.",
+      "Enabled sortable headers on the Logs table so the shared behavior is visible in the running app.",
+      "Added regression coverage in tests/data-table.test.tsx for sortable-header toggling and row reordering."
+    ]
   }
 ]

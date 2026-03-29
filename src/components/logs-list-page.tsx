@@ -105,6 +105,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
     {
       key: "method",
       header: "Method",
+      sortable: true,
       render: (row: LogRow) => (
         <StatusBadge
           status={row.method.toUpperCase()}
@@ -115,6 +116,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
     {
       key: "path",
       header: "Endpoint",
+      sortable: true,
       render: (row: LogRow) => (
         <span className="font-mono text-[13px]">{row.path}</span>
       ),
@@ -122,6 +124,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
     {
       key: "statusCode",
       header: "Status",
+      sortable: true,
       render: (row: LogRow) => (
         <StatusBadge
           status={String(row.statusCode)}
@@ -132,6 +135,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
     {
       key: "duration",
       header: "Duration",
+      sortable: true,
       render: (row: LogRow) => (
         <span className="text-[#A1A4A5] text-[13px]">
           {row.duration != null ? `${row.duration}ms` : "-"}
@@ -141,6 +145,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
     {
       key: "createdAt",
       header: "Created",
+      sortable: true,
       render: (row: LogRow) => (
         <span className="text-[#A1A4A5] text-[13px]">
           {formatDate(row.createdAt)}

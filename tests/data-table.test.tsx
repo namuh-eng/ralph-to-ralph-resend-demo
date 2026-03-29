@@ -15,11 +15,12 @@ interface TestRow {
 }
 
 const columns: Column<TestRow>[] = [
-  { key: "name", header: "Name" },
+  { key: "name", header: "Name", sortable: true },
   { key: "status", header: "Status" },
   {
     key: "created",
     header: "Created",
+    sortable: true,
     render: (row) => row.created.toISOString(),
   },
 ];
@@ -187,5 +188,38 @@ describe("DataTable", () => {
     const dataRows = screen.getAllByRole("row");
     // 1 header row + 3 data rows
     expect(dataRows.length).toBe(4);
+  });
+
+  it("sorts rows ascending and descending when a sortable header is clicked", () => {
+    render(<DataTable columns={columns} rows={rows} getRowId={(r) => r.id} />);
+
+    const nameSortButton = screen.getByRole("button", { name: /Name/i });
+    const getFirstDataCell = () => screen.getAllByRole("cell")[0];
+
+    expect(getFirstDataCell().textContent).toBe("Item A");
+
+    fireEvent.click(nameSortButton);
+    expect(getFirstDataCell().textContent).toBe("Item A");
+    expect(
+      screen
+        .getByRole("columnheader", { name: /Name/i })
+        .getAttribute("aria-sort"),
+    ).toBe("ascending");
+
+    fireEvent.click(nameSortButton);
+    expect(getFirstDataCell().textContent).toBe("Item C");
+    expect(
+      screen
+        .getByRole("columnheader", { name: /Name/i })
+        .getAttribute("aria-sort"),
+    ).toBe("descending");
+
+    fireEvent.click(nameSortButton);
+    expect(getFirstDataCell().textContent).toBe("Item A");
+    expect(
+      screen
+        .getByRole("columnheader", { name: /Name/i })
+        .getAttribute("aria-sort"),
+    ).toBe("none");
   });
 });
