@@ -99,7 +99,7 @@
     "data_model": "UploadInput: { key: string, body: Buffer, contentType: string }",
     "priority": 1,
     "core": true,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
