@@ -742,6 +742,62 @@ contact.created, contact.updated, contact.deleted
 - "Total uses" and "Last used" both link to the Logs page, providing cross-resource navigation
 - API key detail is the only resource with a direct "Edit" action in More actions menu (other resources use separate edit pages/modals)
 
+### 6.21 Webhooks — List Page (`/webhooks`)
+
+**Layout**: Page title "Webhooks" + "Add webhook" button (header) + API drawer button
+
+**Table** (when webhooks exist):
+| Column | Description |
+|--------|-------------|
+| Endpoint | Webhook URL |
+| Status | Active/disabled status |
+| Created | Timestamp |
+| (actions) | Row actions column |
+
+**Empty state** (no webhooks):
+- "No webhooks yet" heading
+- "Configure a webhook to receive real-time updates about email events." description
+- "Add webhook" button (centered in empty state)
+
+**"Add webhook" modal**:
+- **Endpoint URL**: Text input, placeholder "https://", required
+- **Event types**: Multi-select combobox with search
+  - "All Events" option (selects everything)
+  - **Contacts** category header (with "Select all" toggle):
+    - `contact.created`
+    - `contact.deleted`
+    - `contact.updated`
+  - **Domains** category header (with "Select all" toggle):
+    - `domain.created`
+    - `domain.deleted`
+    - `domain.updated`
+  - **Email** category header (with "Select all" toggle):
+    - `email.bounced`
+    - `email.clicked` (has info icon)
+    - `email.complained`
+    - `email.delivered`
+    - `email.delivery_delayed`
+    - `email.failed`
+    - `email.opened` (has info icon — "Not Recommended")
+    - `email.received`
+    - `email.scheduled`
+    - `email.sent`
+    - `email.suppressed`
+- **Add** button (submit)
+- **Cancel** button (with Esc shortcut)
+
+**Total: 17 event types** in 3 categories (Contacts: 3, Domains: 3, Email: 11)
+
+**API drawer**: Same shared API drawer component — shows webhook CRUD code examples (Create Webhook, List Webhooks, Remove Webhook)
+
+**Key observations**:
+- Event types combobox has searchable input with "Search events..." placeholder
+- Category-level "Select all" toggles expand/collapse and select all events in that category
+- `email.clicked` and `email.opened` have warning/info icons (tracking-related, similar to domain config "Not Recommended" for open tracking)
+- No search or filter bar on the list page (unlike most other list pages)
+- No detail page for webhooks — management is done inline from the list
+- No checkboxes on the table (unlike Emails, Broadcasts, Domains, API Keys)
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout

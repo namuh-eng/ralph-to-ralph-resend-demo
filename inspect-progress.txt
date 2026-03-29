@@ -345,4 +345,42 @@
 - screenshots/inspect/ — api-keys-list.jpg, api-keys-create-modal.jpg, api-key-detail.jpg, api-key-edit-modal.jpg
 
 ### Next:
-- Iteration 9: Deep dive — Webhooks page
+- Iteration 10: Deep dive — Settings page or Metrics page
+
+---
+
+## Iteration 9: Webhooks Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Webhooks list page, inspected all interactive elements
+- Observed empty state: "No webhooks yet" heading + description + "Add webhook" button
+- Inspected table structure: Endpoint, Status, Created columns
+- Opened "Add webhook" modal and inspected all fields:
+  - Endpoint URL (text input, placeholder "https://", required)
+  - Event types (multi-select combobox with searchable input)
+- Expanded event types combobox — captured all 17 event types in 3 categories:
+  - Contacts: contact.created, contact.deleted, contact.updated
+  - Domains: domain.created, domain.deleted, domain.updated
+  - Email: email.bounced, email.clicked, email.complained, email.delivered, email.delivery_delayed, email.failed, email.opened, email.received, email.scheduled, email.sent, email.suppressed
+- Observed "All Events" option and category-level "Select all" toggles
+- Tested form submission with URL and event selection
+- Confirmed API drawer button present (same shared component)
+- Took screenshots: webhooks-list.jpg, webhooks-add-modal.jpg, webhooks-event-types.jpg
+
+### Key findings:
+- Webhooks page is simpler than most other resource pages — no search bar, no filter dropdowns, no checkboxes
+- No webhook detail page — management is done inline from the list (unlike emails, domains, API keys which have detail pages)
+- Event types combobox supports multi-select with search, category-level selection, and "All Events" shortcut
+- 17 event types total: 3 Contact, 3 Domain, 11 Email
+- email.clicked and email.opened have info/warning icons (tracking-related, consistent with domain config "Not Recommended" for open tracking)
+- Category headers have expand/collapse chevrons + "Select all" toggle
+- Modal has Cancel button with Esc keyboard shortcut
+- Empty state is unique — uses centered layout with description (unlike other list pages that just show empty table)
+
+### Files created/updated:
+- build-spec.md — Added section 6.21 (Webhooks List)
+- prd.json — Added 3 feature entries (feature-033 through feature-035)
+- screenshots/inspect/ — webhooks-list.jpg, webhooks-add-modal.jpg, webhooks-event-types.jpg
+
+### Next:
+- Iteration 10: Deep dive — Settings page (Usage, SMTP, Integrations, Unsubscribe page, Documents tabs) OR Metrics page

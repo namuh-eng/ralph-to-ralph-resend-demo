@@ -1530,5 +1530,164 @@
         }
       ]
     }
+  },
+  {
+    "id": "feature-033",
+    "category": "layout",
+    "description": "Webhooks list page layout with header, empty state, and table structure",
+    "page": "Webhooks",
+    "ui_details": "Page title 'Webhooks' (h1), 'Add webhook' button in header (right side), API drawer icon button. Table columns: Endpoint, Status, Created, actions. Empty state: centered illustration, 'No webhooks yet' heading, description text, 'Add webhook' button.",
+    "behavior": "Shows empty state when no webhooks exist. Shows table of webhooks when they exist. 'Add webhook' button opens modal (same button in header and empty state).",
+    "data_model": "Webhook: { id, endpoint_url, events (array of event type strings), status (active/disabled), created_at }",
+    "priority": 14,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders webhooks page with title and add button",
+          "description": "Page renders with correct title and action button",
+          "input": "Navigate to /webhooks",
+          "expected_output": "Title 'Webhooks' visible, 'Add webhook' button visible"
+        },
+        {
+          "name": "shows empty state when no webhooks",
+          "description": "Empty state message displayed when webhook list is empty",
+          "input": "Navigate to /webhooks with no webhooks in DB",
+          "expected_output": "'No webhooks yet' heading and description visible, Add webhook button in empty state"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "webhooks page loads with empty state",
+          "steps": [
+            "Navigate to /webhooks",
+            "Verify page title is 'Webhooks'",
+            "Verify 'No webhooks yet' empty state is visible",
+            "Verify 'Add webhook' button is visible in header"
+          ],
+          "expected": "Page loads with title, empty state message, and add button"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "empty state shows add webhook CTA",
+          "steps": ["Navigate to /webhooks with no webhooks"],
+          "expected": "Empty state with description and add webhook button visible"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-034",
+    "category": "crud",
+    "description": "Add webhook modal with endpoint URL and event type multi-select",
+    "page": "Webhooks",
+    "ui_details": "Modal dialog titled 'Add webhook'. Fields: Endpoint URL (text input, placeholder 'https://', required), Event types (multi-select combobox with search). Combobox has 'All Events' option at top, then 3 category groups (Contacts, Domains, Email) each with 'Select all' toggle and individual event options. Search input with 'Search events...' placeholder. Add (submit) button, Cancel button (Esc shortcut), Close X button.",
+    "behavior": "Clicking 'Add webhook' opens modal. Endpoint URL is required. Event types combobox supports: selecting 'All Events', selecting entire categories, or selecting individual events. Search filters event list. Submitting creates webhook and closes modal. Cancel/Esc closes without saving.",
+    "data_model": "Create webhook: { endpoint_url: string (required, must be valid URL), events: string[] (array of event type strings, e.g. ['email.sent', 'contact.created']) }",
+    "priority": 14,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders add webhook modal with all fields",
+          "description": "Modal shows endpoint URL input and event types combobox",
+          "input": "Open add webhook modal",
+          "expected_output": "Endpoint URL input (required), Event types combobox, Add button, Cancel button"
+        },
+        {
+          "name": "event types combobox lists all 17 events in 3 categories",
+          "description": "All webhook event types are listed grouped by category",
+          "input": "Open event types combobox",
+          "expected_output": "All Events option, Contacts (3 events), Domains (3 events), Email (11 events)"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "create webhook with all events",
+          "steps": [
+            "Navigate to /webhooks",
+            "Click 'Add webhook' button",
+            "Type 'https://example.com/webhook' in Endpoint URL",
+            "Open Event types combobox",
+            "Select 'All Events'",
+            "Click 'Add' button"
+          ],
+          "expected": "Webhook created, modal closes, new webhook appears in table with endpoint URL"
+        },
+        {
+          "name": "create webhook with specific events",
+          "steps": [
+            "Click 'Add webhook'",
+            "Type endpoint URL",
+            "Open Event types combobox",
+            "Select 'email.sent' and 'email.delivered'",
+            "Click Add"
+          ],
+          "expected": "Webhook created with only selected events"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "submit without endpoint URL shows validation",
+          "steps": ["Open add webhook modal", "Click Add without filling URL"],
+          "expected": "Validation error on Endpoint URL field (required)"
+        },
+        {
+          "name": "search filters event types",
+          "steps": ["Open event types combobox", "Type 'email' in search"],
+          "expected": "Only email-related events shown, contacts and domains filtered out"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-035",
+    "category": "data",
+    "description": "Webhook event types — 17 events across 3 categories with category-level selection",
+    "page": "Webhooks",
+    "ui_details": "Event types organized in 3 groups: Contacts (contact.created, contact.deleted, contact.updated), Domains (domain.created, domain.deleted, domain.updated), Email (email.bounced, email.clicked, email.complained, email.delivered, email.delivery_delayed, email.failed, email.opened, email.received, email.scheduled, email.sent, email.suppressed). email.clicked and email.opened have info/warning icons. Category headers have expand/collapse chevron and 'Select all' toggle.",
+    "behavior": "Selecting 'All Events' checks everything. Selecting a category header selects all events in that category. Individual events can be toggled independently. Deselecting one event in a category unchecks the category header. Info icons on email.clicked and email.opened indicate tracking-related warnings.",
+    "data_model": "Webhook event types enum: contact.created | contact.deleted | contact.updated | domain.created | domain.deleted | domain.updated | email.bounced | email.clicked | email.complained | email.delivered | email.delivery_delayed | email.failed | email.opened | email.received | email.scheduled | email.sent | email.suppressed",
+    "priority": 14,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "all 17 event types are defined",
+          "description": "Event types constant/enum contains exactly 17 values",
+          "input": "Import webhook event types",
+          "expected_output": "Array of 17 event type strings across 3 categories"
+        },
+        {
+          "name": "events grouped into correct categories",
+          "description": "Events are properly categorized",
+          "input": "Group events by prefix",
+          "expected_output": "contact: 3 events, domain: 3 events, email: 11 events"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "category select all toggles all events in category",
+          "steps": [
+            "Open add webhook modal",
+            "Open event types combobox",
+            "Click 'Contacts' category header",
+            "Verify all 3 contact events are selected"
+          ],
+          "expected": "contact.created, contact.deleted, contact.updated all checked"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "deselecting one event unchecks All Events",
+          "steps": ["Select All Events", "Deselect email.bounced"],
+          "expected": "All Events unchecked, Email category header unchecked, other events remain selected"
+        }
+      ]
+    }
   }
 ]
