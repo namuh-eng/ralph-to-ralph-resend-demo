@@ -1115,7 +1115,7 @@
     "data_model": "Contact detail: { id: string, email: string, first_name: string, last_name: string, status: string, segments: Array<{id: string, name: string}>, topics: Array<{id: string, name: string}>, properties: Record<string, string>, created_at: Date, activity: Array<{type: string, timestamp: Date}> }",
     "priority": 11,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {

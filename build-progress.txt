@@ -784,3 +784,34 @@
 - src/app/api/segments/route.ts — New GET endpoint for listing segments
 - tests/add-contact-modal.test.tsx — 13 unit tests
 - tests/e2e/add-contact-modal.spec.ts — 5 E2E tests
+
+## Iteration 25 — feature-019: Contact Detail Page (2026-03-29)
+
+### What was built
+- Contact detail page at `/audience/contacts/[id]` with full metadata display
+- Page header: avatar circle (color-hashed), 'Contact' label, email as h1
+- Metadata grid: Email Address, Created (relative time), Status (Subscribed/Unsubscribed badge), ID (UUID with copy button)
+- Segments and Topics display (list of badges or 'No segments'/'No topics' fallback)
+- Properties section: key-value pairs displayed in grid (first_name, last_name, company_name, etc.)
+- Activity section: vertical timeline of events (e.g., 'Contact created') with relative timestamps
+- Note text: 'Activity data may take a few seconds to update.'
+- More actions dropdown: Edit contact, (separator), Delete contact
+- Server-side page component fetches contact with segments and topics via Drizzle joins
+
+### Test results
+- 6 new unit tests passing (metadata fields, segments/topics, properties, activity, unsubscribed status, copy ID)
+- 305 total tests passing, no regressions
+- make check: typecheck + lint passing
+- 1 E2E test written (view contact detail from list)
+
+### Decisions
+- Reused existing CopyToClipboard, StatusBadge, formatRelativeTime components for consistency
+- Activity timeline populated from contact createdAt (real event tracking can be added later)
+- Contact detail page is a server component that queries DB directly (same pattern as email detail)
+
+### Files changed
+- src/components/contact-detail.tsx — ContactDetail component with metadata, properties, activity
+- src/app/(dashboard)/audience/contacts/[id]/page.tsx — Server page with DB queries
+- tests/contact-detail.test.tsx — 6 unit tests
+- tests/e2e/contact-detail.spec.ts — E2E test for contact detail flow
+- prd.json — feature-019 passes: true
