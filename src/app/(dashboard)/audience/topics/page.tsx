@@ -1,10 +1,5 @@
-import { EmptyState } from "@/components/empty-state";
+import { TopicsList } from "@/components/topics-list";
 
 export default function TopicsPage() {
-  return (
-    <EmptyState
-      title="No topics"
-      description="Topics let contacts manage their subscription preferences."
-    />
-  );
+  return <TopicsList />;
 }

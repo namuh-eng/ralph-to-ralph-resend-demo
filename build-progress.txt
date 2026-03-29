@@ -883,3 +883,35 @@
 - src/app/(dashboard)/audience/segments/page.tsx — Updated to use SegmentsList
 - tests/segments-list.test.ts — 9 unit tests
 - tests/e2e/segments.spec.ts — 2 E2E tests
+
+## Iteration 28 — feature-022: Topics List Page (2026-03-29)
+
+### What was built
+- Topics list page at /audience/topics with full CRUD support
+- GET /api/topics — paginated list with search and default subscription filter (opt_in/opt_out)
+- POST /api/topics — create topic with name, description, defaultSubscription, visibility
+- TopicsList component with:
+  - Filter bar: search input, default filter combobox (Any Default/Opt-in/Opt-out), Edit Unsubscribe Page link, Create topic button
+  - Empty state: "No topics yet" message with Create topic button and Customize page link
+  - Data table: checkbox selection, name, description, default, visibility, created date, more actions
+  - Pagination controls
+  - Unsubscribe Page Preview section showing live preview with public topics
+- Create Topic modal: Name (maxlength 50), Description (textarea, maxlength 200), Defaults to (Opt-out/Opt-in), Visibility (Public/Private)
+
+### Test results
+- 11 new unit tests passing (8 component tests + 3 API route tests)
+- 332 total tests passing (29 test files), no regressions
+- 3 E2E tests written (create topic, empty state, search)
+- make check: typecheck + lint passing
+
+### Decisions
+- Used `getAllByText` in tests since topic names appear in both table and unsubscribe preview
+- Mocked db module with `vi.doMock` for API route tests to avoid DB dependency in unit tests
+- Used `cleanup()` in beforeEach to properly clear DOM between test runs
+
+### Files changed
+- src/app/api/topics/route.ts — GET + POST API routes with search and default filter
+- src/components/topics-list.tsx — Full topics list component with modal and unsubscribe preview
+- src/app/(dashboard)/audience/topics/page.tsx — Updated to use TopicsList component
+- tests/topics.test.ts — 11 unit tests for component and API
+- tests/e2e/topics.spec.ts — 3 E2E tests for topics page

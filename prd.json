@@ -1264,7 +1264,7 @@
     "data_model": "Topic: { id: string, name: string, description: string | null, default_subscription: 'opt_in' | 'opt_out', visibility: 'private' | 'public', created_at: Date }",
     "priority": 11,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {

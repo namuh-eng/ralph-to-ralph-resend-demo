@@ -1,0 +1,389 @@
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock fetch globally
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/audience/topics",
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock next/link
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: { children: React.ReactNode; href: string }) => {
+    return React.createElement("a", { href, ...props }, children);
+  },
+}));
+
+// Import component once — it uses mocked fetch
+import { TopicsList } from "@/components/topics-list";
+
+function renderTopics() {
+  return render(React.createElement(TopicsList));
+}
+
+describe("TopicsList", () => {
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("renders empty state when no topics", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    // Should have create topic buttons (one in filter bar, one in empty state)
+    const createButtons = screen.getAllByText("Create topic");
+    expect(createButtons.length).toBe(2);
+    // Should have unsubscribe page customize links
+    const customizeLinks = screen.getAllByText("Customize page");
+    expect(customizeLinks.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders topics list with data", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "t1",
+            name: "Marketing Updates",
+            description: "Monthly marketing newsletter",
+            defaultSubscription: "opt_out",
+            visibility: "public",
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: "t2",
+            name: "Product News",
+            description: null,
+            defaultSubscription: "opt_in",
+            visibility: "private",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        total: 2,
+        page: 1,
+        limit: 20,
+      }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      // Topic names appear in table AND unsubscribe preview
+      const marketingEls = screen.getAllByText("Marketing Updates");
+      expect(marketingEls.length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.getAllByText("Product News").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    // Table shows formatted default/visibility values
+    const optOutEls = screen.getAllByText("Opt-out");
+    expect(optOutEls.length).toBeGreaterThanOrEqual(1);
+    const optInEls = screen.getAllByText("Opt-in");
+    expect(optInEls.length).toBeGreaterThanOrEqual(1);
+    // Only public topics show in preview, but column shows both
+    expect(screen.getAllByText("Public").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Private").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("has search input and default filter", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    const searchInputs = screen.getAllByPlaceholderText("Search...");
+    expect(searchInputs.length).toBeGreaterThanOrEqual(1);
+
+    // Default filter dropdown — check by option text
+    expect(screen.getByText("Any Default")).toBeTruthy();
+  });
+
+  it("create topic modal shows all 4 fields", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    // Click create topic button in the filter bar (first one)
+    const createButtons = screen.getAllByText("Create topic");
+    fireEvent.click(createButtons[0]);
+
+    // Modal should appear with all 4 fields
+    await waitFor(() => {
+      expect(screen.getByText("Create a new topic")).toBeTruthy();
+    });
+
+    // Name field
+    expect(screen.getByPlaceholderText("Public display name")).toBeTruthy();
+    // Description field
+    expect(
+      screen.getByPlaceholderText("Optional public description"),
+    ).toBeTruthy();
+    // Defaults to field
+    expect(screen.getByLabelText("Defaults to")).toBeTruthy();
+    // Visibility field
+    expect(screen.getByLabelText("Visibility")).toBeTruthy();
+  });
+
+  it("name field has maxlength of 50", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    const createButtons = screen.getAllByText("Create topic");
+    fireEvent.click(createButtons[0]);
+
+    await waitFor(() => {
+      const nameInput = screen.getByPlaceholderText("Public display name");
+      expect(nameInput.getAttribute("maxlength")).toBe("50");
+    });
+  });
+
+  it("submits create topic form", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    const createButtons = screen.getAllByText("Create topic");
+    fireEvent.click(createButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create a new topic")).toBeTruthy();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Public display name"), {
+      target: { value: "Marketing Updates" },
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText("Optional public description"),
+      { target: { value: "Monthly marketing newsletter" } },
+    );
+
+    // Mock the POST response
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: "t1",
+        name: "Marketing Updates",
+        description: "Monthly marketing newsletter",
+        defaultSubscription: "opt_out",
+        visibility: "public",
+      }),
+    });
+    // Mock the refetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "t1",
+            name: "Marketing Updates",
+            description: "Monthly marketing newsletter",
+            defaultSubscription: "opt_out",
+            visibility: "public",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      }),
+    });
+
+    fireEvent.click(screen.getByText("Add"));
+
+    await waitFor(() => {
+      const postCall = mockFetch.mock.calls.find(
+        (c: unknown[]) =>
+          typeof c[0] === "string" &&
+          c[0].includes("/api/topics") &&
+          (c[1] as { method?: string })?.method === "POST",
+      );
+      expect(postCall).toBeTruthy();
+      const opts = (postCall as unknown[])[1] as { body: string };
+      const body = JSON.parse(opts.body);
+      expect(body.name).toBe("Marketing Updates");
+      expect(body.description).toBe("Monthly marketing newsletter");
+    });
+  });
+
+  it("has Edit Unsubscribe Page link", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    const link = screen.getByText("Edit Unsubscribe Page");
+    expect(link).toBeTruthy();
+    expect(link.closest("a")?.getAttribute("href")).toBe(
+      "/audience/topics/unsubscribe-page/edit",
+    );
+  });
+
+  it("shows unsubscribe page preview section", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [], total: 0, page: 1, limit: 20 }),
+    });
+
+    renderTopics();
+
+    await waitFor(() => {
+      expect(screen.getByText("No topics yet")).toBeTruthy();
+    });
+
+    expect(screen.getByText("Unsubscribe Page Preview")).toBeTruthy();
+  });
+});
+
+describe("Topics API route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  it("GET /api/topics returns paginated list", async () => {
+    vi.doMock("@/lib/db", () => {
+      let callCount = 0;
+      const mockDb = {
+        select: () => {
+          callCount++;
+          const chain = {
+            from: () => chain,
+            where: () => {
+              if (callCount === 1) return Promise.resolve([{ count: 0 }]);
+              return chain;
+            },
+            orderBy: () => chain,
+            limit: () => chain,
+            offset: () => Promise.resolve([]),
+          };
+          return chain;
+        },
+      };
+      return { db: mockDb };
+    });
+
+    const { GET } = await import("@/app/api/topics/route");
+    const url = new URL("http://localhost:3015/api/topics?page=1&limit=10");
+    const request = { nextUrl: url } as unknown as Parameters<typeof GET>[0];
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty("data");
+    expect(data).toHaveProperty("total");
+    expect(data).toHaveProperty("page");
+    expect(data).toHaveProperty("limit");
+    expect(Array.isArray(data.data)).toBe(true);
+  });
+
+  it("POST /api/topics creates a topic", async () => {
+    const mockTopic = {
+      id: "t1",
+      name: "Test Topic",
+      description: "A test topic",
+      defaultSubscription: "opt_in",
+      visibility: "public",
+      createdAt: new Date().toISOString(),
+    };
+
+    vi.doMock("@/lib/db", () => {
+      const insertChain = {
+        values: () => insertChain,
+        returning: () => Promise.resolve([mockTopic]),
+      };
+      return {
+        db: { insert: () => insertChain },
+      };
+    });
+
+    const { POST } = await import("@/app/api/topics/route");
+    const request = {
+      json: async () => ({
+        name: "Test Topic",
+        description: "A test topic",
+        defaultSubscription: "opt_in",
+        visibility: "public",
+      }),
+    } as unknown as Parameters<typeof POST>[0];
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.name).toBe("Test Topic");
+    expect(data.description).toBe("A test topic");
+    expect(data.defaultSubscription).toBe("opt_in");
+    expect(data.visibility).toBe("public");
+  });
+
+  it("POST /api/topics rejects empty name", async () => {
+    vi.doMock("@/lib/db", () => ({ db: {} }));
+
+    const { POST } = await import("@/app/api/topics/route");
+    const request = {
+      json: async () => ({ name: "" }),
+    } as unknown as Parameters<typeof POST>[0];
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+  });
+});
