@@ -44,7 +44,7 @@ This is a **generic product cloning system** — the target could be any SaaS st
   - All data models with field types
   - **Backend Architecture** — map each feature to the AWS/cloud service that powers it
   - **SDK/DX** — what SDK to build, what developer workflow to support
-  - **Deployment** — AWS deployment instructions (ECS Fargate + RDS Postgres)
+  - **Deployment** — AWS deployment instructions (App Runner + RDS Postgres)
   - **Build Order** — prioritized list, core features first
 
 5. **Build for a REAL Product, Not a Mock:**

@@ -57,7 +57,7 @@ Cloud Services:
   - AWS SES → email sending/receiving
   - RDS Postgres (Drizzle ORM) → all data persistence
   - S3 → file storage (attachments, assets)
-  - ECS Fargate + ALB → deployment
+  - App Runner → deployment
   - EventBridge/SNS → webhook delivery
   - ECR → Docker image registry
 ```
@@ -80,7 +80,7 @@ Cloud Services:
   - Target product API keys may also be present — for testing/comparing only
 
 ### Deployment
-- Deploy to AWS via ECS Fargate + ALB. Build Docker image, push to ECR.
+- Deploy to AWS via App Runner. Build Docker image, push to ECR.
 - The final iteration should deploy and output the live URL.
 - Alternative: `gcloud run deploy` if AWS is blocked.
 

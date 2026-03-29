@@ -13,7 +13,7 @@ Phase 1: Inspect (Claude + Ever CLI) → Phase 2: Build (Claude + Playwright E2E
 - **Email**: AWS SES (`@aws-sdk/client-sesv2`)
 - **Storage**: AWS S3
 - **DNS**: Cloudflare API (auto-configure DNS records)
-- **Deployment**: ECS Fargate + ALB
+- **Deployment**: AWS App Runner
 - **Unit Tests**: Vitest
 - **E2E Tests**: Playwright (pre-configured)
 - **Linting**: Biome (pre-configured)
