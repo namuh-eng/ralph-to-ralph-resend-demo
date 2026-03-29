@@ -2,3 +2,4 @@
 # from prd.json top-down; feature-001 handled by another session
 infra-001: SKIP
 infra-002: PASS
+infra-004: PASS

@@ -1,0 +1,28 @@
+[
+  {
+    "feature_id": "infra-004",
+    "status": "pass",
+    "category": "data",
+    "tested_steps": [
+      "Reviewed prd.json item infra-004 and confirmed expected scope: S3 uploads, download URLs, and MIME restrictions for image/*, .html, and .pdf.",
+      "Ran targeted regression: npx vitest run tests/s3.test.ts, 17/17 tests passed after adding coverage for unsupported content types and HTML charset handling.",
+      "Ran full validation: make check passed and make test passed with 35/35 files and 390/390 tests green.",
+      "Ran smoke E2E: npx playwright test tests/e2e/smoke.spec.ts, 5/5 tests passed.",
+      "Ran real AWS S3 verification using the compiled src/lib/s3.ts module: uploaded PDF, HTML, HTML with charset, and PNG objects, fetched each through presigned URLs with HTTP 200, and deleted all test objects successfully.",
+      "Verified unsupported MIME handling end-to-end: text/plain upload now rejects with 'contentType must be image/*, text/html, or application/pdf'."
+    ],
+    "bugs_found": [
+      {
+        "severity": "major",
+        "description": "uploadFile accepted unsupported MIME types such as text/plain even though the PRD limits support to image/*, text/html, and application/pdf.",
+        "expected": "Unsupported MIME types should be rejected before the S3 PutObject request is sent.",
+        "actual": "A real text/plain upload succeeded against S3 before the fix.",
+        "reproduction": "Call uploadFile({ key: 'qa/sample.txt', body: Buffer.from('plain text'), contentType: 'text/plain' }) and observe that it uploads instead of rejecting."
+      }
+    ],
+    "fixes_applied": [
+      "Added MIME validation in src/lib/s3.ts to allow only image/*, text/html, and application/pdf, including text/html with charset parameters.",
+      "Added regression tests for unsupported MIME rejection and HTML content type with charset in tests/s3.test.ts."
+    ]
+  }
+]

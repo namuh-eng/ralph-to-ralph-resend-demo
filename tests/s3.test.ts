@@ -120,6 +120,31 @@ describe("S3 Storage Client", () => {
       ).rejects.toThrow("contentType is required");
     });
 
+    it("rejects unsupported content types", async () => {
+      await expect(
+        uploadFile({
+          key: "attachments/file.txt",
+          body: Buffer.from("data"),
+          contentType: "text/plain",
+        }),
+      ).rejects.toThrow(
+        "contentType must be image/*, text/html, or application/pdf",
+      );
+    });
+
+    it("accepts HTML content type with charset", async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await uploadFile({
+        key: "templates/email.html",
+        body: Buffer.from("<html>hello</html>"),
+        contentType: "text/html; charset=utf-8",
+      });
+
+      expect(result.key).toBe("templates/email.html");
+      expect(result.url).toContain("templates/email.html");
+    });
+
     it("propagates S3 errors", async () => {
       mockSend.mockRejectedValueOnce(new Error("S3 access denied"));
 
