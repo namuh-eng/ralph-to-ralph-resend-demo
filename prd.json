@@ -90,7 +90,10 @@
       ],
       "e2e": [],
       "edge_cases": []
-    }
+    },
+    "qa_tested": true,
+    "qa_tested_at": "2026-03-29T08:47:38Z",
+    "qa_tested_by": "qa/second-from-top-20260329-171418"
   },
   {
     "id": "infra-004",
