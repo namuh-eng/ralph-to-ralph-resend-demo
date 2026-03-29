@@ -702,5 +702,341 @@
         }
       ]
     }
+  },
+  {
+    "id": "feature-016",
+    "category": "layout",
+    "description": "Audience page layout with 4-tab bar (Contacts, Properties, Segments, Topics), summary stats, and Add contacts dropdown",
+    "page": "Audience",
+    "ui_details": "Page title 'Audience' (h1), horizontal tab bar with Contacts (default active), Properties, Segments, Topics tabs. Contacts tab URL: /audience/, Properties: /audience/properties, Segments: /audience/segments, Topics: /audience/topics. Summary stats row: All Contacts (count), Subscribers (count), Unsubscribers (count), Metrics (expandable). 'Add contacts' dropdown button with 'Add manually' and 'Import CSV' options. API drawer button.",
+    "behavior": "Tab navigation updates URL and active state. Summary stats show real-time counts. Add contacts dropdown opens menu with 2 options.",
+    "data_model": "N/A — layout only",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders Audience page with 4 tabs",
+          "description": "Page renders with Contacts, Properties, Segments, Topics tabs",
+          "input": "Navigate to /audience",
+          "expected_output": "All 4 tabs visible, Contacts tab active by default"
+        },
+        {
+          "name": "renders summary stats row",
+          "description": "Shows All Contacts, Subscribers, Unsubscribers counts",
+          "input": "Navigate to /audience",
+          "expected_output": "3 stat boxes with counts displayed"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "navigate between Audience tabs",
+          "steps": [
+            "Navigate to /audience",
+            "Verify Contacts tab is active",
+            "Click Properties tab",
+            "Verify URL changes to /audience/properties",
+            "Click Segments tab",
+            "Verify URL changes to /audience/segments"
+          ],
+          "expected": "Tab navigation works, URL updates, active state changes"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "direct URL to Topics tab",
+          "steps": ["Navigate directly to /audience/topics"],
+          "expected": "Topics tab is active, page loads correctly"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-017",
+    "category": "crud",
+    "description": "Contacts list table with Email, Segments, Status, Added columns, search, filters, and pagination",
+    "page": "Audience > Contacts",
+    "ui_details": "Filter bar: Search input (Shadow DOM, placeholder 'Search by name, email, or multiple emails...'), 'All contacts' dropdown (filters by segment), 'All subscriptions' dropdown (filters by status), Export button. Data table with checkbox column, Email (avatar + email + name link to /audience/contacts/:id), Segments, Status ('Subscribed' green badge), Added (relative time). Row actions on hover.",
+    "behavior": "Search filters contacts by name/email. Segment filter narrows by segment. Subscription filter narrows by status. Clicking email navigates to contact detail. Checkboxes enable bulk selection. Row actions appear on hover.",
+    "data_model": "Contact list item: { id: string, email: string, first_name: string, last_name: string, segments: string[], status: 'subscribed' | 'unsubscribed', created_at: Date }",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders contact rows with correct columns",
+          "description": "Each contact row displays Email, Segments, Status, Added columns with checkbox",
+          "input": "Array of contact objects",
+          "expected_output": "Table rows with all 4 columns populated and checkboxes"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "click contact navigates to detail page",
+          "steps": [
+            "Navigate to /audience",
+            "Click on a contact email link",
+            "Verify URL changes to /audience/contacts/:id"
+          ],
+          "expected": "Navigation to contact detail page"
+        },
+        {
+          "name": "search contacts by email",
+          "steps": [
+            "Navigate to /audience",
+            "Type 'test@example.com' in search input",
+            "Verify table updates to show matching contacts"
+          ],
+          "expected": "Table filters to show only matching contacts"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "empty contacts list",
+          "steps": ["Search for nonexistent email"],
+          "expected": "Empty state or 'no results' message displayed"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-018",
+    "category": "crud",
+    "description": "Add contact manually — modal with email addresses textarea and segment autocomplete",
+    "page": "Audience > Contacts",
+    "ui_details": "Modal triggered by 'Add contacts' → 'Add manually'. Title: 'Add contacts'. Email addresses: textarea (placeholder 'foo@gmail.com, bar@gmail.com'), helper text 'Use commas or line breaks to separate multiple email addresses.' Segments: autocomplete contenteditable input. Add + Cancel buttons + close (X).",
+    "behavior": "Textarea accepts comma or line-break separated emails. Segments autocomplete filters existing segments. Add button creates contacts and assigns them to selected segments. Cancel/Escape closes modal.",
+    "data_model": "Create contact: { emails: string[], segment_ids: string[] }",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders add contact modal with fields",
+          "description": "Modal shows email textarea and segments autocomplete",
+          "input": "Click Add contacts → Add manually",
+          "expected_output": "Modal with email textarea and segments field"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "add single contact manually",
+          "steps": [
+            "Navigate to /audience",
+            "Click 'Add contacts' button",
+            "Click 'Add manually'",
+            "Type 'new@example.com' in email textarea",
+            "Click 'Add' button",
+            "Verify contact appears in list"
+          ],
+          "expected": "Contact created and visible in contacts table"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "add multiple contacts with commas",
+          "steps": ["Type 'a@b.com, c@d.com' in textarea", "Click Add"],
+          "expected": "Both contacts created successfully"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-019",
+    "category": "ui",
+    "description": "Contact detail page — metadata, properties, activity timeline",
+    "page": "Contact Detail",
+    "ui_details": "Page header: 'Contact' label + email as h1. Metadata: Email Address, Created (relative time), Status (Subscribed badge), ID (UUID with copy button), Segments (list or 'No segments'), Topics (list or 'No topics'). Properties section: key-value pairs for First Name, Last Name, company_name. Activity section: vertical timeline of events (e.g., 'Contact created'). Note text: 'Activity data may take a few seconds to update.'",
+    "behavior": "Copy button copies contact ID to clipboard. Properties show all custom contact properties. Activity timeline shows chronological events. More actions dropdown: Edit contact, (separator), Delete contact.",
+    "data_model": "Contact detail: { id: string, email: string, first_name: string, last_name: string, status: string, segments: Array<{id: string, name: string}>, topics: Array<{id: string, name: string}>, properties: Record<string, string>, created_at: Date, activity: Array<{type: string, timestamp: Date}> }",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders contact metadata fields",
+          "description": "Shows Email Address, Created, Status, ID, Segments, Topics fields",
+          "input": "Contact detail object",
+          "expected_output": "All metadata fields displayed with correct values"
+        },
+        {
+          "name": "renders properties section",
+          "description": "Shows all contact properties with labels and values",
+          "input": "Contact with first_name, last_name, company_name",
+          "expected_output": "Properties section with 3 key-value pairs"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view contact detail from list",
+          "steps": [
+            "Navigate to /audience",
+            "Click on a contact email link",
+            "Verify contact detail page loads",
+            "Verify metadata fields are populated",
+            "Verify Properties section is visible",
+            "Verify Activity section shows events"
+          ],
+          "expected": "Contact detail page shows all information"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "copy contact ID to clipboard",
+          "steps": ["Click copy button next to ID"],
+          "expected": "ID copied to clipboard, button shows success state"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-020",
+    "category": "crud",
+    "description": "Properties list table with Name, Type, Fallback value, Created columns and Add property modal",
+    "page": "Audience > Properties",
+    "ui_details": "Filter bar: Search input (placeholder 'Search...'), Type filter combobox ('All Types'). Data table: checkbox column, Name (monospace), Type (string/number), Fallback value, Created (relative time). Row actions. 'Add property' button opens modal with: Name (text, maxlength 100, required, placeholder 'e.g., company_name'), Type (combobox: String, Number), Fallback Value (optional, placeholder 'Value to use when property is empty'). Add + Cancel buttons.",
+    "behavior": "Search filters properties by name. Type filter narrows by string/number. Add property creates a new custom contact property. Properties appear in contact detail pages.",
+    "data_model": "Contact property: { id: string, name: string, type: 'string' | 'number', fallback_value: string | null, created_at: Date }",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders property rows with correct columns",
+          "description": "Each row displays Name, Type, Fallback value, Created",
+          "input": "Array of property objects",
+          "expected_output": "Table rows with all 4 columns"
+        },
+        {
+          "name": "add property modal shows Type options",
+          "description": "Type combobox shows String and Number options",
+          "input": "Open add property modal",
+          "expected_output": "2 type options: String, Number"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "create new property",
+          "steps": [
+            "Navigate to /audience/properties",
+            "Click 'Add property' button",
+            "Type 'phone_number' in Name field",
+            "Select 'String' type",
+            "Click 'Add'",
+            "Verify property appears in list"
+          ],
+          "expected": "New property created and visible in table"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "property name maxlength",
+          "steps": ["Open add property modal", "Type 110 characters in Name"],
+          "expected": "Input truncated or blocked at 100 characters"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-021",
+    "category": "crud",
+    "description": "Segments list table with Name, Contacts, Unsubscribed, Created columns and Create segment modal",
+    "page": "Audience > Segments",
+    "ui_details": "Filter bar: Search input (placeholder 'Search...'). Data table: checkbox column, Name (link to /audience?segmentId=:id), Contacts (count), Unsubscribed (count), Created (relative time). Row actions. 'Create segment' button opens modal with: Name (text, placeholder 'Your segment name'). Add + Cancel buttons.",
+    "behavior": "Search filters segments by name. Clicking segment name navigates to Contacts tab filtered by that segment. Create segment opens simple name-only modal.",
+    "data_model": "Segment: { id: string, name: string, contacts_count: number, unsubscribed_count: number, created_at: Date }",
+    "priority": 11,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders segment rows with correct columns",
+          "description": "Each row displays Name, Contacts, Unsubscribed, Created",
+          "input": "Array of segment objects",
+          "expected_output": "Table rows with all 4 columns"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "create new segment",
+          "steps": [
+            "Navigate to /audience/segments",
+            "Click 'Create segment' button",
+            "Type 'VIP Customers' in Name field",
+            "Click 'Add'",
+            "Verify segment appears in list"
+          ],
+          "expected": "New segment created and visible in table"
+        },
+        {
+          "name": "click segment navigates to filtered contacts",
+          "steps": [
+            "Navigate to /audience/segments",
+            "Click on segment name 'General'",
+            "Verify URL changes to /audience?segmentId=:id",
+            "Verify Contacts tab shows filtered view"
+          ],
+          "expected": "Contacts tab loads with segment filter applied"
+        }
+      ],
+      "edge_cases": []
+    }
+  },
+  {
+    "id": "feature-022",
+    "category": "crud",
+    "description": "Topics list page with empty state, Create topic modal, and unsubscribe page preview",
+    "page": "Audience > Topics",
+    "ui_details": "Filter bar: Search input (placeholder 'Search...'), Default filter combobox ('Any Default' — opt-in/opt-out). 'Create topic' button + 'Edit Unsubscribe Page' link. Empty state: 'No topics yet' + description + 'Create topic' button + 'Customize page' link. Unsubscribe page preview embedded in page. Create topic modal: Name (maxlength 50, required, placeholder 'Public display name'), Description (textarea, maxlength 200, placeholder 'Optional public description'), Defaults to (Opt-in/Opt-out combobox — immutable after creation), Visibility (Private/Public combobox).",
+    "behavior": "Topics control unsubscribe preferences. Create topic modal has 4 fields. Defaults to value cannot be changed after creation. Unsubscribe page preview shows live preview of customizable page. Edit Unsubscribe Page link navigates to /audience/topics/unsubscribe-page/edit.",
+    "data_model": "Topic: { id: string, name: string, description: string | null, default_subscription: 'opt_in' | 'opt_out', visibility: 'private' | 'public', created_at: Date }",
+    "priority": 12,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders empty state when no topics",
+          "description": "Shows 'No topics yet' message with create button and unsubscribe preview",
+          "input": "Empty topics list",
+          "expected_output": "Empty state with message, create button, customize link, and unsubscribe page preview"
+        },
+        {
+          "name": "create topic modal shows all 4 fields",
+          "description": "Modal has Name, Description, Defaults to, Visibility fields",
+          "input": "Click Create topic button",
+          "expected_output": "Modal with 4 fields and correct defaults"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "create new topic",
+          "steps": [
+            "Navigate to /audience/topics",
+            "Click 'Create topic' button",
+            "Type 'Marketing Updates' in Name field",
+            "Type 'Monthly marketing newsletter' in Description",
+            "Select 'Opt-out' for Defaults to",
+            "Select 'Public' for Visibility",
+            "Click 'Add'",
+            "Verify topic appears in list"
+          ],
+          "expected": "New topic created with correct settings"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "topic name maxlength",
+          "steps": ["Open create topic modal", "Type 55 characters in Name"],
+          "expected": "Input truncated or blocked at 50 characters"
+        }
+      ]
+    }
   }
 ]

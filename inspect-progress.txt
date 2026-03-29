@@ -179,4 +179,50 @@
 - screenshots/inspect/ — templates-list.jpg, template-editor.jpg, template-details.jpg
 
 ### Next:
-- Iteration 5: Deep dive — Audience page (Contacts, Properties, Segments, Topics tabs)
+- Iteration 6: Deep dive — Domains page
+
+---
+
+## Iteration 5: Audience Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Audience > Contacts tab, inspected all interactive elements
+- Inspected summary stats row: All Contacts, Subscribers, Unsubscribers counts, Metrics toggle
+- Inspected filter bar: Search (by name, email, or multiple emails), All contacts dropdown, All subscriptions dropdown, Export button
+- Inspected data table: Email, Segments, Status, Added columns with checkboxes
+- Opened "Add contacts" dropdown: 2 options — Add manually (modal), Import CSV (link)
+- Inspected Add manually modal: email textarea (comma/line-break separated) + segments autocomplete
+- Navigated to Contact Detail page (/audience/contacts/:id)
+- Inspected contact metadata: Email Address, Created, Status, ID (copy button), Segments, Topics
+- Inspected Properties section: First Name, Last Name, company_name
+- Inspected Activity section: vertical timeline of events
+- Inspected contact More actions: Edit contact, (separator), Delete contact
+- Navigated to Properties tab (/audience/properties)
+- Inspected properties table: Name, Type, Fallback value, Created columns
+- Inspected Add property modal: Name (maxlength 100), Type (String/Number), Fallback Value (optional)
+- Navigated to Segments tab (/audience/segments)
+- Inspected segments table: Name (links to filtered contacts), Contacts count, Unsubscribed count, Created
+- Inspected Create segment modal: Name field only
+- Navigated to Topics tab (/audience/topics)
+- Inspected empty state: "No topics yet" + unsubscribe page preview
+- Inspected Create topic modal: Name (maxlength 50), Description (maxlength 200), Defaults to (Opt-in/Opt-out — immutable), Visibility (Private/Public)
+
+### Key findings:
+- Audience page has 4 tabs: Contacts, Properties, Segments, Topics
+- Contact list has summary stats above filter bar (All Contacts, Subscribers, Unsubscribers)
+- Row actions button is hidden by default (zero dimensions) — only visible on row hover
+- Contact detail page shows metadata, properties, and activity timeline
+- Properties support 2 types: String and Number, with optional fallback values
+- Segments are simple name-only entities — clicking navigates to Contacts filtered by segment
+- Topics have 4 fields: Name, Description, Defaults to (immutable), Visibility
+- Topics tab includes embedded unsubscribe page preview
+- Create segment modal is minimal (name only) — no filter rules UI observed
+- Contact properties: first_name, last_name, company_name (built-in) + custom properties
+
+### Files created/updated:
+- build-spec.md — Added sections 6.9 (Contacts), 6.10 (Contact Detail), 6.11 (Properties), 6.12 (Segments), 6.13 (Topics)
+- prd.json — Added 7 feature entries (feature-016 through feature-022)
+- screenshots/inspect/ — audience-contacts.jpg, audience-add-contact-modal.jpg, audience-contact-detail.jpg, audience-properties.jpg, audience-add-property-modal.jpg, audience-segments.jpg, audience-create-segment-modal.jpg, audience-topics.jpg, audience-create-topic-modal.jpg
+
+### Next:
+- Iteration 6: Deep dive — Domains page

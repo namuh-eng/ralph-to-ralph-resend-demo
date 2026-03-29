@@ -385,6 +385,127 @@ contact.created, contact.updated, contact.deleted
 - Copy button next to tabs (copies content of active tab)
 - **No Insights tab** (unlike email detail)
 
+### 6.9 Audience — Contacts Tab (`/audience`)
+
+**Layout**: Page title "Audience" + tab bar (Contacts | Properties | Segments | Topics) + "Add contacts" dropdown + API drawer button
+
+**Summary Stats** (above filter bar):
+- All Contacts (count), Subscribers (count), Unsubscribers (count), Metrics (expandable)
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search by name, email, or multiple emails...")
+2. **Contacts filter** (dropdown, default "All contacts") — filters by segment
+3. **Subscriptions filter** (dropdown, default "All subscriptions") — filters by subscription status
+4. **Export button** (right side)
+
+**Data Table**:
+- Columns: Email, Segments, Status, Added
+- Checkbox column for bulk selection (header + per row)
+- **Email** column: avatar + email + name (link to `/audience/contacts/:id`)
+- **Segments** column: segment names (empty if none)
+- **Status** column: "Subscribed" badge (green)
+- **Added** column: relative time
+- **Row actions**: three-dot "More actions" button (shows on hover — hidden by default, zero dimensions until row hover)
+
+**Add Contacts** (dropdown button → 2 options):
+1. **Add manually** → modal:
+   - Email addresses: textarea (placeholder "foo@gmail.com, bar@gmail.com", comma or line-break separated)
+   - Segments: autocomplete input for segment assignment
+   - Add + Cancel buttons
+2. **Import CSV** → navigates to import page
+
+**Pagination**: Standard 40/80/120 items per page
+
+### 6.10 Audience — Contact Detail (`/audience/contacts/:id`)
+
+**Layout**: "Contact" label + email as h1 heading + API drawer button + More actions button
+
+**Metadata** (key-value pairs):
+- **Email Address**: email string
+- **Created**: relative timestamp
+- **Status**: "Subscribed" badge
+- **ID**: UUID with copy-to-clipboard button
+- **Segments**: list of segments or "No segments"
+- **Topics**: list of topics or "No topics"
+
+**Properties Section**:
+- Displays all contact properties with labels and values
+- Default properties: First Name, Last Name, company_name
+- Missing values shown as "-"
+
+**Activity Section**:
+- Vertical timeline of contact events (e.g., "Contact created about 19 hours ago")
+- Note: "Activity data may take a few seconds to update."
+
+**More Actions**:
+- Edit contact
+- *(separator)*
+- Delete contact
+
+### 6.11 Audience — Properties Tab (`/audience/properties`)
+
+**Layout**: Same tab bar, Properties tab active + "Add property" button + API drawer button
+
+**Filter Bar**:
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Type filter** (combobox, default "All Types")
+
+**Data Table**:
+- Columns: Name, Type, Fallback value, Created
+- Checkbox column for bulk selection
+- Row actions (three-dot button)
+- Name shown in monospace/code style
+
+**Add Property** (button → modal):
+- **Name**: text input (placeholder "e.g., company_name", maxlength 100, required)
+- **Type**: combobox with 2 options: **String**, **Number**
+- **Fallback Value**: optional text input (placeholder "Value to use when property is empty")
+- Add + Cancel buttons
+
+**Pagination**: Standard 40/80/120 items per page
+
+### 6.12 Audience — Segments Tab (`/audience/segments`)
+
+**Layout**: Same tab bar, Segments tab active + "Create segment" button + API drawer button
+
+**Filter Bar**:
+1. **Search** (Shadow DOM input, placeholder "Search...")
+
+**Data Table**:
+- Columns: Name, Contacts, Unsubscribed, Created
+- Checkbox column for bulk selection
+- **Name** column: link to `/audience?segmentId=:id` (navigates to Contacts tab filtered by segment)
+- Row actions (three-dot button)
+
+**Create Segment** (button → modal):
+- **Name**: text input (placeholder "Your segment name")
+- Add + Cancel buttons
+
+**Pagination**: Standard 40/80/120 items per page
+
+### 6.13 Audience — Topics Tab (`/audience/topics`)
+
+**Layout**: Same tab bar, Topics tab active + "Create topic" button + "Edit Unsubscribe Page" link + API drawer button
+
+**Filter Bar**:
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Default filter** (combobox, default "Any Default") — filters by opt-in/opt-out
+
+**Empty State**:
+- Title: "No topics yet"
+- Description: "Use Topics with Unsubscribe Page to let users choose the content they want to receive."
+- "Create topic" button + "Customize page" link
+- **Unsubscribe page preview**: Embedded preview showing the customizable unsubscribe page with heading "Do you want to unsubscribe?", "Confirm your email preferences:" text, "Unsubscribe" button, "Powered by Resend" footer
+
+**Create Topic** (button → modal):
+- **Name**: text input (placeholder "Public display name", maxlength 50, required)
+- **Description**: textarea (placeholder "Optional public description", maxlength 200)
+- **Defaults to**: combobox with **Opt-in** / **Opt-out** (with info tooltip). Note: "This value cannot be changed later."
+- **Visibility**: combobox with **Private** / **Public** (with info tooltip)
+- Add + Cancel buttons
+
+**Edit Unsubscribe Page**: Link to `/audience/topics/unsubscribe-page/edit`
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
