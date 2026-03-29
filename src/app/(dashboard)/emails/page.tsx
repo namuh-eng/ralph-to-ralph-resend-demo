@@ -1,9 +1,18 @@
-import { EmailsHeader } from "@/components/emails-header";
+import { EmailsSendingPage } from "@/components/emails-sending-page";
+import { db } from "@/lib/db";
+import { apiKeys } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
 
-export default function EmailsPage() {
-  return (
-    <div>
-      <EmailsHeader activeTab="sending" />
-    </div>
-  );
+export default async function EmailsPage() {
+  let keys: { id: string; name: string }[] = [];
+  try {
+    keys = await db
+      .select({ id: apiKeys.id, name: apiKeys.name })
+      .from(apiKeys)
+      .orderBy(desc(apiKeys.createdAt));
+  } catch {
+    // DB unavailable — render with empty keys
+  }
+
+  return <EmailsSendingPage apiKeys={keys} />;
 }

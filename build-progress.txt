@@ -391,3 +391,35 @@
 - src/app/(dashboard)/emails/page.tsx — Updated to use EmailsHeader
 - src/app/(dashboard)/emails/receiving/page.tsx — New receiving page with EmailsHeader
 - tests/emails-page.test.tsx — 8 unit tests for emails page layout
+
+## Iteration 14 — feature-002: Emails Sending Tab Filter Bar (2026-03-29)
+
+### What was built
+- EmailsSendingFilterBar client component (`src/components/emails-sending-filter-bar.tsx`) with:
+  - SearchInput for filtering by recipient or subject
+  - DateRangePicker defaulting to "Last 15 days" with 6 presets (Today, Yesterday, Last 3/7/15/30 days)
+  - Status dropdown filter with all 12 email statuses (Bounced, Canceled, Clicked, Complained, Delivered, Delivery Delayed, Failed, Opened, Scheduled, Sent, Queued, Suppressed) with colored dot indicators
+  - API Key combobox filter showing "All API Keys" + dynamically loaded keys from DB
+  - Export icon button (right-aligned)
+- EmailsSendingPage client wrapper (`src/components/emails-sending-page.tsx`) — combines EmailsHeader + EmailsSendingFilterBar with filter state management
+- Updated /emails server page to fetch API keys from DB and pass to client component
+- All filter changes emit via onFiltersChange callback with full filter state object
+
+### Test results
+- 12 new unit tests passing (search input, date range default + presets, status default + all 12 statuses + colored dots, API key combobox + options, export button, onFiltersChange for search/status/dateRange)
+- 3 E2E tests written (filter bar renders, status dropdown, date range preset)
+- 192 total unit tests passing (180 previous + 12 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Used thin client wrapper (EmailsSendingPage) to manage filter state, keeping server component for data fetching
+- Status options use colored dots matching Resend's visual design (green=delivered/sent, red=bounced/failed, etc.)
+- Filter bar composition reuses all shared components (SearchInput, DateRangePicker, DropdownFilter, ComboboxFilter, ExportButton)
+- onFiltersChange emits full filter state object on every change for easy consumption
+
+### Files changed
+- src/components/emails-sending-filter-bar.tsx — Filter bar component with all 5 filter controls
+- src/components/emails-sending-page.tsx — Client wrapper combining header + filter bar with state
+- src/app/(dashboard)/emails/page.tsx — Server component fetching API keys, rendering client page
+- tests/emails-filter-bar.test.tsx — 12 unit tests for filter bar
+- tests/e2e/emails-filter-bar.spec.ts — 3 E2E tests for filter interactions
