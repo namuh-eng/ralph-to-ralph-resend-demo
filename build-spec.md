@@ -1,6 +1,6 @@
 # Build Spec — Resend Clone
 
-> Status: PARTIAL — Docs extracted, site mapped, feature deep-dives pending
+> Status: COMPLETE — All pages inspected, all features documented
 
 ## 1. Product Overview
 
@@ -989,29 +989,65 @@ contact.created, contact.updated, contact.deleted
 - Low priority for clone — could be replicated as static page with placeholder PDFs
 - No API drawer, no forms, no dynamic content
 
-## 7. Design System — PARTIAL (needs more deep dives)
+## 7. Design System — COMPLETE
+
+### Theme
+- **Mode**: Dark theme (black background, light text)
+- **Overall feel**: Minimal, developer-focused, high contrast dark UI
+
+### Colors
+| Token | Value | Usage |
+|-------|-------|-------|
+| Background (body) | `#000000` / `rgb(0, 0, 0)` | Page background |
+| Text primary | `#F0F0F0` / `rgb(240, 240, 240)` | Headings, active nav, table cell text |
+| Text secondary | `#A1A4A5` / `rgb(161, 164, 165)` | Inactive nav, labels, table headers, muted text |
+| Text tertiary | `rgba(253, 254, 255, 0.65)` | Icons, subtle elements |
+| Surface | `rgba(24, 25, 28, 0.88)` | Buttons, filter dropdowns, active nav item bg, cards |
+| Border primary | `rgba(176, 199, 217, 0.145)` | Table borders, button borders, dividers |
+| Border secondary | `rgb(33, 38, 41)` | Sidebar borders, subtle separators |
+| Border hover | `rgb(41, 48, 52)` | Hover state borders |
+| Unsubscribe page bg | `#05050A` | Unsubscribe page background |
+| Unsubscribe text | `#EDEEF0` | Unsubscribe page text |
+| Unsubscribe accent | `#363A3F` | Unsubscribe page accent/button |
+
+### Typography
+| Element | Font Family | Size | Weight | Line Height | Letter Spacing |
+|---------|-------------|------|--------|-------------|----------------|
+| Page title (h1) | `aBCFavorit` | 28px | 500 | 34px | -0.72px |
+| Body text | `Inter` | 14px | 400 | — | — |
+| Table headers | `Inter` | 12px | 400 | — | — |
+| Nav items | `Inter` | 14px | 400 | — | — |
+| Sidebar buttons | `Inter` | 14px | 600 | — | — |
+| Base (body) | `Inter` | 16px | 400 | — | — |
+
+**Font stack**: `inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`
+**Display font**: `aBCFavorit` (h1 headings only)
 
 ### Layout
-- **Sidebar**: ~240px, dark/neutral background, fixed left
-- **Content area**: White background, max-width container
-- **Page header**: Title (h1) + action buttons (right-aligned)
-- **Filter bar**: Search input + dropdown filters + date range picker
+- **Sidebar**: 250px width, fixed left, transparent/dark background
+- **Content area**: Fills remaining width, dark background
+- **Page header**: Title (h1, aBCFavorit) + action buttons (right-aligned)
+- **Filter bar**: Below header, left-to-right: search + filter dropdowns + export button
+- **Border radius**: 12px (buttons, cards, nav items), 6px (smaller elements)
+- **Padding**: Buttons `0px 6px 0px 12px` (with icon), table cells `0px 12px`
 
 ### Common Components
-- **Data tables**: Sortable columns, checkbox selection, row actions (three-dot menu)
-- **Pagination**: Items per page selector (40/80/120), cursor-based
+- **Data tables**: Column headers (12px, secondary color), cell text (14px, primary), bottom border on cells, checkbox selection, row actions (three-dot menu)
+- **Pagination**: Items per page selector (40/80/120), cursor-based navigation
 - **Search**: Shadow DOM text input with placeholder
-- **Status badges**: Colored pills (delivered, bounced, complained, etc.)
-- **API drawer**: Slide-in panel from right showing code examples
-- **Modals**: For create/edit forms
+- **Status badges**: Text-based buttons with contextual meaning (no background fill, uses text color)
+- **API drawer**: Slide-in panel from right with language tabs (9 languages) and code examples
+- **Modals**: Centered dialog with form fields, Add/Cancel buttons, Esc keyboard shortcut
 - **Toast notifications**: Success/error feedback
-- **Date range picker**: Preset ranges (Last 15 days, etc.) + custom
-- **Tabs**: Horizontal tab bar for sub-pages (e.g., Emails: Sending/Receiving, Audience: 4 tabs, Settings: 7 tabs)
+- **Date range picker**: 6 presets (Today, Yesterday, Last 3/7/15/30 days) + calendar month view with range selection
+- **Tabs**: Horizontal tab bar with Radix `data-state=active/inactive`, underline indicator for active
+- **Combobox**: Searchable dropdown with multi-select support (used for event types, domains, segments)
+- **Toggle switches**: Binary on/off controls (used in domain config, unsubscribe settings)
+- **Copy-to-clipboard**: Button next to IDs, tokens, DNS records — copies value, shows feedback
+- **Empty states**: Centered heading + description + action button (used on Webhooks, Receiving, Topics)
+- **Vertical timeline**: Status badge + timestamp pairs for event history (Email events, Domain events, Contact activity)
 
-### Colors — *To be captured during deep dives*
-### Typography — *To be captured during deep dives*
-
-## 7. Site Map
+## 8. Site Map
 
 **Layout**: Sidebar (left, 10 nav items) + Content area (right)
 
@@ -1037,42 +1073,149 @@ contact.created, contact.updated, contact.deleted
 - `/logs/:id` — Log detail (API request/response, error explanation)
 - `/api-keys/:id` — API key detail (permission, domain, usage stats)
 
-## 8. Build Order
+## 9. Build Order
 
-**Core features** (what makes Resend valuable):
-1. Send emails via API
-2. View email delivery status/logs
-3. Manage domains + DNS verification
-4. API key management
+### What Makes Resend Valuable (Core Features)
+1. **Send emails via API** — the #1 use case, REST API + SES integration
+2. **View email delivery logs** — see what was sent, delivery status, events
+3. **Manage domains + DNS verification** — DKIM/SPF setup via SES + Cloudflare
+4. **API key management** — create/scope keys for authentication
+5. **Contacts & segments** — audience management for broadcasts
 
-**Priority order:**
-1. Project scaffolding (done — Next.js, Drizzle, Playwright, Biome)
-2. Core layout shell (sidebar nav, content area, routing)
-3. Design system foundations (colors, typography, shared table/filter components)
-4. Database schema (all models via Drizzle)
-5. **CORE: Email sending API** (`POST /api/emails`) + SES integration
-6. **CORE: Emails list page** (table, filters, search, status badges)
-7. **CORE: Email detail page** (delivery timeline, headers, body preview)
-8. **CORE: Domains** (add, verify via SES + Cloudflare, DNS records)
-9. **CORE: API Keys** (create, list, delete, permission scoping)
-10. Audience — Contacts (CRUD, search, import)
-11. Audience — Properties, Segments, Topics
-12. Templates (CRUD, variables, preview)
-13. Broadcasts (create, schedule, send to segment)
-14. Webhooks (create, manage, event types, signing)
-15. Logs (event log viewer with filters)
-16. Metrics (charts, aggregation queries)
-17. Settings — Usage, SMTP, Integrations, Unsubscribe page, Documents
-18. TypeScript SDK (`packages/sdk/`)
-19. Deployment (AWS App Runner + RDS)
+### Implementation Priority
 
-## 9. Backend Architecture
+| Priority | Phase | What to Build | PRD Items |
+|----------|-------|---------------|-----------|
+| 1 | Infrastructure | Database schema (all models via Drizzle), SES client, S3 client, Cloudflare client | infra-001 through infra-004 |
+| 2 | Shell | Core layout: sidebar nav (10 items), content area, routing for all pages | layout-001 |
+| 3 | Foundations | Design system: dark theme, colors, typography, shared components (table, filters, pagination, modals, badges, date picker, search, tabs, toasts) | design-001 through design-003 |
+| 4 | Auth | API key auth middleware (Bearer token), API key CRUD | feature-030, feature-031, feature-032 |
+| 5 | **CORE** | Email sending API (`POST /api/emails`, `POST /api/emails/batch`, `GET /api/emails`, `GET /api/emails/:id`) + SES integration | api-001 |
+| 6 | **CORE** | Emails list page (table, filters, search, status badges, date range, pagination) | feature-001, feature-002, feature-003 |
+| 7 | **CORE** | Email detail page (metadata, event timeline, content tabs: Preview/Plain Text/HTML/Insights) | feature-004, feature-005 |
+| 8 | **CORE** | Domains API + list page (add, verify via SES + Cloudflare DNS, status tracking) | feature-023, feature-024, feature-025 |
+| 9 | Secondary | Domain configuration (click/open tracking, TLS settings) | feature-026 |
+| 10 | Secondary | API drawer (shared component — slide-in panel with code examples, 9 language tabs) | feature-006 |
+| 11 | Secondary | Audience — Contacts (list, add manually, import CSV, detail page with activity timeline) | feature-016, feature-017, feature-018, feature-019 |
+| 12 | Secondary | Audience — Properties, Segments, Topics (CRUD for each) | feature-020, feature-021, feature-022 |
+| 13 | Secondary | Broadcasts (list, editor with block-based content, slash commands, theme, review/send) | feature-008, feature-009, feature-010, feature-011, feature-012 |
+| 14 | Secondary | Templates (card grid list, editor sharing broadcast editor, detail page, publish flow) | feature-013, feature-014, feature-015 |
+| 15 | Secondary | Webhooks (list, add modal with 17 event types, event delivery via HTTP POST) | feature-033, feature-034, feature-035 |
+| 16 | Supporting | Logs (API request log table, success/error detail pages, HTTP status filters) | feature-027, feature-028, feature-029 |
+| 17 | Supporting | Metrics (deliverability/bounce/complain rate charts, SVG charts, breakdown tables) | feature-036, feature-037, feature-038, feature-039 |
+| 18 | Supporting | Emails Receiving tab (inbound email via subdomain) | feature-007 |
+| 19 | Settings | Settings — Usage quotas, SMTP credentials, Integrations, Unsubscribe page editor, Documents | feature-040, feature-041, feature-042, feature-043, feature-044 |
+| 20 | SDK | TypeScript SDK (`packages/sdk/`) — `{ data, error }` pattern, all API resources | sdk-001 |
+| 21 | Deploy | AWS App Runner + RDS Postgres deployment | deploy-001 |
 
-| Feature | AWS Service |
-|---------|-------------|
-| Email sending | AWS SES (us-east-1) |
-| Domain DNS verification | Cloudflare API |
-| Database | RDS Postgres (Drizzle ORM) |
-| File storage (attachments) | AWS S3 |
-| Webhook delivery | HTTP POST with retry queue |
-| API authentication | Bearer token (API keys in DB) |
+## 10. Backend Architecture
+
+| Feature | AWS Service | Details |
+|---------|-------------|---------|
+| Email sending | AWS SES (`@aws-sdk/client-sesv2`) | us-east-1 region, SendEmail API |
+| Domain verification | AWS SES + Cloudflare API | SES for DKIM/SPF identity, Cloudflare for DNS record auto-configuration |
+| Database | RDS Postgres (Drizzle ORM) | All data models, cursor-based pagination |
+| File storage | AWS S3 | Email attachments, template images, logo uploads |
+| Webhook delivery | HTTP POST | Registered endpoint URLs, signing secret for verification, 17 event types |
+| API authentication | Bearer token | `Authorization: Bearer re_xxx` header, API keys stored hashed in DB |
+| Email receiving | AWS SES inbound | MX records → SES → S3 → notification → process |
+| Metrics aggregation | Postgres queries | Deliverability/bounce/complain rates, daily aggregation, 15-min refresh |
+| SMTP relay | Node.js SMTP server | Alternative to REST API, same SES backend |
+
+## 11. SDK / Developer Experience
+
+**Package**: `packages/sdk/` — TypeScript npm package
+
+**Pattern**: All methods return `{ data, error }` — no exceptions thrown
+
+**API Surface**:
+```typescript
+import { Resend } from 'resend';
+const resend = new Resend('re_xxx');
+
+// Emails
+const { data, error } = await resend.emails.send({ from, to, subject, html });
+await resend.emails.get(id);
+await resend.emails.list();
+
+// Domains
+await resend.domains.create({ name, region });
+await resend.domains.list();
+await resend.domains.get(id);
+await resend.domains.verify(id);
+await resend.domains.update({ id, openTracking, clickTracking });
+await resend.domains.remove(id);
+
+// API Keys
+await resend.apiKeys.create({ name, permission, domain });
+await resend.apiKeys.list();
+await resend.apiKeys.remove(id);
+
+// Contacts
+await resend.contacts.create({ email, firstName, lastName, segments });
+await resend.contacts.list();
+await resend.contacts.get(id);
+await resend.contacts.update({ id, firstName });
+await resend.contacts.remove(id);
+
+// Segments
+await resend.segments.create({ name });
+await resend.segments.list();
+await resend.segments.get(id);
+await resend.segments.remove(id);
+
+// Broadcasts
+await resend.broadcasts.create({ name, from, subject, html, segmentId });
+await resend.broadcasts.list();
+await resend.broadcasts.get(id);
+await resend.broadcasts.send(id);
+await resend.broadcasts.remove(id);
+
+// Webhooks
+await resend.webhooks.create({ endpoint, events });
+await resend.webhooks.list();
+await resend.webhooks.get(id);
+await resend.webhooks.remove(id);
+
+// Templates
+await resend.templates.create({ name, html, variables });
+await resend.templates.list();
+await resend.templates.get(id);
+await resend.templates.update({ id, html });
+await resend.templates.publish(id);
+await resend.templates.remove(id);
+
+// Topics
+await resend.topics.create({ name, defaultSubscription, visibility });
+await resend.topics.list();
+await resend.topics.get(id);
+await resend.topics.update({ id, name });
+await resend.topics.remove(id);
+```
+
+**Auth**: Bearer token via `Authorization` header
+**Regions**: us-east-1 (default), eu-west-1, sa-east-1, ap-northeast-1
+**Pagination**: Cursor-based (`{ limit, after, before }`)
+
+## 12. Deployment
+
+**Target**: AWS App Runner + RDS Postgres
+
+**Infrastructure**:
+- **App Runner**: Next.js app (builds from source, auto-deploy from git)
+- **RDS Postgres**: Managed database (Drizzle ORM migrations via `npm run db:migrate`)
+- **SES**: Email sending (pre-configured via `~/.aws/credentials`)
+- **S3**: File storage for attachments and images
+- **Cloudflare**: DNS management via API token in `.env`
+
+**Environment Variables** (`.env`):
+- `DATABASE_URL` — Postgres connection string
+- `DASHBOARD_KEY` — Master key for dashboard access
+- `CLOUDFLARE_API_TOKEN` — DNS record management
+- `CLOUDFLARE_ZONE_ID` — DNS zone
+- AWS credentials via `~/.aws/credentials` (no env vars needed)
+
+**Scripts** (`scripts/`):
+- `setup-rds.sh` — Create RDS instance
+- `setup-app-runner.sh` — Deploy to App Runner
+- `setup-ses.sh` — Configure SES identities

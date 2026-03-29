@@ -461,3 +461,60 @@
 
 ### Next:
 - Iteration 12: Final iteration — Finalize build-spec.md (clean up, complete design system, reorder PRD, write build order)
+
+---
+
+## Iteration 12: Final — Finalize build-spec.md & Reorder PRD — COMPLETE (2026-03-29)
+
+### What was done:
+- Extracted complete design system from live site via eval:
+  - Colors: dark theme (#000 bg, #F0F0F0 primary text, #A1A4A5 secondary, rgba surfaces/borders)
+  - Typography: aBCFavorit for h1 (28px/500), Inter for body (14px/400), table headers (12px)
+  - Layout: 250px sidebar, 12px border-radius buttons, specific paddings
+  - Component styles: button bg rgba(24,25,28,0.88), border rgba(176,199,217,0.145)
+- Updated build-spec.md status from PARTIAL to COMPLETE
+- Completed Design System section (section 7) with full color palette, typography table, layout specs, component catalog
+- Renumbered sections: Site Map (8), Build Order (9), Backend Architecture (10)
+- Rewrote Build Order (section 9) with implementation priority table mapping PRD items to phases
+- Added SDK/DX section (11) with full TypeScript SDK API surface
+- Added Deployment section (12) with AWS App Runner + RDS setup
+- Added 11 new PRD entries:
+  - infra-001 through infra-004: Database schema, SES client, Cloudflare client, S3 client
+  - layout-001: Core app shell with sidebar navigation
+  - design-001 through design-003: Shared data table, filter bar, UI primitives
+  - api-001: Email sending REST API endpoints
+  - sdk-001: TypeScript SDK package
+  - deploy-001: AWS App Runner deployment
+- Reordered all 55 PRD entries by implementation priority (P1-P21):
+  - P1: Infrastructure (DB, SES, Cloudflare, S3)
+  - P2: Layout shell
+  - P3: Design system components
+  - P4: API auth + API keys (core)
+  - P5-6: Emails list + detail (core)
+  - P7-8: Domains + config (core)
+  - P9: API drawer
+  - P10-11: Audience (contacts, properties, segments, topics)
+  - P12-13: Broadcasts + templates
+  - P14: Webhooks + template detail
+  - P15: Logs
+  - P16: Metrics
+  - P17: Email receiving
+  - P18-19: Settings
+  - P20: SDK
+  - P21: Deployment
+- Updated core flags: True for infrastructure, layout, design, API keys, emails, domains; False for everything else
+
+### Key findings:
+- Design system is dark-mode-first with very specific color tokens (rgba with alpha for surfaces/borders)
+- Two distinct font families: aBCFavorit (display headings only) and Inter (everything else)
+- 55 total PRD entries covering full product clone with infrastructure → core → secondary → polish ordering
+
+### Files created/updated:
+- build-spec.md — Finalized: complete design system, build order, backend architecture, SDK/DX, deployment sections
+- prd.json — Reordered 55 entries (44 existing + 11 new) by implementation priority P1-P21
+
+### Status:
+- ALL PAGES INSPECTED ✓
+- build-spec.md FINALIZED ✓
+- prd.json REORDERED ✓
+- INSPECTION COMPLETE
