@@ -2,7 +2,94 @@
 
 import { CopyToClipboard } from "@/components/copy-to-clipboard";
 import { StatusBadge } from "@/components/status-badge";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
+interface InsightItem {
+  id: string;
+  name: string;
+  status: "needs_attention" | "doing_great";
+  details: string;
+}
+
+const DEFAULT_INSIGHTS: InsightItem[] = [
+  {
+    id: "dmarc",
+    name: "Include valid DMARC record",
+    status: "needs_attention",
+    details:
+      "DMARC (Domain-based Message Authentication, Reporting & Conformance) helps protect your domain from email spoofing. Add a DMARC DNS record to improve deliverability and prevent unauthorized use of your domain.",
+  },
+  {
+    id: "click-tracking",
+    name: "Disable click tracking",
+    status: "doing_great",
+    details:
+      "Click tracking is disabled, which means your email links point directly to the intended destination without redirects. This improves deliverability and user trust.",
+  },
+  {
+    id: "open-tracking",
+    name: "Disable open tracking",
+    status: "doing_great",
+    details:
+      "Open tracking is disabled. No invisible tracking pixel is embedded in your emails, which improves deliverability and respects recipient privacy.",
+  },
+  {
+    id: "subdomain",
+    name: "Use a subdomain",
+    status: "doing_great",
+    details:
+      "You are sending from a subdomain rather than your root domain. This protects your main domain's reputation and isolates transactional email reputation.",
+  },
+  {
+    id: "link-urls",
+    name: "Ensure link URLs match sending domain",
+    status: "doing_great",
+    details:
+      "All links in your email use URLs that match your sending domain. This consistency helps email providers trust your messages.",
+  },
+  {
+    id: "plain-text",
+    name: "Include plain text version",
+    status: "doing_great",
+    details:
+      "Your email includes a plain text version alongside the HTML. This improves accessibility and deliverability across different email clients.",
+  },
+  {
+    id: "body-size",
+    name: "Keep body size under 100KB",
+    status: "doing_great",
+    details:
+      "Your email body is under 100KB. Large emails are more likely to be clipped or flagged by email providers.",
+  },
+  {
+    id: "no-reply",
+    name: "Avoid no-reply addresses",
+    status: "doing_great",
+    details:
+      "You are not using a no-reply address. Using a real reply-to address improves engagement and deliverability.",
+  },
+  {
+    id: "image-hosting",
+    name: "Host images on your domain",
+    status: "doing_great",
+    details:
+      "Images in your email are hosted on your own domain. This reduces the chance of images being blocked and improves brand consistency.",
+  },
+  {
+    id: "svg-images",
+    name: "Avoid SVG images",
+    status: "doing_great",
+    details:
+      "Your email does not contain SVG images. SVGs are often blocked by email clients due to security concerns.",
+  },
+  {
+    id: "youtube-urls",
+    name: "Avoid YouTube embed URLs",
+    status: "doing_great",
+    details:
+      "Your email does not contain YouTube embed URLs. Embedded videos are not supported in most email clients and can hurt deliverability.",
+  },
+];
 
 export interface EmailDetailData {
   id: string;
@@ -92,11 +179,81 @@ function EmailPreview({ html }: { html: string }) {
   );
 }
 
-export function EmailDetail({ email }: EmailDetailProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "plaintext" | "html">(
-    "preview",
+function InsightAccordion({ item }: { item: InsightItem }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const isWarning = item.status === "needs_attention";
+
+  return (
+    <div className="border-b border-[rgba(176,199,217,0.145)] last:border-b-0">
+      <button
+        type="button"
+        className="w-full flex items-center gap-3 py-3 px-4 text-left hover:bg-[rgba(24,25,28,0.5)] transition-colors"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+      >
+        <span className="text-[13px] text-[#A1A4A5] shrink-0">
+          {expanded ? "▼" : "▶"}
+        </span>
+        {isWarning ? (
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="#f59e0b"
+            className="shrink-0"
+          >
+            <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z" />
+          </svg>
+        ) : (
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="#4ade80"
+            className="shrink-0"
+          >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+        )}
+        <span className="text-[14px] text-[#F0F0F0]">{item.name}</span>
+      </button>
+      {expanded && (
+        <div
+          data-testid={`insight-detail-${item.id}`}
+          className="px-4 pb-3 pl-14 text-[13px] text-[#A1A4A5] leading-relaxed"
+        >
+          {item.details}
+        </div>
+      )}
+    </div>
   );
+}
+
+export function EmailDetail({ email }: EmailDetailProps) {
+  const [activeTab, setActiveTab] = useState<
+    "preview" | "plaintext" | "html" | "insights"
+  >("preview");
   const primaryTo = email.to[0] || "";
+
+  const needsAttention = DEFAULT_INSIGHTS.filter(
+    (i) => i.status === "needs_attention",
+  );
+  const doingGreat = DEFAULT_INSIGHTS.filter((i) => i.status === "doing_great");
+
+  const handleCopyTabContent = useCallback(() => {
+    let content = "";
+    if (activeTab === "preview" || activeTab === "html") {
+      content = email.html || "";
+    } else if (activeTab === "plaintext") {
+      content = email.text || "";
+    }
+    if (content) {
+      navigator.clipboard.writeText(content);
+    }
+  }, [activeTab, email.html, email.text]);
 
   return (
     <div className="p-6">
@@ -202,18 +359,19 @@ export function EmailDetail({ email }: EmailDetailProps) {
 
       {/* Content Tabs */}
       <div className="border-b border-[rgba(176,199,217,0.145)] mb-4">
-        <div className="flex gap-0">
+        <div className="flex items-center gap-0">
           {(
             [
               { key: "preview", label: "Preview" },
               { key: "plaintext", label: "Plain Text" },
               { key: "html", label: "HTML" },
+              { key: "insights", label: "Insights" },
             ] as const
           ).map((tab) => (
             <button
               key={tab.key}
               type="button"
-              className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
+              className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? "border-[#F0F0F0] text-[#F0F0F0]"
                   : "border-transparent text-[#A1A4A5] hover:text-[#F0F0F0]"
@@ -222,31 +380,87 @@ export function EmailDetail({ email }: EmailDetailProps) {
               data-state={activeTab === tab.key ? "active" : "inactive"}
             >
               {tab.label}
+              {tab.key === "insights" && needsAttention.length > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] font-medium bg-[rgba(176,199,217,0.145)] rounded-full">
+                  {needsAttention.length}
+                </span>
+              )}
             </button>
           ))}
+          <div className="ml-auto">
+            <button
+              type="button"
+              data-testid="tab-copy-button"
+              aria-label="Copy content"
+              className="p-2 rounded-lg hover:bg-[rgba(176,199,217,0.145)] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors"
+              onClick={handleCopyTabContent}
+            >
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="bg-white rounded-lg min-h-[300px] p-6">
-        {activeTab === "preview" && <EmailPreview html={email.html || ""} />}
-        {activeTab === "plaintext" && (
-          <pre
-            data-testid="email-plaintext"
-            className="text-black text-[14px] whitespace-pre-wrap font-mono"
-          >
-            {email.text || ""}
-          </pre>
-        )}
-        {activeTab === "html" && (
-          <pre
-            data-testid="email-html"
-            className="text-black text-[14px] whitespace-pre-wrap font-mono"
-          >
-            {email.html || ""}
-          </pre>
-        )}
-      </div>
+      {activeTab === "insights" ? (
+        <div className="min-h-[300px]">
+          {needsAttention.length > 0 && (
+            <div data-testid="needs-attention-section" className="mb-6">
+              <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-2 px-4">
+                NEEDS ATTENTION
+              </p>
+              <div className="border border-[rgba(176,199,217,0.145)] rounded-lg overflow-hidden">
+                {needsAttention.map((item) => (
+                  <InsightAccordion key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
+          {doingGreat.length > 0 && (
+            <div data-testid="doing-great-section">
+              <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-2 px-4">
+                DOING GREAT
+              </p>
+              <div className="border border-[rgba(176,199,217,0.145)] rounded-lg overflow-hidden">
+                {doingGreat.map((item) => (
+                  <InsightAccordion key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg min-h-[300px] p-6">
+          {activeTab === "preview" && <EmailPreview html={email.html || ""} />}
+          {activeTab === "plaintext" && (
+            <pre
+              data-testid="email-plaintext"
+              className="text-black text-[14px] whitespace-pre-wrap font-mono"
+            >
+              {email.text || ""}
+            </pre>
+          )}
+          {activeTab === "html" && (
+            <pre
+              data-testid="email-html"
+              className="text-black text-[14px] whitespace-pre-wrap font-mono"
+            >
+              {email.html || ""}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }

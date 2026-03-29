@@ -74,12 +74,13 @@ describe("EmailDetail", () => {
     ).toBeTruthy();
   });
 
-  it("renders content tabs (Preview, Plain Text, HTML)", () => {
+  it("renders content tabs (Preview, Plain Text, HTML, Insights)", () => {
     render(<EmailDetail email={mockEmail} />);
 
     expect(screen.getByText("Preview")).toBeTruthy();
     expect(screen.getByText("Plain Text")).toBeTruthy();
     expect(screen.getByText("HTML")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Insights/i })).toBeTruthy();
   });
 
   it("shows email preview content by default", () => {

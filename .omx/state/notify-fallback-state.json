@@ -1,20 +1,20 @@
 {
-  "pid": 51694,
-  "parent_pid": 51671,
-  "started_at": "2026-03-29T06:06:07.740Z",
+  "pid": 58500,
+  "parent_pid": 58477,
+  "started_at": "2026-03-29T06:12:28.006Z",
   "cwd": "/Users/jaeyunha/dev/ralph-to-ralph-prod",
   "notify_script": "/Users/jaeyunha/.nvm/versions/node/v25.2.1/lib/node_modules/oh-my-codex/dist/scripts/notify-hook.js",
   "poll_ms": 250,
   "pid_file": "/Users/jaeyunha/dev/ralph-to-ralph-prod/.omx/state/notify-fallback.pid",
   "max_lifetime_ms": 21600000,
-  "tracked_files": 0,
+  "tracked_files": 1,
   "seen_turns": 0,
   "dispatch_drain": {
     "enabled": true,
     "max_per_tick": 5,
-    "run_count": 30,
+    "run_count": 549,
     "leader_only": true,
-    "last_tick_at": "2026-03-29T06:06:17.261Z",
+    "last_tick_at": "2026-03-29T06:15:27.856Z",
     "last_result": {
       "processed": 0,
       "skipped": 0,
@@ -27,16 +27,16 @@
     "leader_only": true,
     "stale_threshold_ms": 180000,
     "precomputed_leader_stale": false,
-    "last_tick_at": "2026-03-29T06:06:17.262Z",
+    "last_tick_at": "2026-03-29T06:15:27.857Z",
     "last_error": null,
-    "run_count": 30
+    "run_count": 549
   },
   "ralph_continue_steer": {
     "enabled": true,
     "cadence_ms": 60000,
     "message": "Ralph loop active continue",
     "active": false,
-    "last_state_check_at": "2026-03-29T06:06:17.336Z",
+    "last_state_check_at": "2026-03-29T06:15:27.928Z",
     "last_sent_at": "",
     "cooldown_anchor_at": "",
     "last_reason": "cleared",
@@ -52,16 +52,13 @@
   "fallback_auto_nudge": {
     "enabled": true,
     "stall_ms": 5000,
-    "last_tick_at": "2026-03-29T06:06:17.336Z",
-    "last_turn_at": "2026-03-29T06:06:07.707Z",
+    "last_tick_at": "2026-03-29T06:15:27.928Z",
+    "last_turn_at": "2026-03-29T06:12:27.970Z",
     "last_turn_count": 0,
     "last_message": "",
     "last_reason": "hud_state_incomplete",
     "last_error": null,
     "last_nudged_signature": "",
     "last_nudged_at": ""
-  },
-  "stop_reason": "signal",
-  "stop_signal": "SIGTERM",
-  "stopping": true
+  }
 }

@@ -29,6 +29,9 @@ test.describe("Email Detail Page", () => {
       await expect(page.getByText("Preview")).toBeVisible();
       await expect(page.getByText("Plain Text")).toBeVisible();
       await expect(page.getByText("HTML")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Insights/ }),
+      ).toBeVisible();
 
       // Verify envelope icon
       await expect(page.getByTestId("email-envelope-icon")).toBeVisible();

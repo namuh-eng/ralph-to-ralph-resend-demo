@@ -488,3 +488,34 @@
 - src/app/(dashboard)/emails/[id]/page.tsx — Server component fetching email + events from DB
 - tests/email-detail.test.tsx — 8 unit tests for email detail page
 - tests/e2e/email-detail.spec.ts — E2E test for email detail navigation
+
+## Iteration 17 — feature-005: Email Detail Content Tabs with Insights (2026-03-29)
+
+### What was built
+- Added Insights tab (4th tab) to email detail page content area
+- 11 deliverability insight checks: DMARC record, click tracking, open tracking, subdomain usage, link URL matching, plain text version, body size, no-reply address, image hosting, SVG images, YouTube URLs
+- Insights split into two sections: "NEEDS ATTENTION" (warning icon, amber) and "DOING GREAT" (checkmark icon, green)
+- Each insight is an expandable accordion item showing detailed explanation on click
+- Insights tab badge count showing number of needs_attention items
+- Copy button next to content tabs for copying active tab's content
+- InsightAccordion component with expand/collapse state and appropriate icons
+
+### Test results
+- 8 new unit tests passing (4 tabs render, Preview default active, Insights tab shows sections, insights categorization, accordion expand, badge count, copy button, all 4 tabs switching)
+- 1 E2E test written (tab switching with Insights, accordion expand, section verification)
+- 216 total unit tests passing (208 previous + 8 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Used static DEFAULT_INSIGHTS array (not from DB) since insights are computed checks, not stored data
+- DMARC is the only "needs_attention" item by default; other 10 checks are "doing_great"
+- Insights content area uses dark background (not white like Preview/PlainText/HTML) matching Resend's design
+- Added .omx to biome.json ignore list (external state files causing lint noise)
+
+### Files changed
+- src/components/email-detail.tsx — Added Insights tab, InsightAccordion component, copy button, DEFAULT_INSIGHTS data
+- tests/email-detail-insights.test.tsx — 8 unit tests for Insights tab
+- tests/email-detail.test.tsx — Updated tab test to include Insights
+- tests/e2e/email-detail-insights.spec.ts — E2E test for tab switching and Insights
+- tests/e2e/email-detail.spec.ts — Updated to verify Insights tab visibility
+- biome.json — Added .omx to ignore list

@@ -28,6 +28,7 @@
       "postcss.config.js",
       "coverage",
       ".omc",
+      ".omx",
       "drizzle",
       "*.d.ts",
       "public"
