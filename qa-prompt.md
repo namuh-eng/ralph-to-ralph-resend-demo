@@ -49,8 +49,8 @@ This is your **source of truth** — the clone should match the original's behav
    - Test edge cases: empty inputs, rapid clicks, unexpected data
    - Try to break it — invalid inputs, missing data, weird navigation paths
 
-### Step 3: Real Backend Verification
-8. **Verify the feature uses real infrastructure, not mocks:**
+### Step 3: Real Backend Verification (skip for pure UI features)
+8. **Only for features with `category: "infrastructure"`, `"crud"`, or `"sdk"` in prd.json.** Skip this step for pure UI features (category: `"interaction"`, `"ui"`, `"search"`, `"nav"`, `"settings"`).
    - Does the API call actually hit AWS services (SES, RDS Postgres, S3)?
    - Send a real email → does it arrive in the recipient's inbox?
    - Create a domain → does SES generate real DKIM tokens? Does Cloudflare get real DNS records?
