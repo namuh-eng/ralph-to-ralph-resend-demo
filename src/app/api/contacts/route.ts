@@ -1,9 +1,13 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contactSegments, contacts, segments } from "@/lib/db/schema";
 import { desc, eq, ilike, or } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const body = await request.json();
     const { emails, segment_ids } = body as {
@@ -54,6 +58,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: Request) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   const url = new URL(request.url);
   const search = url.searchParams.get("search") || "";
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);

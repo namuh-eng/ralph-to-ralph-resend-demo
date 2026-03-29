@@ -1,3 +1,4 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { broadcasts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,6 +8,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const [broadcast] = await db
@@ -35,6 +39,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -69,6 +76,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const [deleted] = await db

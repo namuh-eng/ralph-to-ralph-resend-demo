@@ -21,6 +21,17 @@ function createChainMock(resolvedData: unknown[], count: number) {
   return { db: chain };
 }
 
+vi.mock("@/lib/api-auth", () => ({
+  validateApiKey: () =>
+    Promise.resolve({
+      apiKeyId: "test",
+      permission: "full_access",
+      domainId: null,
+    }),
+  unauthorizedResponse: () =>
+    Response.json({ error: "Missing or invalid API key" }, { status: 401 }),
+}));
+
 describe("Contacts List — API route", () => {
   const mockRows = [
     {

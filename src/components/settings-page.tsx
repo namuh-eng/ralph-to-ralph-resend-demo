@@ -1,0 +1,131 @@
+"use client";
+
+import { CopyToClipboard } from "@/components/copy-to-clipboard";
+import { useState } from "react";
+
+const SMTP_CREDENTIALS = [
+  { label: "Host", value: "smtp.resend-clone.com" },
+  { label: "Port", value: "465" },
+  { label: "Username", value: "resend" },
+  { label: "Password", value: "YOUR_API_KEY" },
+];
+
+export function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<"smtp" | "unsubscribe">("smtp");
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold text-[#F0F0F0] mb-6">Settings</h1>
+
+      {/* Tabs */}
+      <div className="border-b border-[rgba(176,199,217,0.145)] mb-6">
+        <div className="flex items-center gap-0">
+          {(
+            [
+              { key: "smtp", label: "SMTP" },
+              { key: "unsubscribe", label: "Unsubscribe Page" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-[#F0F0F0] text-[#F0F0F0]"
+                  : "border-transparent text-[#A1A4A5] hover:text-[#F0F0F0]"
+              }`}
+              onClick={() => setActiveTab(tab.key)}
+              data-state={activeTab === tab.key ? "active" : "inactive"}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SMTP Tab */}
+      {activeTab === "smtp" && (
+        <div>
+          <p className="text-[14px] text-[#A1A4A5] mb-6">
+            Use these credentials to send emails via SMTP. The password is your
+            API key.
+          </p>
+
+          <div className="border border-[rgba(176,199,217,0.145)] rounded-lg overflow-hidden">
+            {SMTP_CREDENTIALS.map((cred, i) => (
+              <div
+                key={cred.label}
+                className={`flex items-center justify-between px-4 py-3 ${
+                  i < SMTP_CREDENTIALS.length - 1
+                    ? "border-b border-[rgba(176,199,217,0.145)]"
+                    : ""
+                }`}
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-[12px] font-medium text-[#A1A4A5] tracking-wider w-24 shrink-0">
+                    {cred.label.toUpperCase()}
+                  </span>
+                  <span className="text-[14px] text-[#F0F0F0] font-mono truncate">
+                    {cred.value}
+                  </span>
+                </div>
+                <CopyToClipboard value={cred.value} />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 p-4 bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-lg">
+            <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-2">
+              EXAMPLE CONFIGURATION
+            </p>
+            <pre className="text-[13px] text-[#F0F0F0] font-mono whitespace-pre-wrap">
+              {`SMTP_HOST=smtp.resend-clone.com
+SMTP_PORT=465
+SMTP_USER=resend
+SMTP_PASS=re_YOUR_API_KEY`}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Unsubscribe Tab */}
+      {activeTab === "unsubscribe" && (
+        <div>
+          <p className="text-[14px] text-[#A1A4A5] mb-6">
+            Preview the unsubscribe page shown to recipients when they click the
+            unsubscribe link.
+          </p>
+
+          <div className="border border-[rgba(176,199,217,0.145)] rounded-lg overflow-hidden bg-white">
+            <div className="p-8 flex flex-col items-center justify-center min-h-[400px]">
+              <div className="max-w-md w-full text-center">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Unsubscribe
+                </h2>
+                <p className="text-gray-600 text-sm mb-6">
+                  You have been unsubscribed from this mailing list. You will no
+                  longer receive emails from this sender.
+                </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-md">
+                  <svg
+                    aria-hidden="true"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                  Successfully unsubscribed
+                </div>
+                <p className="text-gray-400 text-xs mt-6">
+                  Powered by Resend Clone
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

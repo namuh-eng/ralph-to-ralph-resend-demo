@@ -298,6 +298,16 @@ describe("Topics API route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.doMock("@/lib/api-auth", () => ({
+      validateApiKey: () =>
+        Promise.resolve({
+          apiKeyId: "test",
+          permission: "full_access",
+          domainId: null,
+        }),
+      unauthorizedResponse: () =>
+        Response.json({ error: "Missing or invalid API key" }, { status: 401 }),
+    }));
   });
 
   it("GET /api/topics returns paginated list", async () => {
@@ -324,7 +334,10 @@ describe("Topics API route", () => {
 
     const { GET } = await import("@/app/api/topics/route");
     const url = new URL("http://localhost:3015/api/topics?page=1&limit=10");
-    const request = { nextUrl: url } as unknown as Parameters<typeof GET>[0];
+    const request = {
+      nextUrl: url,
+      headers: new Headers(),
+    } as unknown as Parameters<typeof GET>[0];
     const response = await GET(request);
     const data = await response.json();
 
@@ -364,6 +377,7 @@ describe("Topics API route", () => {
         defaultSubscription: "opt_in",
         visibility: "public",
       }),
+      headers: new Headers(),
     } as unknown as Parameters<typeof POST>[0];
     const response = await POST(request);
     const data = await response.json();
@@ -381,6 +395,7 @@ describe("Topics API route", () => {
     const { POST } = await import("@/app/api/topics/route");
     const request = {
       json: async () => ({ name: "" }),
+      headers: new Headers(),
     } as unknown as Parameters<typeof POST>[0];
     const response = await POST(request);
 

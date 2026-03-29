@@ -1,3 +1,4 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,6 +8,9 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_req.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   const { id } = await params;
 
   try {
@@ -44,6 +48,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(req.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   const { id } = await params;
 
   try {
@@ -90,6 +97,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_req.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   const { id } = await params;
 
   try {

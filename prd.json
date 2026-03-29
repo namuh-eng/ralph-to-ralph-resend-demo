@@ -1506,7 +1506,7 @@
     "data_model": "Template list item: { id: string, name: string, alias: string, status: TemplateStatus, preview_url: string, created_at: Date }. TemplateStatus enum: draft | published",
     "priority": 13,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1564,7 +1564,7 @@
     "data_model": "Template editor: { id: string, name: string, alias: string, from: string, reply_to: string, subject: string, preview_text: string, html: string, status: TemplateStatus }",
     "priority": 13,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1612,7 +1612,7 @@
     "data_model": "Template detail: { id: string, name: string, alias: string, status: TemplateStatus, variables: Array<{ name: string, type: string }>, from: string, subject: string, html: string, text: string, created_at: Date, creator: string }",
     "priority": 14,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1665,7 +1665,7 @@
     "data_model": "Webhook: { id, endpoint_url, events (array of event type strings), status (active/disabled), created_at }",
     "priority": 14,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1712,7 +1712,7 @@
     "data_model": "Create webhook: { endpoint_url: string (required, must be valid URL), events: string[] (array of event type strings, e.g. ['email.sent', 'contact.created']) }",
     "priority": 14,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1777,7 +1777,7 @@
     "data_model": "Webhook event types enum: contact.created | contact.deleted | contact.updated | domain.created | domain.deleted | domain.updated | email.bounced | email.clicked | email.complained | email.delivered | email.delivery_delayed | email.failed | email.opened | email.received | email.scheduled | email.sent | email.suppressed",
     "priority": 14,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1824,7 +1824,7 @@
     "data_model": "Log: id (UUID), endpoint (string, e.g. '/emails'), status (integer HTTP code), method (string, e.g. 'POST'), user_agent (string), api_key_id (foreign key), request_body (JSON), response_body (JSON nullable), error_title (string nullable), error_description (string nullable), created_at (timestamp)",
     "priority": 15,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1881,7 +1881,7 @@
     "data_model": "Uses Log model from feature-027",
     "priority": 15,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -1928,7 +1928,7 @@
     "data_model": "Uses Log model from feature-027 \u2014 error logs have error_title and error_description populated, response_body is null",
     "priority": 15,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2158,7 +2158,7 @@
     "data_model": "Received email: { id: string, from: string, to: string, subject: string, received_at: Date }",
     "priority": 17,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2191,7 +2191,7 @@
     "behavior": "Clicking a tab navigates to the corresponding settings sub-page. Active tab is highlighted with data-state='active'. URL changes to /settings/<tab-name>.",
     "data_model": "No data model \u2014 tabs are static navigation",
     "priority": 18,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2280,7 +2280,7 @@
     "behavior": "All fields are read-only (data-state='read-only'). Copy buttons copy field value to clipboard. Alternative port buttons copy their respective port number to clipboard. Password field shows 'YOUR_API_KEY' placeholder directing user to API Keys page.",
     "data_model": "No data model \u2014 static SMTP credentials derived from system config",
     "priority": 18,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2323,7 +2323,7 @@
     "behavior": "Preview tabs switch between Preferences and Success views. Edit navigates to editor. Editor allows editing heading/text content inline. Color pickers open color selection UI. Logo upload accepts image files. Save persists changes. Reset restores defaults.",
     "data_model": "unsubscribe_page { logo_url, background_color, foreground_color, accent_color, hide_branding, preferences_heading, preferences_subheading, success_heading }",
     "priority": 19,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2530,7 +2530,7 @@
     "data_model": "Hash input key, compare against api_keys.hashed_key in Postgres",
     "priority": 3,
     "core": true,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2560,7 +2560,7 @@
     "data_model": "Generated from API route definitions",
     "priority": 19,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {

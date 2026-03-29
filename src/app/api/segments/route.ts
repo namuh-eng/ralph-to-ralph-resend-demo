@@ -1,9 +1,13 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contactSegments, contacts, segments } from "@/lib/db/schema";
 import { asc, count, eq, ilike, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const url = request.nextUrl;
     const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
@@ -60,6 +64,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const body = await request.json();
     const name = body.name?.trim();
