@@ -1,0 +1,29 @@
+# QA progress (independent QA)
+# from prd.json top-down; feature-001 handled by another session
+infra-001: SKIP
+infra-002: PASS
+infra-004: PASS
+layout-001: PASS
+design-001: PASS
+
+2026-03-29 — QA restarted from PRD top on branch `qa/20260329-171503-topdown` after rebasing onto `origin/main` (`6af934e`).
+
+Completed in this pass:
+- Created an isolated QA worktree to avoid stepping on the other active sessions.
+- Ran `npm ci` in the QA worktree.
+- Ran `make all` and confirmed the baseline still passes: typecheck, Biome, and 35 Vitest files / 388 tests.
+- Ran smoke E2E against both the live dev server on port 3015 and the isolated QA server on port 3215; `tests/e2e/smoke.spec.ts` passed 5/5 in both contexts.
+- Found and worked around an env bootstrap blocker for fresh QA worktrees by copying `.env` from a sibling configured checkout. That unblocked isolated feature QA, and the bootstrap gap remains recorded as a deploy/setup issue in `qa-report.json`.
+- Re-ran targeted isolated E2E for Audience layout and Templates list using `http://localhost:3215` so client-side interactions hydrated normally in Next dev.
+- Cleaned up stale `E2E Test Template` rows left behind by aborted test runs so template navigation checks reflect the real product state.
+- Updated `qa-report.json` with the current baseline: `feature-013` and `feature-016` both pass; `feature-017` is partial because the stock Playwright selector is malformed, not because of a confirmed product bug.
+
+Current QA findings:
+- `feature-013` passes after rerunning under the correct localhost origin and removing stale test fixtures.
+- `feature-016` passes at the product level; the remaining failing assertion is a Playwright selector ambiguity around `ALL CONTACTS`, not a user-facing bug.
+- `feature-017` is currently blocked by a bad Playwright selector string in the test (`table, text=No contacts found`), while the page itself reaches a stable empty state.
+- `deploy-001` is still partial because a fresh worktree needs a documented env bootstrap step before isolated QA can run.
+
+Next up:
+- Continue PRD-ordered isolated QA from the next unverified feature.
+- Tighten the flaky/ambiguous E2E selectors uncovered during QA so future runs do not produce false positives.

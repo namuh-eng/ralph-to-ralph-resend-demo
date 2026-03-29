@@ -43,7 +43,7 @@ describe("S3 Storage Client", () => {
   });
 
   describe("uploadFile", () => {
-    it("uploads a file and returns the S3 URL", async () => {
+    it("uploads a file and returns a presigned download URL", async () => {
       mockSend.mockResolvedValueOnce({});
 
       const result = await uploadFile({
@@ -53,13 +53,14 @@ describe("S3 Storage Client", () => {
       });
 
       expect(result).toEqual({
-        url: `https://${BUCKET}.s3.us-east-1.amazonaws.com/attachments/test-file.pdf`,
+        url: "https://s3.amazonaws.com/presigned-url",
         key: "attachments/test-file.pdf",
       });
     });
 
     it("passes correct parameters to PutObjectCommand", async () => {
       const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+      const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
       mockSend.mockResolvedValueOnce({});
 
       await uploadFile({
@@ -74,6 +75,15 @@ describe("S3 Storage Client", () => {
         Body: Buffer.from("image-data"),
         ContentType: "image/png",
       });
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          Bucket: BUCKET,
+          Key: "templates/logo.png",
+          _type: "GetObjectCommand",
+        }),
+        { expiresIn: 3600 },
+      );
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
 
@@ -87,7 +97,7 @@ describe("S3 Storage Client", () => {
       });
 
       expect(result.key).toBe("templates/email.html");
-      expect(result.url).toContain("templates/email.html");
+      expect(result.url).toBe("https://s3.amazonaws.com/presigned-url");
     });
 
     it("rejects missing key", async () => {
@@ -118,6 +128,31 @@ describe("S3 Storage Client", () => {
           contentType: "",
         }),
       ).rejects.toThrow("contentType is required");
+    });
+
+    it("rejects unsupported content types", async () => {
+      await expect(
+        uploadFile({
+          key: "attachments/file.txt",
+          body: Buffer.from("data"),
+          contentType: "text/plain",
+        }),
+      ).rejects.toThrow(
+        "contentType must be image/*, text/html, or application/pdf",
+      );
+    });
+
+    it("accepts HTML content type with charset", async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await uploadFile({
+        key: "templates/email.html",
+        body: Buffer.from("<html>hello</html>"),
+        contentType: "text/html; charset=utf-8",
+      });
+
+      expect(result.key).toBe("templates/email.html");
+      expect(result.url).toBe("https://s3.amazonaws.com/presigned-url");
     });
 
     it("propagates S3 errors", async () => {

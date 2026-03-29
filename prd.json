@@ -57,7 +57,10 @@
       ],
       "e2e": [],
       "edge_cases": []
-    }
+    },
+    "qa_tested": true,
+    "qa_tested_at": "2026-03-29T08:21:19Z",
+    "qa_tested_by": "qa/second-from-top-20260329-171418"
   },
   {
     "id": "infra-003",
@@ -111,7 +114,10 @@
       ],
       "e2e": [],
       "edge_cases": []
-    }
+    },
+    "qa_tested": true,
+    "qa_tested_at": "2026-03-29T08:22:00Z",
+    "qa_tested_by": "qa/prd-top-4-20260329"
   },
   {
     "id": "layout-001",
@@ -147,7 +153,10 @@
         }
       ],
       "edge_cases": []
-    }
+    },
+    "qa_tested": true,
+    "qa_tested_at": "2026-03-29T08:46:48Z",
+    "qa_tested_by": "qa/prd-top-4-20260329"
   },
   {
     "id": "design-001",
@@ -185,7 +194,10 @@
           "expected": "Empty state message displayed"
         }
       ]
-    }
+    },
+    "qa_tested": true,
+    "qa_tested_at": "2026-03-29T08:55:05Z",
+    "qa_tested_by": "qa/prd-top-4-20260329"
   },
   {
     "id": "design-002",

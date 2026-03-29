@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;">
+    <div style="display: flex; align-items: center; gap: 12pt;">
+      <p style="display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;">SOLUTION</p>
+      <h2 style="font-size: 22pt; font-weight: 600; color: #ffffff;">How It Works</h2>
+    </div>
+    <p style="font-size: 10pt; color: #666;">03</p>
+  </div>
+
+  <!-- One-sentence definition -->
+  <div style="margin-bottom: 18pt; padding: 12pt 16pt; background: #1a1a1a; border-radius: 8pt; border-left: 3pt solid #6366f1;">
+    <p style="font-size: 13pt; color: #e0e0e0; line-height: 1.5;">
+      <span style="color: #6366f1; font-weight: 600;">Ralph-to-Ralph</span> clones real products end-to-end — from browser analysis to deployed production software. <span style="color: #ffffff; font-weight: 500;">Real, working products that you now own.</span>
+    </p>
+  </div>
+
+  <!-- 4-phase workflow -->
+  <div style="flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12pt;">
+    <!-- Phase 1: Inspect -->
+    <div style="background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #818cf8;">
+      <p style="font-size: 8pt; font-weight: 600; color: #818cf8; letter-spacing: 0.08em; margin-bottom: 6pt;">PHASE 1</p>
+      <h3 style="font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;">Inspect</h3>
+      <p style="font-size: 9pt; color: #888; margin-bottom: 8pt;">Ralph Loop #1</p>
+      <div style="flex: 1;">
+        <p style="font-size: 10pt; color: #b0b0b0; line-height: 1.6;">Ever CLI + Claude Opus analyzes the target URL</p>
+      </div>
+      <div style="margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;">
+        <p style="font-size: 9pt; color: #818cf8;">→ PRD.json</p>
+        <p style="font-size: 9pt; color: #818cf8;">→ build-spec.md</p>
+        <p style="font-size: 9pt; color: #818cf8;">→ sitemap + screenshots</p>
+      </div>
+    </div>
+
+    <!-- Phase 2: Plan -->
+    <div style="background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #a78bfa;">
+      <p style="font-size: 8pt; font-weight: 600; color: #a78bfa; letter-spacing: 0.08em; margin-bottom: 6pt;">PHASE 1.5</p>
+      <h3 style="font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;">Plan</h3>
+      <p style="font-size: 9pt; color: #888; margin-bottom: 8pt;">Derived from Inspect</p>
+      <div style="flex: 1;">
+        <p style="font-size: 10pt; color: #b0b0b0; line-height: 1.6;">Structured spec becomes the build blueprint</p>
+      </div>
+      <div style="margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;">
+        <p style="font-size: 9pt; color: #a78bfa;">→ PRD.json</p>
+        <p style="font-size: 9pt; color: #a78bfa;">→ spec.md</p>
+      </div>
+    </div>
+
+    <!-- Phase 3: Build -->
+    <div style="background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #3b82f6;">
+      <p style="font-size: 8pt; font-weight: 600; color: #3b82f6; letter-spacing: 0.08em; margin-bottom: 6pt;">PHASE 2</p>
+      <h3 style="font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;">Build</h3>
+      <p style="font-size: 9pt; color: #888; margin-bottom: 8pt;">Ralph Loop #2</p>
+      <div style="flex: 1;">
+        <p style="font-size: 10pt; color: #b0b0b0; line-height: 1.6;">Claude Agent (Opus) builds the full stack</p>
+      </div>
+      <div style="margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;">
+        <p style="font-size: 9pt; color: #3b82f6;">→ API Routes + Components</p>
+        <p style="font-size: 9pt; color: #3b82f6;">→ Tests (Vitest)</p>
+        <p style="font-size: 9pt; color: #3b82f6;">→ AWS Infra (SES, RDS, S3)</p>
+      </div>
+    </div>
+
+    <!-- Phase 4: QA -->
+    <div style="background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #22c55e;">
+      <p style="font-size: 8pt; font-weight: 600; color: #22c55e; letter-spacing: 0.08em; margin-bottom: 6pt;">PHASE 3</p>
+      <h3 style="font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;">QA</h3>
+      <p style="font-size: 9pt; color: #888; margin-bottom: 8pt;">Ralph Loop #3</p>
+      <div style="flex: 1;">
+        <p style="font-size: 10pt; color: #b0b0b0; line-height: 1.6;">Codex Agents run parallel verification</p>
+      </div>
+      <div style="margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;">
+        <p style="font-size: 9pt; color: #22c55e;">→ E2E via Ever CLI</p>
+        <p style="font-size: 9pt; color: #22c55e;">→ Bug Fixes + Screenshots</p>
+        <p style="font-size: 9pt; color: #22c55e;">→ Regression Tests</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12pt; border-top: 1px solid #252525;">
+    <p style="font-size: 9pt; color: #666;">Ralph-to-Ralph</p>
+    <p style="font-size: 9pt; color: #dc2626;">Bug Found → Fix → Retest (up to 5 cycles)</p>
+    <p style="font-size: 9pt; color: #666;">Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>

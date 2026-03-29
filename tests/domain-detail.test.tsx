@@ -1,14 +1,44 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const mockFetch = vi.hoisted(() => vi.fn());
+const mockPush = vi.hoisted(() => vi.fn());
+const mockRefresh = vi.hoisted(() => vi.fn());
+const storage = vi.hoisted(() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+  };
+});
+
+vi.stubGlobal("fetch", mockFetch);
+
+Object.defineProperty(window, "localStorage", {
+  value: storage,
+  configurable: true,
+});
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
 }));
 
 import { DomainDetail } from "@/components/domain-detail";
 import type { DomainDetailData } from "@/components/domain-detail";
-
-afterEach(cleanup);
 
 const baseDomain: DomainDetailData = {
   id: "d1",
@@ -47,6 +77,14 @@ const baseDomain: DomainDetailData = {
 };
 
 describe("DomainDetail", () => {
+  afterEach(() => {
+    cleanup();
+    mockFetch.mockReset();
+    mockPush.mockReset();
+    mockRefresh.mockReset();
+    storage.clear();
+  });
+
   it("renders domain name and breadcrumb", () => {
     render(<DomainDetail domain={baseDomain} />);
     expect(screen.getByText("Domains")).toBeTruthy();
@@ -134,5 +172,45 @@ describe("DomainDetail", () => {
   it("renders Auto configure button in Records tab", () => {
     render(<DomainDetail domain={baseDomain} />);
     expect(screen.getByText("Auto configure")).toBeTruthy();
+  });
+
+  it("sends the stored API key when auto-configuring DNS records", async () => {
+    window.localStorage.setItem("api_key", "re_test_123");
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+
+    render(<DomainDetail domain={baseDomain} />);
+    fireEvent.click(screen.getByText("Auto configure"));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/domains/d1/auto-configure",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer re_test_123",
+          }),
+        }),
+      );
+    });
+    expect(mockRefresh).toHaveBeenCalled();
+  });
+
+  it("does not refresh the page when auto-configure fails", async () => {
+    window.localStorage.setItem("api_key", "re_test_123");
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "Missing or invalid API key" }),
+    });
+
+    render(<DomainDetail domain={baseDomain} />);
+    fireEvent.click(screen.getByText("Auto configure"));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 });

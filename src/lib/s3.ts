@@ -10,6 +10,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const BUCKET = "resend-clone-storage-699486076867";
 const REGION = "us-east-1";
+const SUPPORTED_CONTENT_TYPES = new Set(["application/pdf", "text/html"]);
 
 // ── Client ────────────────────────────────────────────────────────
 
@@ -28,12 +29,24 @@ export interface UploadResult {
   key: string;
 }
 
+function isSupportedContentType(contentType: string): boolean {
+  const normalized = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  return (
+    normalized.startsWith("image/") || SUPPORTED_CONTENT_TYPES.has(normalized)
+  );
+}
+
 // ── Upload ────────────────────────────────────────────────────────
 
 export async function uploadFile(input: UploadInput): Promise<UploadResult> {
   if (!input.key) throw new Error("key is required");
   if (!input.body) throw new Error("body is required");
   if (!input.contentType) throw new Error("contentType is required");
+  if (!isSupportedContentType(input.contentType)) {
+    throw new Error(
+      "contentType must be image/*, text/html, or application/pdf",
+    );
+  }
 
   await s3.send(
     new PutObjectCommand({
@@ -44,8 +57,10 @@ export async function uploadFile(input: UploadInput): Promise<UploadResult> {
     }),
   );
 
+  const url = await getPresignedUrl(input.key);
+
   return {
-    url: `https://${BUCKET}.s3.${REGION}.amazonaws.com/${input.key}`,
+    url,
     key: input.key,
   };
 }

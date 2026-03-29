@@ -320,19 +320,26 @@ describe("Cloudflare DNS Client", () => {
   });
 
   describe("autoConfigureDomain", () => {
-    it("creates DKIM CNAME records for all 3 tokens", async () => {
-      // Three DKIM record creations
-      for (let i = 0; i < 3; i++) {
+    it("creates DKIM, SPF, and MX records for a domain", async () => {
+      // Three DKIM records, one SPF record, one MX record
+      for (let i = 0; i < 5; i++) {
         mockFetch.mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             success: true,
             result: {
-              id: `dns-dkim-${i}`,
-              type: "CNAME",
-              name: `token${i + 1}._domainkey.example.com`,
-              content: `token${i + 1}.dkim.amazonses.com`,
+              id: `dns-record-${i}`,
+              type: i < 3 ? "CNAME" : i === 3 ? "TXT" : "MX",
+              name:
+                i < 3 ? `token${i + 1}._domainkey.example.com` : "example.com",
+              content:
+                i < 3
+                  ? `token${i + 1}.dkim.amazonses.com`
+                  : i === 3
+                    ? "v=spf1 include:amazonses.com ~all"
+                    : "feedback-smtp.us-east-1.amazonses.com",
               ttl: 300,
+              ...(i === 4 ? { priority: 10 } : {}),
             },
           }),
         });
@@ -341,8 +348,8 @@ describe("Cloudflare DNS Client", () => {
       const dkimTokens = ["token1", "token2", "token3"];
       const results = await autoConfigureDomain("example.com", dkimTokens);
 
-      expect(results).toHaveLength(3);
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(results).toHaveLength(5);
+      expect(mockFetch).toHaveBeenCalledTimes(5);
 
       // Verify each DKIM CNAME record was created correctly
       for (let i = 0; i < 3; i++) {
@@ -352,6 +359,25 @@ describe("Cloudflare DNS Client", () => {
         expect(body.name).toBe(`token${i + 1}._domainkey.example.com`);
         expect(body.content).toBe(`token${i + 1}.dkim.amazonses.com`);
       }
+
+      const spfCall = mockFetch.mock.calls[3];
+      const spfBody = JSON.parse(spfCall[1].body);
+      expect(spfBody).toEqual({
+        type: "TXT",
+        name: "example.com",
+        content: "v=spf1 include:amazonses.com ~all",
+        ttl: 300,
+      });
+
+      const mxCall = mockFetch.mock.calls[4];
+      const mxBody = JSON.parse(mxCall[1].body);
+      expect(mxBody).toEqual({
+        type: "MX",
+        name: "example.com",
+        content: "feedback-smtp.us-east-1.amazonses.com",
+        ttl: 300,
+        priority: 10,
+      });
     });
 
     it("throws when domain is empty", async () => {

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ralphthon Mid Deck (EN)"
+  short_description: "English Ralphthon mid-presentation slides workflow"
+  default_prompt: "Use $ralphthon-seoul-mid-presentation-en to interview me, create the outline, generate the HTML slides, and launch the slides-grab editor."
+policy:
+  allow_implicit_invocation: true

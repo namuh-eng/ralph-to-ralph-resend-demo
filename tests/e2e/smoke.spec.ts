@@ -53,7 +53,32 @@ test("sidebar is persistent across navigation", async ({ page }) => {
 
   await page.getByRole("link", { name: "Domains" }).click();
   await expect(sidebar).toBeVisible();
+  await expect(page).toHaveURL(/\/domains/);
+  await expect(page.getByRole("heading", { name: "Domains" })).toBeVisible();
 
   await page.getByRole("link", { name: "API Keys" }).click();
   await expect(sidebar).toBeVisible();
+  await expect(page).toHaveURL(/\/api-keys/);
+  await expect(
+    page.getByRole("heading", { name: "API Keys", exact: true }),
+  ).toBeVisible();
+});
+
+test("footer exposes feedback, help, and docs links", async ({ page }) => {
+  await page.goto("/emails");
+
+  const footer = page.locator("footer");
+  await expect(footer).toBeVisible();
+  await expect(footer.getByRole("link", { name: "Feedback" })).toHaveAttribute(
+    "href",
+    "mailto:feedback@foreverbrowsing.com?subject=Resend%20Clone%20Feedback",
+  );
+  await expect(footer.getByRole("link", { name: "Help" })).toHaveAttribute(
+    "href",
+    "mailto:help@foreverbrowsing.com?subject=Resend%20Clone%20Help",
+  );
+  await expect(footer.getByRole("link", { name: "Docs" })).toHaveAttribute(
+    "href",
+    "/docs",
+  );
 });

@@ -11,5 +11,3 @@ dist/
 .ralph-watchdog.lock
 .ever-session-id
 .inspect-complete
-qa-report.json
-.omx/

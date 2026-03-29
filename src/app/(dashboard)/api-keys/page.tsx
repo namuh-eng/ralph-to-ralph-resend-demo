@@ -4,23 +4,38 @@ import { apiKeys, domains } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
 
 export default async function ApiKeysPage() {
-  const [keys, domainList] = await Promise.all([
-    db
-      .select({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        keyPrefix: apiKeys.keyPrefix,
-        permission: apiKeys.permission,
-        domainId: apiKeys.domainId,
-        createdAt: apiKeys.createdAt,
-      })
-      .from(apiKeys)
-      .orderBy(desc(apiKeys.createdAt)),
-    db
-      .select({ id: domains.id, name: domains.name })
-      .from(domains)
-      .orderBy(domains.name),
-  ]);
+  let keys: {
+    id: string;
+    name: string;
+    keyPrefix: string;
+    permission: "full_access" | "sending_access";
+    domainId: string | null;
+    createdAt: Date;
+  }[] = [];
+  let domainList: { id: string; name: string }[] = [];
+
+  try {
+    [keys, domainList] = await Promise.all([
+      db
+        .select({
+          id: apiKeys.id,
+          name: apiKeys.name,
+          keyPrefix: apiKeys.keyPrefix,
+          permission: apiKeys.permission,
+          domainId: apiKeys.domainId,
+          createdAt: apiKeys.createdAt,
+        })
+        .from(apiKeys)
+        .orderBy(desc(apiKeys.createdAt)),
+      db
+        .select({ id: domains.id, name: domains.name })
+        .from(domains)
+        .orderBy(domains.name),
+    ]);
+  } catch {
+    keys = [];
+    domainList = [];
+  }
 
   return (
     <ApiKeysList

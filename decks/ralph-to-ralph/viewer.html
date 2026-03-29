@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .viewer-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation bar */
+    .nav-bar {
+      height: 48px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .nav-bar button {
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .nav-bar button:hover {
+      background: #555;
+    }
+
+    .nav-bar button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .slide-counter {
+      color: #aaa;
+      font-size: 14px;
+      font-weight: 500;
+      min-width: 60px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-fullscreen {
+      position: absolute;
+      right: 16px;
+      background: transparent !important;
+      font-size: 18px;
+      padding: 6px 10px !important;
+    }
+
+    /* Slide viewport */
+    .slide-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .slide-scaler {
+      width: 720pt;
+      height: 405pt;
+      position: relative;
+      transform-origin: center center;
+    }
+
+    /* Slide frames (iframes) */
+    .slide-frame {
+      position: absolute;
+      inset: 0;
+      width: 720pt;
+      height: 405pt;
+      border: none;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .slide-frame.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewer-container">
+    <!-- Navigation -->
+    <div class="nav-bar">
+      <button id="btn-prev" title="Previous (\u2190)">Prev</button>
+      <span class="slide-counter" id="counter">1 / 7</span>
+      <button id="btn-next" title="Next (\u2192)">Next</button>
+      <button class="btn-fullscreen" id="btn-fs" title="Fullscreen (F)">&#x26F6;</button>
+    </div>
+
+    <!-- Slide viewport -->
+    <div class="slide-viewport" id="viewport">
+      <div class="slide-scaler" id="scaler">
+        <iframe class="slide-frame active" data-slide="1" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-01.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 16pt;&quot;>
+      <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+        <div style=&quot;width: 18pt; height: 18pt; background: #ffffff; border-radius: 3pt; display: flex; align-items: center; justify-content: center;&quot;>
+          <p style=&quot;color: #0f0f0f; font-size: 10pt; font-weight: 700;&quot;>R</p>
+        </div>
+        <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Ralph-to-Ralph</p>
+      </div>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; border: 1px solid #555; border-radius: 12pt; font-size: 9pt; font-weight: 500; color: #b0b0b0;&quot;>RALPHTHON SEOUL 2026</p>
+    </div>
+    <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; border: 1px solid #555; border-radius: 12pt; font-size: 9pt; font-weight: 500; color: #b0b0b0;&quot;>MID-PRESENTATION</p>
+    </div>
+  </div>
+
+  <!-- Main Title -->
+  <div style=&quot;flex: 1; display: flex; flex-direction: column; justify-content: center;&quot;>
+    <p style=&quot;font-size: 12pt; font-weight: 600; color: #6366f1; letter-spacing: 0.1em; margin-bottom: 12pt;&quot;>AUTONOMOUS PRODUCT CLONING LOOP</p>
+    <h1 style=&quot;font-size: 52pt; font-weight: 600; color: #ffffff; letter-spacing: -0.02em; line-height: 1.2;&quot;>
+      Ralph-to-Ralph
+    </h1>
+    <p style=&quot;font-size: 16pt; color: #b0b0b0; margin-top: 20pt; line-height: 1.5;&quot;>
+      Give it any URL → It inspects, builds, tests, and deploys a working clone.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; gap: 64pt;&quot;>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 4pt;&quot;>Team</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ffffff;&quot;>Jaeyun Ha · Ashley Ha</p>
+    </div>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 4pt;&quot;>Date</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ffffff;&quot;>March 2026</p>
+    </div>
+    <div>
+      <p style=&quot;font-size: 9pt; color: #666; margin-bottom: 4pt;&quot;>GitHub</p>
+      <p style=&quot;font-size: 11pt; font-weight: 500; color: #ffffff;&quot;>github.com/jaeyunha/ralph-to-ralph-prod</p>
+    </div>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="2" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-02.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 28pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>PROBLEM</p>
+      <h2 style=&quot;font-size: 24pt; font-weight: 600; color: #ffffff;&quot;>The Gap Between Vision and Production</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>02</p>
+  </div>
+
+  <!-- Content -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 32pt;&quot;>
+    <!-- Left: Who &amp; What -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 20pt;&quot;>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
+          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+            <p style=&quot;font-size: 12pt;&quot;>👤</p>
+          </div>
+          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>Who</h3>
+        </div>
+        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Non-technical founders who want to build or clone a SaaS product.
+        </p>
+      </div>
+      <div>
+        <div style=&quot;display: flex; align-items: center; gap: 8pt; margin-bottom: 8pt;&quot;>
+          <div style=&quot;width: 24pt; height: 24pt; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+            <p style=&quot;font-size: 12pt;&quot;>⚡</p>
+          </div>
+          <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff;&quot;>The Pain</h3>
+        </div>
+        <p style=&quot;font-size: 12pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          They know <em style=&quot;color: #ffffff; font-weight: 500;&quot;>exactly</em> what to build — but can't build and launch it at production quality themselves.
+        </p>
+      </div>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 14pt 16pt; border-left: 3pt solid #dc2626;&quot;>
+        <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.6;&quot;>
+          Getting to production takes <span style=&quot;color: #ffffff; font-weight: 600;&quot;>months or years</span>, requires <span style=&quot;color: #ffffff; font-weight: 600;&quot;>entire engineering teams</span>, and costs <span style=&quot;color: #ffffff; font-weight: 600;&quot;>significant money</span>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: Story -->
+    <div style=&quot;display: flex; flex-direction: column; justify-content: center;&quot;>
+      <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 24pt; border: 1px solid #333;&quot;>
+        <p style=&quot;font-size: 9pt; font-weight: 600; color: #dc2626; letter-spacing: 0.1em; margin-bottom: 12pt;&quot;>REAL SCENARIO</p>
+        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7;&quot;>
+          A solo founder sees a product like <span style=&quot;color: #ffffff; font-weight: 600;&quot;>Resend</span>. They know customers want it. They know exactly which features to copy.
+        </p>
+        <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.7; margin-top: 12pt;&quot;>
+          But they get stuck — because turning that into a real app means <span style=&quot;color: #b0b0b0;&quot;>frontend, backend, infra, APIs, auth, deployment, and ops</span> they cannot do alone.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 14pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="3" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-03.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 36pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>SOLUTION</p>
+      <h2 style=&quot;font-size: 22pt; font-weight: 600; color: #ffffff;&quot;>How It Works</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>03</p>
+  </div>
+
+  <!-- One-sentence definition -->
+  <div style=&quot;margin-bottom: 18pt; padding: 12pt 16pt; background: #1a1a1a; border-radius: 8pt; border-left: 3pt solid #6366f1;&quot;>
+    <p style=&quot;font-size: 13pt; color: #e0e0e0; line-height: 1.5;&quot;>
+      <span style=&quot;color: #6366f1; font-weight: 600;&quot;>Ralph-to-Ralph</span> clones real products end-to-end — from browser analysis to deployed production software. <span style=&quot;color: #ffffff; font-weight: 500;&quot;>Real, working products that you now own.</span>
+    </p>
+  </div>
+
+  <!-- 4-phase workflow -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12pt;&quot;>
+    <!-- Phase 1: Inspect -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #818cf8;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #818cf8; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Inspect</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #1</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Ever CLI + Claude Opus analyzes the target URL</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ PRD.json</p>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ build-spec.md</p>
+        <p style=&quot;font-size: 9pt; color: #818cf8;&quot;>→ sitemap + screenshots</p>
+      </div>
+    </div>
+
+    <!-- Phase 2: Plan -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #a78bfa;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #a78bfa; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 1.5</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Plan</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Derived from Inspect</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Structured spec becomes the build blueprint</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ PRD.json</p>
+        <p style=&quot;font-size: 9pt; color: #a78bfa;&quot;>→ spec.md</p>
+      </div>
+    </div>
+
+    <!-- Phase 3: Build -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #3b82f6;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #3b82f6; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 2</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Build</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #2</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Claude Agent (Opus) builds the full stack</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ API Routes + Components</p>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ Tests (Vitest)</p>
+        <p style=&quot;font-size: 9pt; color: #3b82f6;&quot;>→ AWS Infra (SES, RDS, S3)</p>
+      </div>
+    </div>
+
+    <!-- Phase 4: QA -->
+    <div style=&quot;background: #1a1a2e; border-radius: 8pt; padding: 14pt; display: flex; flex-direction: column; border-top: 2pt solid #22c55e;&quot;>
+      <p style=&quot;font-size: 8pt; font-weight: 600; color: #22c55e; letter-spacing: 0.08em; margin-bottom: 6pt;&quot;>PHASE 3</p>
+      <h3 style=&quot;font-size: 15pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>QA</h3>
+      <p style=&quot;font-size: 9pt; color: #888; margin-bottom: 8pt;&quot;>Ralph Loop #3</p>
+      <div style=&quot;flex: 1;&quot;>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.6;&quot;>Codex Agents run parallel verification</p>
+      </div>
+      <div style=&quot;margin-top: 8pt; display: flex; flex-direction: column; gap: 3pt;&quot;>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ E2E via Ever CLI</p>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Bug Fixes + Screenshots</p>
+        <p style=&quot;font-size: 9pt; color: #22c55e;&quot;>→ Regression Tests</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 12pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #dc2626;&quot;>Bug Found → Fix → Retest (up to 5 cycles)</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="4" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-04.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 18pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #f59e0b; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>RALPH SETUP</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>AI Agents &amp;amp; Operating Discipline</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>04</p>
+  </div>
+
+  <!-- Content -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; overflow: hidden;&quot;>
+    <!-- Left: AI Agents -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>AI AGENTS &amp;amp; TOOLS</p>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #1e3a5f; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 11pt; color: #3b82f6; font-weight: 700;&quot;>E</p>
+        </div>
+        <div>
+          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Ever CLI <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>foreverbrowsing.com</span></p>
+          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Custom browser agent for inspection &amp;amp; E2E</p>
+        </div>
+      </div>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #3b1f2b; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 11pt; color: #f472b6; font-weight: 700;&quot;>C</p>
+        </div>
+        <div>
+          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Claude Opus <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>Anthropic</span></p>
+          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Powers Inspect + Build loops</p>
+        </div>
+      </div>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 10pt 12pt; border: 1px solid #333; display: flex; align-items: center; gap: 10pt;&quot;>
+        <div style=&quot;width: 24pt; height: 24pt; background: #1a2e1a; border-radius: 4pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0;&quot;>
+          <p style=&quot;font-size: 11pt; color: #22c55e; font-weight: 700;&quot;>X</p>
+        </div>
+        <div>
+          <p style=&quot;font-size: 11pt; font-weight: 600; color: #ffffff;&quot;>Codex <span style=&quot;font-size: 8pt; color: #888; font-weight: 400;&quot;>OpenAI</span></p>
+          <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Parallel QA agents for verification</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Operating Discipline -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 10pt;&quot;>
+      <p style=&quot;font-size: 10pt; font-weight: 600; color: #f59e0b; letter-spacing: 0.05em;&quot;>OPERATING DISCIPLINE</p>
+
+      <div style=&quot;background: #1a1a1a; border-radius: 6pt; padding: 14pt 16pt; border: 1px solid #333; flex: 1; display: flex; flex-direction: column;&quot;>
+        <h3 style=&quot;font-size: 14pt; font-weight: 600; color: #ffffff; margin-bottom: 8pt;&quot;>Watchdog Orchestrator</h3>
+        <p style=&quot;font-size: 10pt; color: #b0b0b0; line-height: 1.5; margin-bottom: 12pt;&quot;>
+          Strict watchdog that monitors all loops — keeps the train on the tracks.
+        </p>
+        <div style=&quot;display: flex; flex-direction: column; gap: 7pt;&quot;>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Auto-restart on failure</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Git commit + push on every milestone</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #22c55e; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Cron backup for safety</p>
+          </div>
+          <div style=&quot;display: flex; align-items: center; gap: 8pt;&quot;>
+            <div style=&quot;width: 5pt; height: 5pt; background: #f59e0b; border-radius: 50%; flex-shrink: 0;&quot;></div>
+            <p style=&quot;font-size: 9pt; color: #e0e0e0;&quot;>Bug → Fix → Retest (up to 5 cycles)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="5" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-05.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 32pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 20pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #22c55e; color: #0f0f0f; border-radius: 4pt; font-size: 8pt; font-weight: 700;&quot;>PROGRESS</p>
+      <h2 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff;&quot;>Current Status</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>05</p>
+  </div>
+
+  <!-- Hero stat -->
+  <div style=&quot;background: linear-gradient(135deg, #1a2e1a 0%, #1a1a2e 100%); border-radius: 10pt; padding: 22pt 28pt; border: 1px solid #333; display: flex; align-items: center; gap: 24pt; margin-bottom: 18pt;&quot;>
+    <div style=&quot;flex-shrink: 0;&quot;>
+      <div style=&quot;width: 48pt; height: 48pt; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center;&quot;>
+        <p style=&quot;font-size: 22pt; color: #0f0f0f; font-weight: 700;&quot;>✓</p>
+      </div>
+    </div>
+    <div>
+      <h3 style=&quot;font-size: 20pt; font-weight: 600; color: #ffffff; margin-bottom: 6pt;&quot;>Resend Clone — Deployed to Production</h3>
+      <p style=&quot;font-size: 11pt; color: #b0b0b0; line-height: 1.5;&quot;>
+        Fully working clone built and deployed end-to-end by the Ralph-to-Ralph pipeline. Real email infrastructure on AWS.
+      </p>
+    </div>
+  </div>
+
+  <!-- Pipeline summary -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14pt;&quot;>
+    <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; text-align: center; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center;&quot;>
+      <p style=&quot;font-size: 24pt; font-weight: 700; color: #6366f1;&quot;>URL</p>
+      <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>Input: any product URL</p>
+    </div>
+    <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; text-align: center; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center;&quot;>
+      <p style=&quot;font-size: 24pt; font-weight: 700; color: #3b82f6;&quot;>→</p>
+      <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>Autonomous 3-phase pipeline</p>
+    </div>
+    <div style=&quot;background: #1a1a1a; border-radius: 8pt; padding: 16pt; text-align: center; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center;&quot;>
+      <p style=&quot;font-size: 24pt; font-weight: 700; color: #22c55e;&quot;>Live</p>
+      <p style=&quot;font-size: 9pt; color: #888; margin-top: 6pt;&quot;>Output: deployed on AWS</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph — Jaeyun Ha · Ashley Ha</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>github.com/jaeyunha/ralph-to-ralph-prod</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="6" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-06.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 28pt 36pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 14pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #6366f1; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>DEMO</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>The Resend Clone — In Production</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>06</p>
+  </div>
+
+  <!-- Screenshots grid: 1 large + 4 small -->
+  <div style=&quot;flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 10pt; overflow: hidden;&quot;>
+    <!-- Left: Dashboard (large) -->
+    <div style=&quot;display: flex; flex-direction: column; gap: 6pt;&quot;>
+      <div style=&quot;flex: 1; border-radius: 6pt; overflow: hidden; border: 1px solid #333;&quot;>
+        <img src=&quot;./assets/screenshot-dashboard.png&quot; style=&quot;width: 100%; height: 100%; object-fit: cover;&quot; alt=&quot;Resend clone dashboard&quot;>
+      </div>
+      <p style=&quot;font-size: 8pt; color: #888; text-align: center;&quot;>Dashboard — emails list with full send/receive functionality</p>
+    </div>
+
+    <!-- Right: 4 email notifications stacked in 2x2 -->
+    <div style=&quot;display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8pt;&quot;>
+      <div style=&quot;border-radius: 6pt; overflow: hidden; border: 1px solid #333;&quot;>
+        <img src=&quot;./assets/screenshot-welcome-email.png&quot; style=&quot;width: 100%; height: 100%; object-fit: cover;&quot; alt=&quot;Welcome email&quot;>
+      </div>
+      <div style=&quot;border-radius: 6pt; overflow: hidden; border: 1px solid #333;&quot;>
+        <img src=&quot;./assets/screenshot-broadcast.png&quot; style=&quot;width: 100%; height: 100%; object-fit: cover;&quot; alt=&quot;Broadcast notification&quot;>
+      </div>
+      <div style=&quot;border-radius: 6pt; overflow: hidden; border: 1px solid #333;&quot;>
+        <img src=&quot;./assets/screenshot-tls.png&quot; style=&quot;width: 100%; height: 100%; object-fit: cover;&quot; alt=&quot;TLS enforcement&quot;>
+      </div>
+      <div style=&quot;border-radius: 6pt; overflow: hidden; border: 1px solid #333;&quot;>
+        <img src=&quot;./assets/screenshot-export.png&quot; style=&quot;width: 100%; height: 100%; object-fit: cover;&quot; alt=&quot;CSV export ready&quot;>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 10pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph</p>
+    <p style=&quot;font-size: 9pt; color: #b0b0b0;&quot;>Real emails sent via AWS SES · Live on App Runner</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+        <iframe class="slide-frame" data-slide="7" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<base href=&quot;./&quot;>
+<script>
+(() => {
+  const slideFile = &quot;slide-07.html&quot;;
+  const localAssetPrefix = &quot;./assets/&quot;;
+  const absolutePathRe = /^(file:\/\/|\/Users\/|\/home\/|\/var\/|\/tmp\/|\/private\/|\/Volumes\/|[A-Za-z]:[\\/]|\\\\)/i;
+  const prefix = '[slides-grab:image]';
+
+  function describeElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    if (element === document.body) return 'body';
+
+    const parts = [];
+    let current = element;
+    while (current &amp;&amp; current.nodeType === Node.ELEMENT_NODE &amp;&amp; current !== document.body) {
+      let part = current.tagName.toLowerCase();
+      if (current.id) {
+        part += '#' + current.id;
+        parts.unshift(part);
+        break;
+      }
+      if (current.classList.length > 0) {
+        part += '.' + Array.from(current.classList).slice(0, 2).join('.');
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+
+  function warn(message, detail) {
+    console.warn(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  function fail(message, detail) {
+    console.error(prefix + ' ' + slideFile + ': ' + message, detail);
+  }
+
+  window.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    const src = (target.getAttribute('src') || target.currentSrc || '').trim();
+    if (!src || src.startsWith('data:')) return;
+    if (src.startsWith(localAssetPrefix)) {
+      fail('missing local asset', { src });
+      return;
+    }
+    fail('image failed to load', { src });
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    for (const image of document.querySelectorAll('img[src]')) {
+      const src = (image.getAttribute('src') || '').trim();
+      if (!src || src.startsWith('data:')) continue;
+      if (src.startsWith('https://')) {
+        fail('remote image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (src.startsWith('http://')) {
+        fail('remote http:// image URL is unsupported in saved slides; download it into ./assets/<file>', { src });
+        continue;
+      }
+      if (absolutePathRe.test(src) || src.startsWith('/')) {
+        fail('non-portable image path is unsupported', { src });
+        continue;
+      }
+      if (!src.startsWith(localAssetPrefix)) {
+        warn('noncanonical local image path should use ./assets/<file>', { src });
+      }
+    }
+
+    for (const element of document.body.querySelectorAll('*')) {
+      if (element === document.body) continue;
+      const backgroundImage = window.getComputedStyle(element).backgroundImage;
+      if (!backgroundImage || backgroundImage === 'none' || !backgroundImage.includes('url(')) continue;
+      fail('non-body background-image is not supported for slide content', {
+        element: describeElement(element),
+        backgroundImage,
+      });
+    }
+  });
+})();
+</script>
+  <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 720pt;
+      height: 405pt;
+      font-family: 'Pretendard', sans-serif;
+      background: #0f0f0f;
+      padding: 28pt 36pt;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; margin-bottom: 14pt;&quot;>
+    <div style=&quot;display: flex; align-items: center; gap: 12pt;&quot;>
+      <p style=&quot;display: inline-block; padding: 4pt 10pt; background: #dc2626; color: #fff; border-radius: 4pt; font-size: 8pt; font-weight: 600;&quot;>LIVE DEMO</p>
+      <h2 style=&quot;font-size: 18pt; font-weight: 600; color: #ffffff;&quot;>Watch It Work</h2>
+    </div>
+    <p style=&quot;font-size: 10pt; color: #666;&quot;>07</p>
+  </div>
+
+  <!-- Video container -->
+  <div style=&quot;flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;&quot;>
+    <div style=&quot;width: 100%; height: 100%; border-radius: 8pt; overflow: hidden; border: 1px solid #333; background: #1a1a1a; display: flex; align-items: center; justify-content: center;&quot;>
+      <video src=&quot;./assets/demo-recording.mov&quot; controls style=&quot;width: 100%; height: 100%; object-fit: contain; background: #000;&quot;>
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+
+  <!-- Caption -->
+  <div style=&quot;display: flex; justify-content: center; padding-top: 10pt;&quot;>
+    <p style=&quot;font-size: 10pt; color: #b0b0b0; text-align: center;&quot;>
+      Ralph-to-Ralph cloning pipeline in action — from URL to deployed product
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style=&quot;display: flex; justify-content: space-between; align-items: center; padding-top: 8pt; border-top: 1px solid #252525;&quot;>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralph-to-Ralph — Jaeyun Ha · Ashley Ha</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>github.com/jaeyunha/ralph-to-ralph-prod</p>
+    <p style=&quot;font-size: 9pt; color: #666;&quot;>Ralphthon Seoul 2026</p>
+  </div>
+</body>
+</html>" sandbox="allow-same-origin"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL = 7;
+    let current = 1;
+
+    const frames = document.querySelectorAll('.slide-frame');
+    const counter = document.getElementById('counter');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const scaler = document.getElementById('scaler');
+    const viewport = document.getElementById('viewport');
+
+    function goTo(n) {
+      n = Math.max(1, Math.min(TOTAL, n));
+      if (n === current) return;
+      frames[current - 1].classList.remove('active');
+      current = n;
+      frames[current - 1].classList.add('active');
+      counter.textContent = current + ' / ' + TOTAL;
+      btnPrev.disabled = current === 1;
+      btnNext.disabled = current === TOTAL;
+    }
+
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    btnPrev.addEventListener('click', prev);
+    btnNext.addEventListener('click', next);
+    btnPrev.disabled = true;
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+      else if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+      else if (e.key === 'End') { e.preventDefault(); goTo(TOTAL); }
+      else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    // Fullscreen
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    document.getElementById('btn-fs').addEventListener('click', toggleFullscreen);
+
+    // Auto-scale to fit viewport (95% fit)
+    function rescale() {
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+      const slideW = scaler.offsetWidth;
+      const slideH = scaler.offsetHeight;
+      const scale = Math.min(vw / slideW, vh / slideH) * 0.95;
+      scaler.style.transform = 'scale(' + scale + ')';
+    }
+
+    window.addEventListener('resize', rescale);
+    document.addEventListener('fullscreenchange', () => setTimeout(rescale, 100));
+    rescale();
+  </script>
+</body>
+</html>
