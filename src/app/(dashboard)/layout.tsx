@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
+import Link from "next/link";
 
 export default function DashboardLayout({
   children,
@@ -8,32 +9,28 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 ml-[250px]">
-        {/* Top header bar */}
-        <div className="flex items-center justify-end gap-4 px-6 py-3 border-b border-[rgba(176,199,217,0.145)]">
-          <button
-            type="button"
-            className="text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors flex items-center gap-1"
+      <main className="ml-[250px] flex min-h-screen flex-1 flex-col">
+        <div className="flex-1 p-6">{children}</div>
+        <footer className="flex items-center justify-end gap-4 border-t border-[rgba(176,199,217,0.145)] px-6 py-3">
+          <a
+            href="mailto:feedback@foreverbrowsing.com?subject=Resend%20Clone%20Feedback"
+            className="text-[13px] text-[#A1A4A5] transition-colors hover:text-[#F0F0F0]"
           >
             Feedback
-            <kbd className="ml-1 px-1.5 py-0.5 text-[10px] bg-[rgba(176,199,217,0.1)] rounded border border-[rgba(176,199,217,0.2)]">
-              F
-            </kbd>
-          </button>
-          <button
-            type="button"
-            className="text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors"
+          </a>
+          <a
+            href="mailto:help@foreverbrowsing.com?subject=Resend%20Clone%20Help"
+            className="text-[13px] text-[#A1A4A5] transition-colors hover:text-[#F0F0F0]"
           >
             Help
-          </button>
-          <button
-            type="button"
-            className="text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors"
+          </a>
+          <Link
+            href="/docs"
+            className="text-[13px] text-[#A1A4A5] transition-colors hover:text-[#F0F0F0]"
           >
             Docs
-          </button>
-        </div>
-        <div className="p-6">{children}</div>
+          </Link>
+        </footer>
       </main>
     </div>
   );
