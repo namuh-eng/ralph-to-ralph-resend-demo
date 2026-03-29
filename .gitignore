@@ -17,3 +17,4 @@ dist/
 .ralph-watchdog.lock
 .ever-session-id
 .inspect-complete
+.omx/
