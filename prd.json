@@ -2,8 +2,8 @@
   {
     "id": "infra-001",
     "category": "data",
-    "description": "Database schema — all Drizzle ORM models: emails, domains, api_keys, contacts, segments, broadcasts, webhooks, templates, topics, properties, logs, email_events, domain_events",
-    "page": "N/A — Backend",
+    "description": "Database schema \u2014 all Drizzle ORM models: emails, domains, api_keys, contacts, segments, broadcasts, webhooks, templates, topics, properties, logs, email_events, domain_events",
+    "page": "N/A \u2014 Backend",
     "ui_details": "N/A",
     "behavior": "Drizzle schema defines all tables with correct field types, relations, enums (email_status, domain_status, permission_type, etc.). Generates migration files via npm run db:generate.",
     "data_model": "See section 5 of build-spec.md for all entity fields and types",
@@ -32,8 +32,8 @@
   {
     "id": "infra-002",
     "category": "data",
-    "description": "AWS SES email sending client — wrapper around @aws-sdk/client-sesv2 for SendEmail, domain identity management",
-    "page": "N/A — Backend",
+    "description": "AWS SES email sending client \u2014 wrapper around @aws-sdk/client-sesv2 for SendEmail, domain identity management",
+    "page": "N/A \u2014 Backend",
     "ui_details": "N/A",
     "behavior": "SES client sends emails via SendEmailCommand. Supports from, to, cc, bcc, subject, html, text, reply_to, attachments. Creates domain identities for DKIM/SPF verification. Uses us-east-1 region.",
     "data_model": "SendEmailInput: { from, to[], cc[], bcc[], subject, html, text, replyTo, attachments[] }",
@@ -62,8 +62,8 @@
   {
     "id": "infra-003",
     "category": "data",
-    "description": "Cloudflare DNS client — auto-configure DKIM, SPF, MX records for domain verification",
-    "page": "N/A — Backend",
+    "description": "Cloudflare DNS client \u2014 auto-configure DKIM, SPF, MX records for domain verification",
+    "page": "N/A \u2014 Backend",
     "ui_details": "N/A",
     "behavior": "Creates TXT records (DKIM, SPF), MX records for sending/receiving. Uses CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID from .env. Supports create, list, delete DNS records.",
     "data_model": "DNSRecord: { type: TXT|MX|CNAME, name: string, content: string, ttl: number, priority?: number }",
@@ -92,8 +92,8 @@
   {
     "id": "infra-004",
     "category": "data",
-    "description": "S3 storage client — file upload for email attachments, template images, logo uploads",
-    "page": "N/A — Backend",
+    "description": "S3 storage client \u2014 file upload for email attachments, template images, logo uploads",
+    "page": "N/A \u2014 Backend",
     "ui_details": "N/A",
     "behavior": "Uploads files to S3 bucket, returns presigned URLs for download. Supports image/*, .html, .pdf MIME types.",
     "data_model": "UploadInput: { key: string, body: Buffer, contentType: string }",
@@ -116,11 +116,11 @@
   {
     "id": "layout-001",
     "category": "layout",
-    "description": "Core app shell — sidebar navigation (10 items), content area, Next.js App Router routing for all pages",
+    "description": "Core app shell \u2014 sidebar navigation (10 items), content area, Next.js App Router routing for all pages",
     "page": "All pages",
     "ui_details": "Fixed left sidebar (250px), dark theme (#000 bg). Sidebar: team switcher at top, 10 nav links (Emails, Broadcasts, Templates, Audience, Metrics, Domains, Logs, API Keys, Webhooks, Settings), user menu at bottom. Active nav: #F0F0F0 text + rgba(24,25,28,0.88) bg. Inactive: #A1A4A5 text. Content area fills remaining width. Footer: Feedback, Help, Docs links.",
     "behavior": "Sidebar nav highlights active page. Clicking nav items routes to correct page. Sidebar is persistent across all pages. Content area renders page-specific content.",
-    "data_model": "N/A — layout only",
+    "data_model": "N/A \u2014 layout only",
     "priority": 2,
     "core": true,
     "passes": true,
@@ -152,9 +152,9 @@
   {
     "id": "design-001",
     "category": "ui",
-    "description": "Shared data table component — column headers, rows, checkbox selection, row actions menu, sortable columns",
+    "description": "Shared data table component \u2014 column headers, rows, checkbox selection, row actions menu, sortable columns",
     "page": "Shared component",
-    "ui_details": "Table headers: 12px Inter, #A1A4A5 color. Cell text: 14px Inter, #F0F0F0. Cell padding: 0px 12px. Border: rgba(176,199,217,0.145) bottom. Checkbox column optional. Row actions: three-dot button → dropdown menu. Relative time formatting for date columns with tooltip for exact time.",
+    "ui_details": "Table headers: 12px Inter, #A1A4A5 color. Cell text: 14px Inter, #F0F0F0. Cell padding: 0px 12px. Border: rgba(176,199,217,0.145) bottom. Checkbox column optional. Row actions: three-dot button \u2192 dropdown menu. Relative time formatting for date columns with tooltip for exact time.",
     "behavior": "Checkbox in header selects/deselects all. Individual row checkboxes. Three-dot menu opens dropdown with context-specific actions. Column headers may be sortable.",
     "data_model": "Generic: columns[], rows[], onRowClick?, checkboxEnabled?, actions[]",
     "priority": 3,
@@ -179,9 +179,7 @@
       "edge_cases": [
         {
           "name": "empty table shows empty state",
-          "steps": [
-            "Render table with 0 rows"
-          ],
+          "steps": ["Render table with 0 rows"],
           "expected": "Empty state message displayed"
         }
       ]
@@ -190,9 +188,9 @@
   {
     "id": "design-002",
     "category": "ui",
-    "description": "Shared filter bar components — search input (Shadow DOM), date range picker (6 presets + calendar), dropdown filters, combobox, export button",
+    "description": "Shared filter bar components \u2014 search input (Shadow DOM), date range picker (6 presets + calendar), dropdown filters, combobox, export button",
     "page": "Shared component",
-    "ui_details": "Search: Shadow DOM input, placeholder text. Date range: button showing selected range, popover with presets (Today, Yesterday, Last 3/7/15/30 days) + calendar month view. Dropdown filter: button → popover with options, colored dot indicators. Combobox: searchable dropdown. All use rgba(24,25,28,0.88) bg, rgba(176,199,217,0.145) border, 12px border-radius.",
+    "ui_details": "Search: Shadow DOM input, placeholder text. Date range: button showing selected range, popover with presets (Today, Yesterday, Last 3/7/15/30 days) + calendar month view. Dropdown filter: button \u2192 popover with options, colored dot indicators. Combobox: searchable dropdown. All use rgba(24,25,28,0.88) bg, rgba(176,199,217,0.145) border, 12px border-radius.",
     "behavior": "Filters update URL query params and re-fetch data. Date range picker supports presets and custom range via calendar. Combobox supports search/filter within options. Multiple filters can be active simultaneously.",
     "data_model": "FilterState: { search: string, dateRange: { from: Date, to: Date }, filters: Record<string, string> }",
     "priority": 3,
@@ -220,11 +218,11 @@
   {
     "id": "design-003",
     "category": "ui",
-    "description": "Shared UI primitives — pagination (40/80/120), modal dialogs, toast notifications, status badges, copy-to-clipboard, tabs (Radix), toggle switches, empty states",
+    "description": "Shared UI primitives \u2014 pagination (40/80/120), modal dialogs, toast notifications, status badges, copy-to-clipboard, tabs (Radix), toggle switches, empty states",
     "page": "Shared component",
     "ui_details": "Pagination: items per page selector (40/80/120) + cursor navigation. Modals: centered dialog, form fields, Add/Cancel buttons, Esc to close. Toasts: success/error feedback. Badges: text-based status indicators. Copy button: click copies value, shows confirmation. Tabs: Radix tabs with data-state active/inactive. Toggles: binary switch controls.",
     "behavior": "Pagination updates page and re-fetches. Modals trap focus, close on Esc/Cancel. Toasts auto-dismiss. Copy shows brief confirmation state.",
-    "data_model": "N/A — UI primitives",
+    "data_model": "N/A \u2014 UI primitives",
     "priority": 3,
     "core": true,
     "passes": true,
@@ -250,8 +248,8 @@
   {
     "id": "api-001",
     "category": "crud",
-    "description": "Email sending REST API — POST /api/emails (send), POST /api/emails/batch (batch send), GET /api/emails (list), GET /api/emails/:id (get detail)",
-    "page": "N/A — API",
+    "description": "Email sending REST API \u2014 POST /api/emails (send), POST /api/emails/batch (batch send), GET /api/emails (list), GET /api/emails/:id (get detail)",
+    "page": "N/A \u2014 API",
     "ui_details": "N/A",
     "behavior": "POST /api/emails: validates from/to/subject, sends via SES, stores in DB, returns { id }. POST /api/emails/batch: up to 100 emails, no attachments/scheduling. GET /api/emails: cursor pagination (limit, after, before). GET /api/emails/:id: returns email + events. Auth via Bearer token (API key). Idempotency key support.",
     "data_model": "SendEmail: { from, to, subject, html?, text?, cc?, bcc?, reply_to?, attachments?, tags?, scheduled_at? }. Response: { id, from, to, created_at, last_event }",
@@ -287,16 +285,12 @@
       "edge_cases": [
         {
           "name": "batch send exceeds 100 limit",
-          "steps": [
-            "POST /api/emails/batch with 101 emails"
-          ],
+          "steps": ["POST /api/emails/batch with 101 emails"],
           "expected": "400 error: maximum 100 emails per batch"
         },
         {
           "name": "unauthorized request without API key",
-          "steps": [
-            "POST /api/emails without Authorization header"
-          ],
+          "steps": ["POST /api/emails without Authorization header"],
           "expected": "401 Unauthorized"
         }
       ]
@@ -343,9 +337,7 @@
       "edge_cases": [
         {
           "name": "empty API keys list",
-          "steps": [
-            "Navigate to /api-keys with no keys created"
-          ],
+          "steps": ["Navigate to /api-keys with no keys created"],
           "expected": "Empty state message displayed"
         }
       ]
@@ -358,7 +350,7 @@
     "page": "API Keys",
     "ui_details": "Modal titled 'Add API Key'. Fields: Name (text input, placeholder 'Your API Key name'), Permission (combobox: Full access default, Sending access), Domain (combobox: All Domains + verified domains with region flag). Add button (disabled until name filled) + Cancel (Esc). Domain field disabled when Full access selected, enabled for Sending access.",
     "behavior": "Clicking 'Create API Key' opens modal. Selecting 'Sending access' enables Domain combobox showing verified domains. Selecting 'Full access' disables Domain field and resets to 'All Domains'. Submitting creates new API key and shows the full token ONCE (never shown again). Add button disabled until name is entered.",
-    "data_model": "Create API Key: name (string, required), permission (full_access | sending_access), domain_id (UUID, optional — only for sending_access)",
+    "data_model": "Create API Key: name (string, required), permission (full_access | sending_access), domain_id (UUID, optional \u2014 only for sending_access)",
     "priority": 4,
     "core": true,
     "passes": true,
@@ -440,10 +432,7 @@
       "edge_cases": [
         {
           "name": "total uses links to filtered logs",
-          "steps": [
-            "Navigate to /api-keys/:id",
-            "Click Total uses link"
-          ],
+          "steps": ["Navigate to /api-keys/:id", "Click Total uses link"],
           "expected": "Navigates to /logs page filtered by this API key ID"
         }
       ]
@@ -456,7 +445,7 @@
     "page": "Emails",
     "ui_details": "Page title 'Emails' (h1), horizontal tab bar with 'Sending' and 'Receiving' tabs. Active tab has underline indicator. Right side: API drawer icon button + three-dot More actions button. Sending tab links to /emails, Receiving tab links to /emails/receiving.",
     "behavior": "Clicking tabs navigates between Sending and Receiving views. Tabs update URL and active state. More actions dropdown shows 'Go to docs' link.",
-    "data_model": "N/A — layout only",
+    "data_model": "N/A \u2014 layout only",
     "priority": 5,
     "core": true,
     "passes": true,
@@ -485,9 +474,7 @@
       "edge_cases": [
         {
           "name": "direct URL to receiving tab",
-          "steps": [
-            "Navigate directly to /emails/receiving"
-          ],
+          "steps": ["Navigate directly to /emails/receiving"],
           "expected": "Receiving tab is active, page loads correctly"
         }
       ]
@@ -544,9 +531,7 @@
       "edge_cases": [
         {
           "name": "search with no results",
-          "steps": [
-            "Type 'nonexistent@email.com' in search"
-          ],
+          "steps": ["Type 'nonexistent@email.com' in search"],
           "expected": "Table shows empty state or 'no results' message"
         }
       ]
@@ -592,9 +577,7 @@
       "edge_cases": [
         {
           "name": "empty email list",
-          "steps": [
-            "Filter to a date range with no emails"
-          ],
+          "steps": ["Filter to a date range with no emails"],
           "expected": "Empty state message displayed"
         }
       ]
@@ -603,9 +586,9 @@
   {
     "id": "feature-004",
     "category": "ui",
-    "description": "Email detail page — metadata display and event timeline",
+    "description": "Email detail page \u2014 metadata display and event timeline",
     "page": "Email Detail",
-    "ui_details": "Page header: 'Email' label + recipient email as h1. Metadata section with key-value pairs: From (email), Subject (text), To (email), ID (UUID with copy button). Email Events section: vertical timeline with status badge + timestamp for each event (e.g., sent Mar 28 4:14 PM → delivered Mar 28 4:14 PM).",
+    "ui_details": "Page header: 'Email' label + recipient email as h1. Metadata section with key-value pairs: From (email), Subject (text), To (email), ID (UUID with copy button). Email Events section: vertical timeline with status badge + timestamp for each event (e.g., sent Mar 28 4:14 PM \u2192 delivered Mar 28 4:14 PM).",
     "behavior": "Copy button copies email ID to clipboard. Event timeline shows chronological delivery events. Status badges are interactive (clickable). Header has API drawer button and More actions (Share email).",
     "data_model": "Email detail: { id: string, from: string, to: string, subject: string, html: string, text: string, events: Array<{ type: EmailStatus, timestamp: Date }> }",
     "priority": 6,
@@ -642,9 +625,7 @@
       "edge_cases": [
         {
           "name": "copy email ID to clipboard",
-          "steps": [
-            "Click copy button next to email ID"
-          ],
+          "steps": ["Click copy button next to email ID"],
           "expected": "ID copied to clipboard, toast or button state change confirms copy"
         }
       ]
@@ -653,7 +634,7 @@
   {
     "id": "feature-005",
     "category": "ui",
-    "description": "Email detail page — content tabs: Preview, Plain Text, HTML, Insights",
+    "description": "Email detail page \u2014 content tabs: Preview, Plain Text, HTML, Insights",
     "page": "Email Detail",
     "ui_details": "4 horizontal tabs below event timeline. Preview (default): rendered email in iframe. Plain Text: plain text content. HTML: raw HTML source. Insights: deliverability report. Copy button next to tabs copies content of active tab.",
     "behavior": "Tabs switch content display. Preview shows rendered email. Insights tab shows two sections: 'Needs attention' (issues) and 'Doing great' (passing checks). Each insight is an expandable accordion item. 11 total insight checks covering DMARC, click/open tracking, subdomain usage, link URLs, plain text, body size, no-reply, image hosting, SVG images, YouTube URLs. Report timestamp shown at bottom.",
@@ -693,9 +674,7 @@
       "edge_cases": [
         {
           "name": "expand insight accordion item",
-          "steps": [
-            "Click on 'Include valid DMARC record' in Insights tab"
-          ],
+          "steps": ["Click on 'Include valid DMARC record' in Insights tab"],
           "expected": "Accordion expands to show detailed explanation"
         }
       ]
@@ -706,7 +685,7 @@
     "category": "layout",
     "description": "Domains list page layout with filters, data table, and pagination",
     "page": "Domains",
-    "ui_details": "Page title 'Domains' (h1), 'Add domain' button, API drawer button. Filter bar: Search (Shadow DOM input), Status combobox (All Statuses, Pending, Verified, Failed, Not Started), Region combobox (All Regions, North Virginia/us-east-1, Ireland/eu-west-1, São Paulo/sa-east-1, Tokyo/ap-northeast-1), Export button. Data table columns: Domain, Status, Region, Created. Checkbox column for bulk selection. Domain column shows domain name as clickable link to /domains/:id. Status column shows colored badge (verified/pending/failed). Region shows display name + code. Created shows relative time. Pagination: 40/80/120 items per page.",
+    "ui_details": "Page title 'Domains' (h1), 'Add domain' button, API drawer button. Filter bar: Search (Shadow DOM input), Status combobox (All Statuses, Pending, Verified, Failed, Not Started), Region combobox (All Regions, North Virginia/us-east-1, Ireland/eu-west-1, S\u00e3o Paulo/sa-east-1, Tokyo/ap-northeast-1), Export button. Data table columns: Domain, Status, Region, Created. Checkbox column for bulk selection. Domain column shows domain name as clickable link to /domains/:id. Status column shows colored badge (verified/pending/failed). Region shows display name + code. Created shows relative time. Pagination: 40/80/120 items per page.",
     "behavior": "Status filter narrows list by domain verification state. Region filter narrows by SES region. Search filters by domain name. Clicking domain name navigates to detail page. Row actions: Delete domain only.",
     "data_model": "Domain: id, name, status (pending|verified|failed|not_started), region (us-east-1|eu-west-1|sa-east-1|ap-northeast-1), created_at, provider",
     "priority": 7,
@@ -740,19 +719,14 @@
         },
         {
           "name": "navigate to domain detail",
-          "steps": [
-            "Navigate to /domains",
-            "Click domain name link"
-          ],
+          "steps": ["Navigate to /domains", "Click domain name link"],
           "expected": "Navigates to /domains/:id with domain detail page"
         }
       ],
       "edge_cases": [
         {
           "name": "empty domains list",
-          "steps": [
-            "Filter to a status with no matching domains"
-          ],
+          "steps": ["Filter to a status with no matching domains"],
           "expected": "Empty state shown with appropriate message"
         }
       ]
@@ -768,7 +742,7 @@
     "data_model": "Domain detail extends Domain with: provider (string), events[] (type, timestamp), dns_records[], configuration (click_tracking, open_tracking, tls)",
     "priority": 7,
     "core": true,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -810,9 +784,7 @@
       "edge_cases": [
         {
           "name": "domain with pending status",
-          "steps": [
-            "Navigate to a domain that is still pending verification"
-          ],
+          "steps": ["Navigate to a domain that is still pending verification"],
           "expected": "Status shows 'pending', timeline shows only 'Domain added' event"
         }
       ]
@@ -821,7 +793,7 @@
   {
     "id": "feature-025",
     "category": "data",
-    "description": "Domain DNS Records tab — DKIM, SPF, MX records with auto-configure and sending/receiving toggles",
+    "description": "Domain DNS Records tab \u2014 DKIM, SPF, MX records with auto-configure and sending/receiving toggles",
     "page": "Domain Detail",
     "ui_details": "Records tab content: 'Auto configure' button (form with hidden domainId), Tutorial button, Forward instructions button. Three DNS sections: (1) Domain Verification (DKIM) with link, table (Type, Name, Content, TTL, Priority, Status), TXT record for DKIM key; (2) Enable Sending with SPF toggle switch, MX record (feedback-smtp.us-east-1.amazonses.com, priority 10), TXT record (v=spf1 include:amazonses.com ~all); (3) Enable Receiving with toggle switch. Long values truncated with [...] expandable tooltip. TTL shows 'Auto'. Status column shows verified/pending badges.",
     "behavior": "Auto configure button triggers DNS auto-setup via detected provider API (e.g., Cloudflare). Sending toggle enables/disables sending capability with SPF/MX records. Receiving toggle enables/disables inbound email with additional MX records. Record values are copy-to-clipboard on click. Tutorial shows step-by-step DNS setup guide.",
@@ -870,10 +842,10 @@
   {
     "id": "feature-026",
     "category": "settings",
-    "description": "Domain Configuration tab — click tracking, open tracking, and TLS settings",
+    "description": "Domain Configuration tab \u2014 click tracking, open tracking, and TLS settings",
     "page": "Domain Detail",
-    "ui_details": "Configuration tab content: 3 settings. (1) Click Tracking — toggle switch (default off), description about link modification and redirect; (2) Open Tracking — toggle switch (default off), labeled 'Not Recommended', description about 1x1 pixel GIF tracking with link 'if open tracking is right for you'; (3) TLS — combobox with 2 options: Opportunistic (default, attempts secure then falls back) and Enforced (requires TLS).",
-    "behavior": "Click Tracking toggle enables/disables link tracking for all emails sent from this domain. Open Tracking toggle enables/disables open pixel — marked not recommended due to deliverability impact. TLS combobox changes encryption policy. All settings persist on change (auto-save, no submit button).",
+    "ui_details": "Configuration tab content: 3 settings. (1) Click Tracking \u2014 toggle switch (default off), description about link modification and redirect; (2) Open Tracking \u2014 toggle switch (default off), labeled 'Not Recommended', description about 1x1 pixel GIF tracking with link 'if open tracking is right for you'; (3) TLS \u2014 combobox with 2 options: Opportunistic (default, attempts secure then falls back) and Enforced (requires TLS).",
+    "behavior": "Click Tracking toggle enables/disables link tracking for all emails sent from this domain. Open Tracking toggle enables/disables open pixel \u2014 marked not recommended due to deliverability impact. TLS combobox changes encryption policy. All settings persist on change (auto-save, no submit button).",
     "data_model": "DomainConfiguration: click_tracking (boolean, default false), open_tracking (boolean, default false), tls ('opportunistic'|'enforced', default 'opportunistic')",
     "priority": 8,
     "core": false,
@@ -902,10 +874,7 @@
       "edge_cases": [
         {
           "name": "toggle open tracking shows warning",
-          "steps": [
-            "Click Configuration tab",
-            "Toggle Open Tracking on"
-          ],
+          "steps": ["Click Configuration tab", "Toggle Open Tracking on"],
           "expected": "Setting is enabled, 'Not Recommended' label still visible"
         }
       ]
@@ -914,7 +883,7 @@
   {
     "id": "feature-006",
     "category": "ui",
-    "description": "API code drawer — slide-in panel with multi-language code examples",
+    "description": "API code drawer \u2014 slide-in panel with multi-language code examples",
     "page": "Emails (shared component)",
     "ui_details": "Right-side slide-in drawer triggered by API drawer icon button. Title matches page context (e.g., 'Sending Email API'). Language tabs: Node.js (default), Ruby, PHP, Python, Go, Rust, Java, .NET, cURL. Multiple code sections (Send Email, Send Batch Emails, Retrieve Email, Update Email). Each section has syntax-highlighted code block with copy button. Close button (X) at top.",
     "behavior": "Clicking API drawer button opens panel from right. Language tabs switch all code blocks. Copy button copies code to clipboard. Close button or clicking outside closes drawer. For clone: only show Node.js and cURL tabs (per spec: TypeScript/Node.js only).",
@@ -948,10 +917,7 @@
       "edge_cases": [
         {
           "name": "copy code to clipboard",
-          "steps": [
-            "Open drawer",
-            "Click copy button on first code block"
-          ],
+          "steps": ["Open drawer", "Click copy button on first code block"],
           "expected": "Code copied to clipboard, button shows success state"
         }
       ]
@@ -964,7 +930,7 @@
     "page": "Audience",
     "ui_details": "Page title 'Audience' (h1), horizontal tab bar with Contacts (default active), Properties, Segments, Topics tabs. Contacts tab URL: /audience/, Properties: /audience/properties, Segments: /audience/segments, Topics: /audience/topics. Summary stats row: All Contacts (count), Subscribers (count), Unsubscribers (count), Metrics (expandable). 'Add contacts' dropdown button with 'Add manually' and 'Import CSV' options. API drawer button.",
     "behavior": "Tab navigation updates URL and active state. Summary stats show real-time counts. Add contacts dropdown opens menu with 2 options.",
-    "data_model": "N/A — layout only",
+    "data_model": "N/A \u2014 layout only",
     "priority": 10,
     "core": false,
     "passes": false,
@@ -1000,9 +966,7 @@
       "edge_cases": [
         {
           "name": "direct URL to Topics tab",
-          "steps": [
-            "Navigate directly to /audience/topics"
-          ],
+          "steps": ["Navigate directly to /audience/topics"],
           "expected": "Topics tab is active, page loads correctly"
         }
       ]
@@ -1051,9 +1015,7 @@
       "edge_cases": [
         {
           "name": "empty contacts list",
-          "steps": [
-            "Search for nonexistent email"
-          ],
+          "steps": ["Search for nonexistent email"],
           "expected": "Empty state or 'no results' message displayed"
         }
       ]
@@ -1062,9 +1024,9 @@
   {
     "id": "feature-018",
     "category": "crud",
-    "description": "Add contact manually — modal with email addresses textarea and segment autocomplete",
+    "description": "Add contact manually \u2014 modal with email addresses textarea and segment autocomplete",
     "page": "Audience > Contacts",
-    "ui_details": "Modal triggered by 'Add contacts' → 'Add manually'. Title: 'Add contacts'. Email addresses: textarea (placeholder 'foo@gmail.com, bar@gmail.com'), helper text 'Use commas or line breaks to separate multiple email addresses.' Segments: autocomplete contenteditable input. Add + Cancel buttons + close (X).",
+    "ui_details": "Modal triggered by 'Add contacts' \u2192 'Add manually'. Title: 'Add contacts'. Email addresses: textarea (placeholder 'foo@gmail.com, bar@gmail.com'), helper text 'Use commas or line breaks to separate multiple email addresses.' Segments: autocomplete contenteditable input. Add + Cancel buttons + close (X).",
     "behavior": "Textarea accepts comma or line-break separated emails. Segments autocomplete filters existing segments. Add button creates contacts and assigns them to selected segments. Cancel/Escape closes modal.",
     "data_model": "Create contact: { emails: string[], segment_ids: string[] }",
     "priority": 10,
@@ -1075,7 +1037,7 @@
         {
           "name": "renders add contact modal with fields",
           "description": "Modal shows email textarea and segments autocomplete",
-          "input": "Click Add contacts → Add manually",
+          "input": "Click Add contacts \u2192 Add manually",
           "expected_output": "Modal with email textarea and segments field"
         }
       ],
@@ -1096,10 +1058,7 @@
       "edge_cases": [
         {
           "name": "add multiple contacts with commas",
-          "steps": [
-            "Type 'a@b.com, c@d.com' in textarea",
-            "Click Add"
-          ],
+          "steps": ["Type 'a@b.com, c@d.com' in textarea", "Click Add"],
           "expected": "Both contacts created successfully"
         }
       ]
@@ -1108,7 +1067,7 @@
   {
     "id": "feature-019",
     "category": "ui",
-    "description": "Contact detail page — metadata, properties, activity timeline",
+    "description": "Contact detail page \u2014 metadata, properties, activity timeline",
     "page": "Contact Detail",
     "ui_details": "Page header: 'Contact' label + email as h1. Metadata: Email Address, Created (relative time), Status (Subscribed badge), ID (UUID with copy button), Segments (list or 'No segments'), Topics (list or 'No topics'). Properties section: key-value pairs for First Name, Last Name, company_name. Activity section: vertical timeline of events (e.g., 'Contact created'). Note text: 'Activity data may take a few seconds to update.'",
     "behavior": "Copy button copies contact ID to clipboard. Properties show all custom contact properties. Activity timeline shows chronological events. More actions dropdown: Edit contact, (separator), Delete contact.",
@@ -1148,9 +1107,7 @@
       "edge_cases": [
         {
           "name": "copy contact ID to clipboard",
-          "steps": [
-            "Click copy button next to ID"
-          ],
+          "steps": ["Click copy button next to ID"],
           "expected": "ID copied to clipboard, button shows success state"
         }
       ]
@@ -1199,10 +1156,7 @@
       "edge_cases": [
         {
           "name": "property name maxlength",
-          "steps": [
-            "Open add property modal",
-            "Type 110 characters in Name"
-          ],
+          "steps": ["Open add property modal", "Type 110 characters in Name"],
           "expected": "Input truncated or blocked at 100 characters"
         }
       ]
@@ -1259,7 +1213,7 @@
     "category": "crud",
     "description": "Topics list page with empty state, Create topic modal, and unsubscribe page preview",
     "page": "Audience > Topics",
-    "ui_details": "Filter bar: Search input (placeholder 'Search...'), Default filter combobox ('Any Default' — opt-in/opt-out). 'Create topic' button + 'Edit Unsubscribe Page' link. Empty state: 'No topics yet' + description + 'Create topic' button + 'Customize page' link. Unsubscribe page preview embedded in page. Create topic modal: Name (maxlength 50, required, placeholder 'Public display name'), Description (textarea, maxlength 200, placeholder 'Optional public description'), Defaults to (Opt-in/Opt-out combobox — immutable after creation), Visibility (Private/Public combobox).",
+    "ui_details": "Filter bar: Search input (placeholder 'Search...'), Default filter combobox ('Any Default' \u2014 opt-in/opt-out). 'Create topic' button + 'Edit Unsubscribe Page' link. Empty state: 'No topics yet' + description + 'Create topic' button + 'Customize page' link. Unsubscribe page preview embedded in page. Create topic modal: Name (maxlength 50, required, placeholder 'Public display name'), Description (textarea, maxlength 200, placeholder 'Optional public description'), Defaults to (Opt-in/Opt-out combobox \u2014 immutable after creation), Visibility (Private/Public combobox).",
     "behavior": "Topics control unsubscribe preferences. Create topic modal has 4 fields. Defaults to value cannot be changed after creation. Unsubscribe page preview shows live preview of customizable page. Edit Unsubscribe Page link navigates to /audience/topics/unsubscribe-page/edit.",
     "data_model": "Topic: { id: string, name: string, description: string | null, default_subscription: 'opt_in' | 'opt_out', visibility: 'private' | 'public', created_at: Date }",
     "priority": 11,
@@ -1299,10 +1253,7 @@
       "edge_cases": [
         {
           "name": "topic name maxlength",
-          "steps": [
-            "Open create topic modal",
-            "Type 55 characters in Name"
-          ],
+          "steps": ["Open create topic modal", "Type 55 characters in Name"],
           "expected": "Input truncated or blocked at 50 characters"
         }
       ]
@@ -1311,10 +1262,10 @@
   {
     "id": "feature-008",
     "category": "crud",
-    "description": "Broadcasts list page — table with Name, Status, Created columns, checkbox selection, filters, pagination",
+    "description": "Broadcasts list page \u2014 table with Name, Status, Created columns, checkbox selection, filters, pagination",
     "page": "Broadcasts",
-    "ui_details": "Page title 'Broadcasts' + 'Create email' button (right of title) + API drawer button. Filter bar: Search input (Shadow DOM), Status dropdown (All Statuses — Draft, Scheduled, Queued, Sent, Failed), Audiences combobox (All Audiences + segment names), Export button. Data table with checkbox column, Name (link to /broadcasts/:id/editor), Status (text badge), Created (relative time). Row actions: Edit, Duplicate, Clone as template, Remove. Pagination: 40/80/120 items per page.",
-    "behavior": "Clicking broadcast name navigates to editor. Checkboxes enable bulk selection. Status filter narrows list. Audiences filter narrows by segment. Create email button creates new broadcast and navigates to editor. Row actions open dropdown with 4 options (Edit, Duplicate, Clone as template, Remove — Remove has separator above it).",
+    "ui_details": "Page title 'Broadcasts' + 'Create email' button (right of title) + API drawer button. Filter bar: Search input (Shadow DOM), Status dropdown (All Statuses \u2014 Draft, Scheduled, Queued, Sent, Failed), Audiences combobox (All Audiences + segment names), Export button. Data table with checkbox column, Name (link to /broadcasts/:id/editor), Status (text badge), Created (relative time). Row actions: Edit, Duplicate, Clone as template, Remove. Pagination: 40/80/120 items per page.",
+    "behavior": "Clicking broadcast name navigates to editor. Checkboxes enable bulk selection. Status filter narrows list. Audiences filter narrows by segment. Create email button creates new broadcast and navigates to editor. Row actions open dropdown with 4 options (Edit, Duplicate, Clone as template, Remove \u2014 Remove has separator above it).",
     "data_model": "Broadcast list item: { id: string, name: string, status: BroadcastStatus, created_at: Date }. BroadcastStatus enum: draft | scheduled | queued | sent | failed",
     "priority": 12,
     "core": false,
@@ -1357,7 +1308,7 @@
       ],
       "edge_cases": [
         {
-          "name": "row action — remove broadcast",
+          "name": "row action \u2014 remove broadcast",
           "steps": [
             "Click three-dot menu on a broadcast row",
             "Click 'Remove broadcast'"
@@ -1370,10 +1321,10 @@
   {
     "id": "feature-009",
     "category": "crud",
-    "description": "Broadcast editor — form fields (From, Reply-To, To, When, Subscribe to, Subject, Preview text)",
+    "description": "Broadcast editor \u2014 form fields (From, Reply-To, To, When, Subscribe to, Subject, Preview text)",
     "page": "Broadcasts > Editor",
     "ui_details": "Full-page editor layout. Header: back arrow + breadcrumb 'Broadcasts' + editable title + draft badge + Test email button + Review button. Form fields: From (autocomplete input, placeholder 'Acme <acme@example.com>'), Reply-To (toggleable via button), To (contenteditable autocomplete for audiences/segments), When (date/time combobox, toggleable), Subscribe to (topic combobox), Subject (text input), Preview text (text input, maxlength 150, toggleable).",
-    "behavior": "Title is inline-editable. Reply-To, When, and Preview text fields are hidden by default — toggle buttons show them. From input has autocomplete from verified domains. To input autocompletes audience/segment names. When input accepts date/time for scheduling. Subscribe to selects a topic for unsubscribe management. Auto-saves as draft.",
+    "behavior": "Title is inline-editable. Reply-To, When, and Preview text fields are hidden by default \u2014 toggle buttons show them. From input has autocomplete from verified domains. To input autocompletes audience/segment names. When input accepts date/time for scheduling. Subscribe to selects a topic for unsubscribe management. Auto-saves as draft.",
     "data_model": "Broadcast editor: { id: string, name: string, from: string, reply_to: string, to: string (audience/segment), when: Date | null, topic_id: string | null, subject: string, preview_text: string, html: string, status: BroadcastStatus }",
     "priority": 12,
     "core": false,
@@ -1408,7 +1359,7 @@
       ],
       "edge_cases": [
         {
-          "name": "test email validation — empty fields",
+          "name": "test email validation \u2014 empty fields",
           "steps": [
             "Click 'Test email' button without filling From or Content"
           ],
@@ -1420,7 +1371,7 @@
   {
     "id": "feature-010",
     "category": "ui",
-    "description": "Broadcast editor — block-based content editor with slash commands",
+    "description": "Broadcast editor \u2014 block-based content editor with slash commands",
     "page": "Broadcasts > Editor",
     "ui_details": "Contenteditable rich text editor with '/' slash command menu. Slash menu categories: Text (Text, Title, Subtitle, Heading, Bullet list, Numbered list, Quote, Code block), Media (Image, YouTube, X/Twitter), Layout (Button, Divider, Section, 2/3/4 columns, Social Links, Unsubscribe Footer), Utility (HTML, Variable). Bottom toolbar tabs: Text (formatting), Image, Components (same as Layout slash commands + HTML + Code), Variables (contact properties + system variables).",
     "behavior": "Typing '/' opens command palette with categorized block types. Selecting a block inserts it at cursor. Text toolbar shows Bold, Italic, Underline, Strikethrough, Code, Uppercase toggles + alignment (left/center/right) + lists. Variables tab shows insertable template variables: {{{contact.first_name}}}, {{{contact.last_name}}}, {{{contact.email}}}, {{{contact.company_name}}}, {{{RESEND_UNSUBSCRIBE_URL}}}. 'Pick a template' button loads saved templates. 'Upload HTML' accepts .html files.",
@@ -1460,10 +1411,7 @@
       "edge_cases": [
         {
           "name": "insert variable into content",
-          "steps": [
-            "Click Variables tab",
-            "Click {{{contact.first_name}}}"
-          ],
+          "steps": ["Click Variables tab", "Click {{{contact.first_name}}}"],
           "expected": "Variable placeholder inserted into editor content"
         }
       ]
@@ -1472,9 +1420,9 @@
   {
     "id": "feature-011",
     "category": "ui",
-    "description": "Broadcast editor — right sidebar: Page style, Theme, Global CSS panels",
+    "description": "Broadcast editor \u2014 right sidebar: Page style, Theme, Global CSS panels",
     "page": "Broadcasts > Editor",
-    "ui_details": "Right sidebar with 3 collapsible panels. Page style: Background (color picker, padding), Body (3 layout options, color, width default 600px, height, padding, rounded corners, border width + color). Theme: 2 presets (minimal, basic), text styles for 4 levels — Text (14px Regular), Title (31px Semi Bold), Subtitle (25px Semi Bold), Heading (19px Semi Bold) — each with color, size, weight, height, spacing, decoration. Global CSS: code editor with quick-insert buttons (@media dark, @media mobile, .button).",
+    "ui_details": "Right sidebar with 3 collapsible panels. Page style: Background (color picker, padding), Body (3 layout options, color, width default 600px, height, padding, rounded corners, border width + color). Theme: 2 presets (minimal, basic), text styles for 4 levels \u2014 Text (14px Regular), Title (31px Semi Bold), Subtitle (25px Semi Bold), Heading (19px Semi Bold) \u2014 each with color, size, weight, height, spacing, decoration. Global CSS: code editor with quick-insert buttons (@media dark, @media mobile, .button).",
     "behavior": "Page style controls affect the email container. Theme presets change all typography at once. Individual text level overrides persist. Global CSS editor allows custom styles with syntax highlighting. Quick-insert buttons add media query or class scaffolding. 'Edit theme' and 'Global CSS' buttons toggle between sidebar panels. Close sidebar button available.",
     "data_model": "Broadcast style: { background: { color: string, padding: number }, body: { layout: 'full'|'centered'|'narrow', color: string, width: number, height: number|'auto', padding: number, borderRadius: number, borderWidth: number, borderColor: string }, theme: 'minimal'|'basic', textStyles: Record<'text'|'title'|'subtitle'|'heading', { color: string, fontSize: number, fontWeight: string, lineHeight: number, letterSpacing: number, decoration: 'none'|'underline'|'strikethrough' }>, globalCSS: string }",
     "priority": 13,
@@ -1515,11 +1463,11 @@
   {
     "id": "feature-012",
     "category": "interaction",
-    "description": "Broadcast editor — Review panel with slide-to-send",
+    "description": "Broadcast editor \u2014 Review panel with slide-to-send",
     "page": "Broadcasts > Editor",
-    "ui_details": "Bottom panel triggered by 'Review' button. Shows 'Ready to send?' heading, broadcast details summary (loading state observed), and a 'Slide to send' slider control (range 0-100). Slider requires dragging to confirm send — prevents accidental sends.",
-    "behavior": "Review button toggles bottom panel. Panel shows broadcast summary (recipients, subject, etc.). Slide-to-send is a slider (aria-label 'Volume', min 0, max 100) — user must drag to 100 to confirm sending. This is a safety mechanism for broadcast sends.",
-    "data_model": "N/A — interaction only",
+    "ui_details": "Bottom panel triggered by 'Review' button. Shows 'Ready to send?' heading, broadcast details summary (loading state observed), and a 'Slide to send' slider control (range 0-100). Slider requires dragging to confirm send \u2014 prevents accidental sends.",
+    "behavior": "Review button toggles bottom panel. Panel shows broadcast summary (recipients, subject, etc.). Slide-to-send is a slider (aria-label 'Volume', min 0, max 100) \u2014 user must drag to 100 to confirm sending. This is a safety mechanism for broadcast sends.",
+    "data_model": "N/A \u2014 interaction only",
     "priority": 13,
     "core": false,
     "passes": false,
@@ -1551,7 +1499,7 @@
   {
     "id": "feature-013",
     "category": "crud",
-    "description": "Templates list page — card grid with name, alias, preview thumbnail, status filter, search, create button",
+    "description": "Templates list page \u2014 card grid with name, alias, preview thumbnail, status filter, search, create button",
     "page": "Templates",
     "ui_details": "Page title 'Templates' + 'Create template' button (right of title) + API drawer button. Filter bar: Search input (Shadow DOM), Status combobox (All Statuses, Draft, Published). Card grid layout (not table): each card has preview image thumbnail, template name (link to /templates/:id/editor), alias in monospace (e.g., 'untitled-template'). Card actions button (three-dot menu).",
     "behavior": "Clicking card navigates to template editor. Create template button creates new template and navigates to editor. Status filter narrows by draft/published. Card actions dropdown: View details, Edit template, Rename template, Duplicate template, (separator), Remove template.",
@@ -1596,7 +1544,7 @@
       ],
       "edge_cases": [
         {
-          "name": "card action — remove template",
+          "name": "card action \u2014 remove template",
           "steps": [
             "Click three-dot menu on a template card",
             "Click 'Remove template'"
@@ -1609,10 +1557,10 @@
   {
     "id": "feature-014",
     "category": "crud",
-    "description": "Template editor — form fields (From, Reply-To, Subject, Preview text) and shared block editor",
+    "description": "Template editor \u2014 form fields (From, Reply-To, Subject, Preview text) and shared block editor",
     "page": "Templates > Editor",
     "ui_details": "Full-page editor layout. Header: back arrow + breadcrumb 'Templates' + editable title + 'Publish' button (disabled until ready) + More actions button. Form fields: From (autocomplete input), Reply-To (toggleable), Subject (text input), Preview text (toggleable, maxlength 150). NO To, When, or Subscribe to fields. Same block-based content editor as broadcasts with slash commands and toolbar tabs (Text, Image, Components, Variables).",
-    "behavior": "Title is inline-editable. Reply-To and Preview text hidden by default — toggle buttons show them. Publish button publishes the template (vs Review/Send for broadcasts). More actions: Test email, Version history, View details, Duplicate, Delete. Same content editor as broadcasts with same slash commands, toolbar, and right sidebar (Page style, Theme, Global CSS).",
+    "behavior": "Title is inline-editable. Reply-To and Preview text hidden by default \u2014 toggle buttons show them. Publish button publishes the template (vs Review/Send for broadcasts). More actions: Test email, Version history, View details, Duplicate, Delete. Same content editor as broadcasts with same slash commands, toolbar, and right sidebar (Page style, Theme, Global CSS).",
     "data_model": "Template editor: { id: string, name: string, alias: string, from: string, reply_to: string, subject: string, preview_text: string, html: string, status: TemplateStatus }",
     "priority": 13,
     "core": false,
@@ -1648,10 +1596,7 @@
       "edge_cases": [
         {
           "name": "preview text maxlength enforcement",
-          "steps": [
-            "Toggle Preview text field",
-            "Type 160 characters"
-          ],
+          "steps": ["Toggle Preview text field", "Type 160 characters"],
           "expected": "Input blocked or truncated at 150 characters"
         }
       ]
@@ -1660,7 +1605,7 @@
   {
     "id": "feature-015",
     "category": "ui",
-    "description": "Template detail page — metadata display with status, variables, alias, creator, and content preview tabs",
+    "description": "Template detail page \u2014 metadata display with status, variables, alias, creator, and content preview tabs",
     "page": "Template Detail",
     "ui_details": "Page header: 'Template' label + template name as h1. Metadata section: Status (badge: draft/published), Variables (count or 'No variables'), Alias (slug with copy button), Created (relative time), Creator (email). Content tabs: Preview (default, iframe), HTML, Plain Text. Copy button next to tabs. API drawer button + More actions button.",
     "behavior": "Copy button copies alias to clipboard. Tabs switch between rendered preview, HTML source, and plain text. More actions: Edit template, Rename template, Duplicate template, (separator), Remove template. No Insights tab (unlike email detail).",
@@ -1704,9 +1649,7 @@
       "edge_cases": [
         {
           "name": "copy alias to clipboard",
-          "steps": [
-            "Click copy button next to alias"
-          ],
+          "steps": ["Click copy button next to alias"],
           "expected": "Alias copied to clipboard, button shows success state"
         }
       ]
@@ -1753,9 +1696,7 @@
       "edge_cases": [
         {
           "name": "empty state shows add webhook CTA",
-          "steps": [
-            "Navigate to /webhooks with no webhooks"
-          ],
+          "steps": ["Navigate to /webhooks with no webhooks"],
           "expected": "Empty state with description and add webhook button visible"
         }
       ]
@@ -1815,18 +1756,12 @@
       "edge_cases": [
         {
           "name": "submit without endpoint URL shows validation",
-          "steps": [
-            "Open add webhook modal",
-            "Click Add without filling URL"
-          ],
+          "steps": ["Open add webhook modal", "Click Add without filling URL"],
           "expected": "Validation error on Endpoint URL field (required)"
         },
         {
           "name": "search filters event types",
-          "steps": [
-            "Open event types combobox",
-            "Type 'email' in search"
-          ],
+          "steps": ["Open event types combobox", "Type 'email' in search"],
           "expected": "Only email-related events shown, contacts and domains filtered out"
         }
       ]
@@ -1835,7 +1770,7 @@
   {
     "id": "feature-035",
     "category": "data",
-    "description": "Webhook event types — 17 events across 3 categories with category-level selection",
+    "description": "Webhook event types \u2014 17 events across 3 categories with category-level selection",
     "page": "Webhooks",
     "ui_details": "Event types organized in 3 groups: Contacts (contact.created, contact.deleted, contact.updated), Domains (domain.created, domain.deleted, domain.updated), Email (email.bounced, email.clicked, email.complained, email.delivered, email.delivery_delayed, email.failed, email.opened, email.received, email.scheduled, email.sent, email.suppressed). email.clicked and email.opened have info/warning icons. Category headers have expand/collapse chevron and 'Select all' toggle.",
     "behavior": "Selecting 'All Events' checks everything. Selecting a category header selects all events in that category. Individual events can be toggled independently. Deselecting one event in a category unchecks the category header. Info icons on email.clicked and email.opened indicate tracking-related warnings.",
@@ -1873,10 +1808,7 @@
       "edge_cases": [
         {
           "name": "deselecting one event unchecks All Events",
-          "steps": [
-            "Select All Events",
-            "Deselect email.bounced"
-          ],
+          "steps": ["Select All Events", "Deselect email.bounced"],
           "expected": "All Events unchecked, Email category header unchecked, other events remain selected"
         }
       ]
@@ -1888,7 +1820,7 @@
     "description": "Logs list page with API request log table, HTTP status filter, date range, user agent filter, and API key filter",
     "page": "Logs",
     "ui_details": "Page title 'Logs'. Filter bar: Search (Shadow DOM), Status dropdown (grouped: All Statuses, Successes, Errors + separator + 10 individual HTTP codes: 200 Ok, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Content, 429 Too Many Requests, 451 Unavailable For Legal Reasons, 500 Internal Server Error), Date range picker (default 'Last 15 days'), User agents combobox (All user agents, SMTP, Node.js, Ruby, PHP, Python, GO, Rust, Java, .NET, cURL, CLI), API Keys combobox, Export button. Data table columns: Endpoint, Status, Method, Created. No checkboxes, no row actions. Endpoint column shows avatar + API path as link to /logs/:id. Status shows HTTP code button. Pagination with 40/80/120 items per page.",
-    "behavior": "Clicking a row navigates to /logs/:id detail page. Status filter groups options into Successes/Errors categories and individual HTTP codes. User agents filter identifies the SDK/client that made the request. No bulk actions available — logs are read-only.",
+    "behavior": "Clicking a row navigates to /logs/:id detail page. Status filter groups options into Successes/Errors categories and individual HTTP codes. User agents filter identifies the SDK/client that made the request. No bulk actions available \u2014 logs are read-only.",
     "data_model": "Log: id (UUID), endpoint (string, e.g. '/emails'), status (integer HTTP code), method (string, e.g. 'POST'), user_agent (string), api_key_id (foreign key), request_body (JSON), response_body (JSON nullable), error_title (string nullable), error_description (string nullable), created_at (timestamp)",
     "priority": 15,
     "core": false,
@@ -1933,9 +1865,7 @@
       "edge_cases": [
         {
           "name": "empty logs state",
-          "steps": [
-            "Navigate to /logs with no API requests made"
-          ],
+          "steps": ["Navigate to /logs with no API requests made"],
           "expected": "Empty state message displayed"
         }
       ]
@@ -1982,10 +1912,7 @@
       "edge_cases": [
         {
           "name": "copy ID to clipboard",
-          "steps": [
-            "Navigate to /logs/:id",
-            "Click copy button next to ID"
-          ],
+          "steps": ["Navigate to /logs/:id", "Click copy button next to ID"],
           "expected": "UUID copied to clipboard, button shows confirmation state"
         }
       ]
@@ -1998,7 +1925,7 @@
     "page": "Log Detail (Error)",
     "ui_details": "Same header as success log but with 'Copy for AI' button instead of More actions. Error section between metadata and request body: bold error title, descriptive error message with actionable guidance, 'Help me fix' button. Request Body JSON block has error-causing values visually highlighted (e.g., resend.dev domain wrapped in span). No Response Body section.",
     "behavior": "'Copy for AI' button copies error context for AI debugging. 'Help me fix' button opens AI-assisted troubleshooting. Error-causing values in request body are highlighted with distinct styling. No 'View email' action since the request failed.",
-    "data_model": "Uses Log model from feature-027 — error logs have error_title and error_description populated, response_body is null",
+    "data_model": "Uses Log model from feature-027 \u2014 error logs have error_title and error_description populated, response_body is null",
     "priority": 15,
     "core": false,
     "passes": false,
@@ -2083,9 +2010,7 @@
       "edge_cases": [
         {
           "name": "no data for selected date range",
-          "steps": [
-            "Select 'Today' when no emails sent today"
-          ],
+          "steps": ["Select 'Today' when no emails sent today"],
           "expected": "Charts show empty/zero state, all percentages show 0%"
         }
       ]
@@ -2132,9 +2057,7 @@
       "edge_cases": [
         {
           "name": "100% deliverability rate display",
-          "steps": [
-            "View metrics when all emails delivered successfully"
-          ],
+          "steps": ["View metrics when all emails delivered successfully"],
           "expected": "Shows '100%' in summary and '100%' for each domain"
         }
       ]
@@ -2219,9 +2142,7 @@
       "edge_cases": [
         {
           "name": "zero complain rate display",
-          "steps": [
-            "View metrics with no complaints"
-          ],
+          "steps": ["View metrics with no complaints"],
           "expected": "Shows '0%' for complain rate, chart shows flat zero line"
         }
       ]
@@ -2230,7 +2151,7 @@
   {
     "id": "feature-007",
     "category": "ui",
-    "description": "Emails Receiving tab — list view with empty state",
+    "description": "Emails Receiving tab \u2014 list view with empty state",
     "page": "Emails > Receiving",
     "ui_details": "Same tab bar as Sending, Receiving tab active. Filter bar: Search input + Date range picker + Export button (fewer filters than Sending). Empty state: centered message 'No received emails yet' with description about predefined address (<anything>@{subdomain}.resend.app) and link to set up custom domain.",
     "behavior": "When no received emails exist, empty state is shown with instructions. Each workspace gets a unique subdomain for inbound email. Links to /domains for custom domain setup and to docs.",
@@ -2268,7 +2189,7 @@
     "page": "Settings",
     "ui_details": "Horizontal tab bar below 'Settings' heading. 7 tabs total (Billing and Team out of scope). Active tab has underline indicator. Tab bar is scrollable on narrow viewports.",
     "behavior": "Clicking a tab navigates to the corresponding settings sub-page. Active tab is highlighted with data-state='active'. URL changes to /settings/<tab-name>.",
-    "data_model": "No data model — tabs are static navigation",
+    "data_model": "No data model \u2014 tabs are static navigation",
     "priority": 18,
     "passes": false,
     "tests": {
@@ -2296,9 +2217,7 @@
       "edge_cases": [
         {
           "name": "direct URL navigation to settings tab",
-          "steps": [
-            "Navigate directly to /settings/smtp"
-          ],
+          "steps": ["Navigate directly to /settings/smtp"],
           "expected": "SMTP tab is active and content is displayed correctly"
         }
       ]
@@ -2308,7 +2227,7 @@
   {
     "id": "feature-041",
     "category": "settings",
-    "description": "Settings Usage tab — read-only quota dashboard showing Transactional, Marketing, and Team limits",
+    "description": "Settings Usage tab \u2014 read-only quota dashboard showing Transactional, Marketing, and Team limits",
     "page": "Settings > Usage",
     "ui_details": "3 quota sections (Transactional, Marketing, Team) each with plan badge 'Free', description text, and quota table showing used/limit. Progress indicator icons (colored SVGs) next to each row. Extras section below with Pay-as-you-go and Add-ons descriptions.",
     "behavior": "Read-only display. Quota values update based on actual usage. Upgrade buttons present but out of scope.",
@@ -2345,9 +2264,7 @@
       "edge_cases": [
         {
           "name": "quota at limit display",
-          "steps": [
-            "View usage when monthly limit is 3000/3000"
-          ],
+          "steps": ["View usage when monthly limit is 3000/3000"],
           "expected": "Progress indicator shows full/warning state"
         }
       ]
@@ -2357,11 +2274,11 @@
   {
     "id": "feature-042",
     "category": "settings",
-    "description": "Settings SMTP tab — read-only SMTP credentials display with copy-to-clipboard",
+    "description": "Settings SMTP tab \u2014 read-only SMTP credentials display with copy-to-clipboard",
     "page": "Settings > SMTP",
     "ui_details": "Heading 'SMTP' + description + 'See documentation' link. 4 read-only input fields: Host (smtp.resend.com), Port (465), User (resend), Password (YOUR_API_KEY). Each field has a label and copy-to-clipboard button. Port field has helper text listing alternative ports (2465, 587, 2587) as clickable copy buttons.",
     "behavior": "All fields are read-only (data-state='read-only'). Copy buttons copy field value to clipboard. Alternative port buttons copy their respective port number to clipboard. Password field shows 'YOUR_API_KEY' placeholder directing user to API Keys page.",
-    "data_model": "No data model — static SMTP credentials derived from system config",
+    "data_model": "No data model \u2014 static SMTP credentials derived from system config",
     "priority": 18,
     "passes": false,
     "tests": {
@@ -2390,9 +2307,7 @@
       "edge_cases": [
         {
           "name": "fields are not editable",
-          "steps": [
-            "Click on Host input and try to type"
-          ],
+          "steps": ["Click on Host input and try to type"],
           "expected": "Input remains read-only, value does not change"
         }
       ]
@@ -2402,7 +2317,7 @@
   {
     "id": "feature-043",
     "category": "settings",
-    "description": "Settings Unsubscribe page — preview mode with Preferences/Success tabs and editor with logo, colors, branding customization",
+    "description": "Settings Unsubscribe page \u2014 preview mode with Preferences/Success tabs and editor with logo, colors, branding customization",
     "page": "Settings > Unsubscribe page",
     "ui_details": "Preview mode: 2 Radix tabs (Preferences, Success) + Edit/Topics links. Preferences shows heading, subheading, Unsubscribe button, 'Powered by' footer. Success shows confirmation message. Editor mode: back arrow, page selector (Unsubscribe/Success), contenteditable rich text, right sidebar with Logo upload (jpeg/png/gif/svg), 3 color pickers (Background #05050A, Text #EDEEF0, Accent #363A3F), Hide branding toggle. Reset and Save buttons in header.",
     "behavior": "Preview tabs switch between Preferences and Success views. Edit navigates to editor. Editor allows editing heading/text content inline. Color pickers open color selection UI. Logo upload accepts image files. Save persists changes. Reset restores defaults.",
@@ -2464,11 +2379,11 @@
   {
     "id": "feature-044",
     "category": "settings",
-    "description": "Settings Documents tab — static compliance documents list with download links",
+    "description": "Settings Documents tab \u2014 static compliance documents list with download links",
     "page": "Settings > Documents",
     "ui_details": "4 document sections stacked vertically. Each has: title heading, multi-line description paragraph, 'Download' link to static PDF. Documents: Penetration test (Oneleet attestation), SOC 2 (Type II report), DPA (signed agreement), Form W-9 (signed tax form).",
     "behavior": "Download links open/download static PDF files. No dynamic content, no forms, no API calls.",
-    "data_model": "No data model — static content with hardcoded PDF paths",
+    "data_model": "No data model \u2014 static content with hardcoded PDF paths",
     "priority": 19,
     "passes": false,
     "tests": {
@@ -2496,9 +2411,7 @@
       "edge_cases": [
         {
           "name": "download link points to valid path",
-          "steps": [
-            "Check href of Penetration test download link"
-          ],
+          "steps": ["Check href of Penetration test download link"],
           "expected": "Link href contains '/static/documents/' path to a PDF file"
         }
       ]
@@ -2508,10 +2421,10 @@
   {
     "id": "sdk-001",
     "category": "developer-experience",
-    "description": "TypeScript SDK package — resend client with { data, error } pattern, all API resources (emails, domains, apiKeys, contacts, segments, broadcasts, webhooks, templates, topics)",
+    "description": "TypeScript SDK package \u2014 resend client with { data, error } pattern, all API resources (emails, domains, apiKeys, contacts, segments, broadcasts, webhooks, templates, topics)",
     "page": "packages/sdk/",
     "ui_details": "N/A",
-    "behavior": "SDK wraps REST API. All methods return { data, error } — never throws. Bearer token auth. Supports all CRUD operations for all resources. Cursor-based pagination helpers.",
+    "behavior": "SDK wraps REST API. All methods return { data, error } \u2014 never throws. Bearer token auth. Supports all CRUD operations for all resources. Cursor-based pagination helpers.",
     "data_model": "Resend class with sub-clients: emails, domains, apiKeys, contacts, segments, broadcasts, webhooks, templates, topics",
     "priority": 20,
     "core": false,
@@ -2538,8 +2451,8 @@
   {
     "id": "deploy-001",
     "category": "settings",
-    "description": "AWS App Runner deployment — production build, RDS Postgres setup, environment variable configuration",
-    "page": "N/A — Infrastructure",
+    "description": "AWS App Runner deployment \u2014 production build, RDS Postgres setup, environment variable configuration",
+    "page": "N/A \u2014 Infrastructure",
     "ui_details": "N/A",
     "behavior": "Deploy Next.js app to App Runner. Create RDS Postgres instance. Run Drizzle migrations. Configure environment variables (DATABASE_URL, DASHBOARD_KEY, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID).",
     "data_model": "N/A",
@@ -2562,7 +2475,7 @@
   {
     "id": "feature-045",
     "category": "interaction",
-    "description": "Email export modal — Export sent emails as CSV with Date, Timezone, Status, API Key filters",
+    "description": "Email export modal \u2014 Export sent emails as CSV with Date, Timezone, Status, API Key filters",
     "page": "/emails",
     "ui_details": "Radix Dialog triggered by Export button. Fields: Date range, Timezone (UTC default), Status multi-select, API Key filter. Export/Cancel buttons.",
     "behavior": "Filters sent emails by selected criteria, generates CSV, triggers download. For large exports, email the download link to the user.",
@@ -2586,7 +2499,7 @@
   {
     "id": "feature-046",
     "category": "data",
-    "description": "Email detail Insights tab — deliverability analysis with grouped recommendations (Needs attention / Doing great)",
+    "description": "Email detail Insights tab \u2014 deliverability analysis with grouped recommendations (Needs attention / Doing great)",
     "page": "/emails/:id?tab=insights",
     "ui_details": "Radix Accordion sections grouped into Needs attention and Doing great. Each check: title, description, diagnostic result, learn more link. Badge count on Insights tab.",
     "behavior": "Analyze email for 9 deliverability checks: DMARC, click tracking, open tracking, subdomain, links, plain text, body size, no-reply, images. Group into attention/great based on email config.",
@@ -2610,7 +2523,7 @@
   {
     "id": "feature-047",
     "category": "settings",
-    "description": "Dashboard auth wall — API key unlocks both dashboard and API. Simple Enter your API key page, validates against api_keys table.",
+    "description": "Dashboard auth wall \u2014 API key unlocks both dashboard and API. Simple Enter your API key page, validates against api_keys table.",
     "page": "/auth",
     "ui_details": "Full-page centered form with API key input and Submit button. On valid key, store in localStorage/cookie, redirect to dashboard. If DASHBOARD_KEY env var is set, also accept it as master key.",
     "behavior": "POST /api/auth/verify validates key against api_keys table. Valid = set cookie + redirect. Invalid = error message. Same API key authenticates both dashboard and API calls.",
@@ -2640,7 +2553,7 @@
   {
     "id": "feature-048",
     "category": "developer-experience",
-    "description": "API reference docs page at /docs — auto-generated endpoint documentation with request/response schemas and examples",
+    "description": "API reference docs page at /docs \u2014 auto-generated endpoint documentation with request/response schemas and examples",
     "page": "/docs",
     "ui_details": "Endpoints grouped by resource (Emails, Domains, Contacts, API Keys, Broadcasts, Templates, Webhooks). Each shows method, path, description, request body schema, response schema, curl example.",
     "behavior": "Static or server-rendered page documenting all REST API endpoints. Shows auth instructions (Bearer token). Optionally interactive Try It section.",

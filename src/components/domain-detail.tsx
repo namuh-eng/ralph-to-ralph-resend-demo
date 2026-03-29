@@ -1,0 +1,649 @@
+"use client";
+
+import { formatRelativeTime } from "@/components/emails-sending-data-table";
+import { StatusBadge } from "@/components/status-badge";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+
+export interface DomainDetailData {
+  id: string;
+  name: string;
+  status: string;
+  region: string;
+  createdAt: string;
+  clickTracking: boolean;
+  openTracking: boolean;
+  tls: boolean;
+  records: Array<{
+    type: string;
+    name: string;
+    value: string;
+    status: string;
+    ttl: string;
+    priority?: number;
+  }> | null;
+  events: Array<{ type: string; timestamp: string }>;
+}
+
+interface DomainDetailProps {
+  domain: DomainDetailData;
+}
+
+const REGION_DISPLAY: Record<string, string> = {
+  "us-east-1": "North Virginia",
+  "eu-west-1": "Ireland",
+  "sa-east-1": "São Paulo",
+  "ap-northeast-1": "Tokyo",
+};
+
+function getDomainStatusVariant(
+  status: string,
+): "success" | "error" | "warning" | "info" | "default" {
+  switch (status) {
+    case "verified":
+      return "success";
+    case "pending":
+      return "warning";
+    case "failed":
+      return "error";
+    default:
+      return "default";
+  }
+}
+
+function formatStatusLabel(status: string): string {
+  return status
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function formatEventTimestamp(dateStr: string): string {
+  const d = new Date(dateStr);
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[d.getMonth()];
+  const day = d.getDate();
+  const hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const h = hours % 12 || 12;
+  return `${month} ${day}, ${h}:${minutes} ${ampm}`;
+}
+
+function formatEventLabel(type: string): string {
+  switch (type) {
+    case "domain_added":
+      return "Domain added";
+    case "dns_verified":
+      return "DNS verified";
+    case "domain_verified":
+      return "Domain verified";
+    default:
+      return formatStatusLabel(type);
+  }
+}
+
+function EventIcon({ type }: { type: string }) {
+  if (type === "domain_added") {
+    return (
+      <svg
+        aria-hidden="true"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#4ade80"
+        strokeWidth="1.5"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+      </svg>
+    );
+  }
+  if (type === "dns_verified") {
+    return (
+      <svg
+        aria-hidden="true"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#4ade80"
+        strokeWidth="1.5"
+      >
+        <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#4ade80"
+      strokeWidth="1.5"
+    >
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <path d="M22 4L12 14.01l-3-3" />
+    </svg>
+  );
+}
+
+export function DomainDetail({ domain }: DomainDetailProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"records" | "configuration">(
+    "records",
+  );
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const regionFriendly = REGION_DISPLAY[domain.region] || domain.region;
+  const isVerified = domain.status === "verified";
+
+  const handleDelete = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/domains/${domain.id}`, { method: "DELETE" });
+      router.push("/domains");
+    } catch {
+      // silently fail
+    } finally {
+      setDeleting(false);
+    }
+  }, [domain.id, deleting, router]);
+
+  const handleRestart = useCallback(async () => {
+    setActionsOpen(false);
+    try {
+      await fetch(`/api/domains/${domain.id}/restart`, { method: "POST" });
+      router.refresh();
+    } catch {
+      // silently fail
+    }
+  }, [domain.id, router]);
+
+  return (
+    <div>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-6 text-[13px] text-[#A1A4A5]">
+        <Link
+          href="/domains"
+          className="hover:text-[#F0F0F0] transition-colors"
+        >
+          Domains
+        </Link>
+        <span>/</span>
+        <span className="text-[#F0F0F0]">Domain</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <div
+            data-testid="domain-icon"
+            className="w-16 h-16 rounded-xl bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] flex items-center justify-center"
+          >
+            <svg
+              aria-hidden="true"
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#4ade80"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] text-[#A1A4A5]">Domain</p>
+            <h1 className="text-[22px] font-semibold text-[#F0F0F0]">
+              {domain.name}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="API drawer"
+            className="p-2 rounded-md border border-[rgba(176,199,217,0.145)] text-[#A1A4A5] hover:text-[#F0F0F0] hover:bg-[rgba(24,25,28,0.5)] transition-colors"
+          >
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
+            </svg>
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="More actions"
+              className="p-2 rounded-md border border-[rgba(176,199,217,0.145)] text-[#A1A4A5] hover:text-[#F0F0F0] hover:bg-[rgba(24,25,28,0.5)] transition-colors"
+              onClick={() => setActionsOpen(!actionsOpen)}
+            >
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </button>
+            {actionsOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-md border border-[rgba(176,199,217,0.145)] bg-[#0a0a0a] shadow-xl z-20 py-1">
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-[13px] text-[#F0F0F0] hover:bg-[rgba(24,25,28,0.5)]"
+                  onClick={handleRestart}
+                >
+                  Restart
+                </button>
+                <Link
+                  href="/docs"
+                  className="block px-3 py-2 text-[13px] text-[#F0F0F0] hover:bg-[rgba(24,25,28,0.5)]"
+                  onClick={() => setActionsOpen(false)}
+                >
+                  Go to docs
+                </Link>
+                <div className="border-t border-[rgba(176,199,217,0.145)] my-1" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-[13px] text-red-400 hover:bg-[rgba(24,25,28,0.5)]"
+                  onClick={() => {
+                    setActionsOpen(false);
+                    handleDelete();
+                  }}
+                >
+                  Delete domain
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Metadata */}
+      <div className="grid grid-cols-4 gap-x-8 gap-y-6 mb-8">
+        <div>
+          <p className="text-[11px] font-semibold text-[#A1A4A5] tracking-wider mb-1">
+            CREATED
+          </p>
+          <p className="text-[14px] text-[#F0F0F0]">
+            {formatRelativeTime(domain.createdAt)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold text-[#A1A4A5] tracking-wider mb-1">
+            STATUS
+          </p>
+          <StatusBadge
+            status={formatStatusLabel(domain.status)}
+            variant={getDomainStatusVariant(domain.status)}
+          />
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold text-[#A1A4A5] tracking-wider mb-1">
+            PROVIDER
+          </p>
+          <div className="flex items-center gap-1.5">
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="#f48120"
+            >
+              <path d="M16.5 7.3l-1.2 4.5c-.1.3-.3.4-.6.3l-3.3-1.2-1.6 1.6c-.2.2-.4.2-.5.1l.4-3.5 4.5-4c.2-.2 0-.3-.1-.2L8 9.5l-3.3-1c-.4-.1-.4-.4.1-.6l12.8-4.9c.4-.1.7.1.6.6l-1.7 3.7z" />
+            </svg>
+            <span className="text-[14px] text-[#F0F0F0]">Cloudflare</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold text-[#A1A4A5] tracking-wider mb-1">
+            REGION
+          </p>
+          <p className="text-[14px] text-[#F0F0F0]">
+            {regionFriendly}{" "}
+            <span className="text-[#A1A4A5]">({domain.region})</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Domain Events */}
+      <div className="mb-8">
+        <p className="text-[11px] font-semibold text-[#A1A4A5] tracking-wider mb-4">
+          DOMAIN EVENTS
+        </p>
+
+        {isVerified && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] mb-6">
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#4ade80"
+              strokeWidth="2"
+            >
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <path d="M14 2v6h6M9 15l2 2 4-4" />
+            </svg>
+            <p className="text-[14px] text-[#4ade80]">
+              <strong>Domain verified:</strong> Your domain is ready to send
+              emails.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-center gap-8 py-4">
+          {domain.events.map((event, i) => (
+            <div key={event.timestamp} className="flex items-center gap-8">
+              {i > 0 && (
+                <div className="w-12 h-px bg-[rgba(176,199,217,0.145)]" />
+              )}
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] flex items-center justify-center">
+                  <EventIcon type={event.type} />
+                </div>
+                <span className="text-[13px] text-[#F0F0F0] font-medium">
+                  {formatEventLabel(event.type)}
+                </span>
+                <span className="text-[11px] text-[#A1A4A5]">
+                  {formatEventTimestamp(event.timestamp)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-[rgba(176,199,217,0.145)] mb-6">
+        <div className="flex items-center gap-0">
+          {(
+            [
+              { key: "records", label: "Records" },
+              { key: "configuration", label: "Configuration" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-[#F0F0F0] text-[#F0F0F0]"
+                  : "border-transparent text-[#A1A4A5] hover:text-[#F0F0F0]"
+              }`}
+              onClick={() => setActiveTab(tab.key)}
+              data-state={activeTab === tab.key ? "active" : "inactive"}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "records" ? (
+        <RecordsTab domain={domain} />
+      ) : (
+        <ConfigurationTab domain={domain} />
+      )}
+    </div>
+  );
+}
+
+function RecordsTab({ domain }: { domain: DomainDetailData }) {
+  const [autoConfiguring, setAutoConfiguring] = useState(false);
+
+  const handleAutoConfigure = useCallback(async () => {
+    setAutoConfiguring(true);
+    try {
+      await fetch(`/api/domains/${domain.id}/auto-configure`, {
+        method: "POST",
+      });
+    } catch {
+      // silently fail
+    } finally {
+      setAutoConfiguring(false);
+    }
+  }, [domain.id]);
+
+  const records = domain.records || [];
+
+  return (
+    <div className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-lg p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-[18px] font-semibold text-[#F0F0F0]">
+          DNS Records
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAutoConfigure}
+            disabled={autoConfiguring}
+            className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-[#F0F0F0] bg-[rgba(176,199,217,0.08)] border border-[rgba(176,199,217,0.145)] rounded-lg hover:bg-[rgba(176,199,217,0.15)] transition-colors disabled:opacity-50"
+          >
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            Auto configure
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="text-[14px] font-semibold text-[#F0F0F0] mb-1">
+          Domain Verification
+        </h3>
+        <p className="text-[13px] text-blue-400 mb-4">DKIM</p>
+      </div>
+
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[rgba(176,199,217,0.145)]">
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              Type
+            </th>
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              Name
+            </th>
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              Content
+            </th>
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              TTL
+            </th>
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              Priority
+            </th>
+            <th className="px-3 py-2 text-left text-[12px] font-medium text-[#A1A4A5]">
+              Status
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((record) => (
+            <tr
+              key={`${record.type}-${record.name}`}
+              className="border-b border-[rgba(176,199,217,0.145)] last:border-b-0"
+            >
+              <td className="px-3 py-2 text-[14px] text-[#F0F0F0]">
+                {record.type}
+              </td>
+              <td className="px-3 py-2 text-[14px] text-[#F0F0F0] font-mono text-[12px]">
+                {record.name}
+              </td>
+              <td className="px-3 py-2 text-[14px] text-[#F0F0F0] font-mono text-[12px] max-w-[200px] truncate">
+                {record.value}
+              </td>
+              <td className="px-3 py-2 text-[14px] text-[#A1A4A5]">
+                {record.ttl}
+              </td>
+              <td className="px-3 py-2 text-[14px] text-[#A1A4A5]">
+                {record.priority ?? "—"}
+              </td>
+              <td className="px-3 py-2">
+                <StatusBadge
+                  status={formatStatusLabel(record.status)}
+                  variant={record.status === "verified" ? "success" : "warning"}
+                />
+              </td>
+            </tr>
+          ))}
+          {records.length === 0 && (
+            <tr>
+              <td
+                colSpan={6}
+                className="px-3 py-8 text-center text-[14px] text-[#A1A4A5]"
+              >
+                No DNS records
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ConfigurationTab({ domain }: { domain: DomainDetailData }) {
+  const router = useRouter();
+  const [clickTracking, setClickTracking] = useState(domain.clickTracking);
+  const [openTracking, setOpenTracking] = useState(domain.openTracking);
+
+  const handleToggle = useCallback(
+    async (field: "click_tracking" | "open_tracking", value: boolean) => {
+      try {
+        await fetch(`/api/domains/${domain.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: value }),
+        });
+        router.refresh();
+      } catch {
+        // revert on failure
+        if (field === "click_tracking") setClickTracking(!value);
+        else setOpenTracking(!value);
+      }
+    },
+    [domain.id, router],
+  );
+
+  return (
+    <div className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-lg p-6">
+      <h2 className="text-[18px] font-semibold text-[#F0F0F0] mb-6">
+        Configuration
+      </h2>
+
+      <div className="space-y-8">
+        <div>
+          <h3 className="text-[14px] font-semibold text-[#F0F0F0] mb-2">
+            Click Tracking
+          </h3>
+          <p className="text-[13px] text-[#A1A4A5] mb-3 max-w-[600px]">
+            To track clicks, Resend modifies each link in the body of the HTML
+            email. When recipients open a link, they are sent to a Resend
+            server, and are immediately redirected to the URL destination.
+          </p>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={clickTracking}
+            data-state={clickTracking ? "checked" : "unchecked"}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              clickTracking ? "bg-[#4ade80]" : "bg-[rgba(176,199,217,0.2)]"
+            }`}
+            onClick={() => {
+              const newVal = !clickTracking;
+              setClickTracking(newVal);
+              handleToggle("click_tracking", newVal);
+            }}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                clickTracking ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="border-t border-[rgba(176,199,217,0.145)] pt-8">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-[14px] font-semibold text-[#F0F0F0]">
+              Open Tracking
+            </h3>
+            <span className="text-[11px] text-[#A1A4A5] bg-[rgba(176,199,217,0.1)] px-2 py-0.5 rounded">
+              Not Recommended
+            </span>
+          </div>
+          <p className="text-[13px] text-[#A1A4A5] mb-3 max-w-[600px]">
+            To track opens, Resend inserts a 1x1 transparent pixel at the end of
+            your email. This is not recommended as it can negatively impact
+            deliverability.
+          </p>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={openTracking}
+            data-state={openTracking ? "checked" : "unchecked"}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              openTracking ? "bg-[#4ade80]" : "bg-[rgba(176,199,217,0.2)]"
+            }`}
+            onClick={() => {
+              const newVal = !openTracking;
+              setOpenTracking(newVal);
+              handleToggle("open_tracking", newVal);
+            }}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                openTracking ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

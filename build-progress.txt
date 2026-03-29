@@ -551,3 +551,37 @@
 - src/app/(dashboard)/domains/page.tsx — Server component fetching domains from DB
 - tests/domains-page.test.tsx — 11 unit tests for domains page
 - tests/e2e/domains-page.spec.ts — 2 E2E tests for domains page
+
+## Iteration 19 — feature-024: Domain Detail Page (2026-03-29)
+
+### What was built
+- DomainDetail client component (`src/components/domain-detail.tsx`) with:
+  - Breadcrumb navigation (Domains / Domain)
+  - Globe icon + "Domain" label + domain name as h1 heading
+  - API drawer button + More actions button (Restart, Go to docs, Delete domain)
+  - 4 metadata fields: Created (relative time), Status (colored badge), Provider (Cloudflare icon + link), Region (friendly name + code)
+  - Domain Events section: verified banner ("Your domain is ready to send emails"), timeline with 3 event types (Domain added, DNS verified, Domain verified) with icons and timestamps
+  - Two tabs: Records (default) and Configuration
+  - Records tab: DNS Records section with Auto configure button, Domain Verification/DKIM header, records table (Type, Name, Content, TTL, Priority, Status)
+  - Configuration tab: Click Tracking toggle with description, Open Tracking toggle with "Not Recommended" badge
+- Server page (`src/app/(dashboard)/domains/[id]/page.tsx`) fetching domain from DB, generating events based on status
+- API routes (`src/app/api/domains/[id]/route.ts`): GET (detail), PATCH (update tracking settings), DELETE
+
+### Test results
+- 11 new unit tests passing (breadcrumb, metadata fields, events timeline, verified banner, Records tab default, Configuration tab switch, DNS records table, more actions dropdown, domain icon, pending status, Auto configure button)
+- 2 E2E tests written (domain detail metadata/tabs, tab switching between Records and Configuration)
+- 238 total unit tests passing (227 previous + 11 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Events are derived from domain status (not stored separately): domain_added always, dns_verified for pending/verified, domain_verified only for verified
+- Provider hardcoded to Cloudflare (matches the project's DNS infrastructure)
+- Reused formatRelativeTime from emails-sending-data-table for Created field
+- Configuration tab toggles send PATCH requests to update click_tracking/open_tracking in DB
+
+### Files changed
+- src/components/domain-detail.tsx — DomainDetail client component with metadata, events, Records tab, Configuration tab
+- src/app/(dashboard)/domains/[id]/page.tsx — Server component fetching domain from DB
+- src/app/api/domains/[id]/route.ts — GET, PATCH, DELETE endpoints for single domain
+- tests/domain-detail.test.tsx — 11 unit tests for domain detail page
+- tests/e2e/domain-detail.spec.ts — 2 E2E tests for domain detail page
