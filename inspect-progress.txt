@@ -1,0 +1,38 @@
+## Phase A: Docs Extraction — COMPLETE (2026-03-29)
+
+### What was done:
+- Fetched llms.txt index from resend.com — found links to OpenAPI spec, SDKs, skills, docs
+- Fetched full docs overview from resend.com/docs/llms.txt
+- Fetched OpenAPI spec summary (all endpoints, auth, schemas)
+- Fetched React Email skill reference
+- Fetched Email Best Practices guide
+- Fetched Node.js quickstart guide
+- Fetched all API reference pages:
+  - Emails: send, batch send, retrieve, list
+  - Domains: create, list
+  - API Keys: create
+  - Contacts: create
+  - Segments: create (replaces deprecated Audiences)
+  - Audiences: create (deprecated)
+  - Broadcasts: create
+  - Webhooks: create, event types (17 events)
+  - Templates: create
+  - Topics: create
+
+### Key findings:
+- Resend is an email API platform for developers
+- Core features: send emails via API, domains, contacts/segments, broadcasts, templates, webhooks, API keys, topics
+- SDK pattern: `{ data, error }` return, camelCase params, Bearer token auth
+- 17 webhook event types (11 email, 3 domain, 3 contact)
+- Pagination: cursor-based (limit, after, before)
+- Regions: us-east-1, eu-west-1, sa-east-1, ap-northeast-1
+- Segments replace deprecated Audiences
+- Broadcasts support Contact Property templating
+- Templates support variables (max 50, string/number types)
+
+### Files created:
+- clone-product-docs/ — 20 markdown files organized by API resource
+- clone-product-docs/INDEX.md — master index
+
+### Next:
+- Iteration 1: Map the site structure (sitemap.md) using Ever CLI
