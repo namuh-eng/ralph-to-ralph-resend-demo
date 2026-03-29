@@ -49,3 +49,29 @@
 ### Files changed
 - src/lib/ses.ts — SES client with sendEmail, domain identity management, MIME builder
 - tests/ses.test.ts — 16 unit tests covering all functions and edge cases
+
+## Iteration 3 — infra-003: Cloudflare DNS Client (2026-03-29)
+
+### What was built
+- Cloudflare DNS client (`src/lib/cloudflare.ts`) using Cloudflare REST API v4
+- `createDNSRecord()` — creates TXT, CNAME, or MX records with optional priority
+- `listDNSRecords()` — lists DNS records with optional name/type filters
+- `deleteDNSRecord()` — deletes a DNS record by ID
+- `autoConfigureDomain()` — creates DKIM CNAME records for all SES DKIM tokens
+- Input validation: rejects missing API token, zone ID, record ID, domain, and empty DKIM tokens
+- Cloudflare API error handling with descriptive error messages
+
+### Test results
+- 15 new unit tests passing (createDNSRecord: 5, listDNSRecords: 3, deleteDNSRecord: 3, autoConfigureDomain: 3, validation: 1)
+- 53 total tests passing (22 schema + 16 SES + 15 Cloudflare), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Used global `fetch` (no extra HTTP library) for Cloudflare REST API calls
+- DKIM records created as CNAME type pointing to `{token}.dkim.amazonses.com` (AWS SES standard)
+- `autoConfigureDomain` creates records sequentially to avoid rate limiting
+- Environment variables read at call time (not module load) to support testing
+
+### Files changed
+- src/lib/cloudflare.ts — Cloudflare DNS client with CRUD operations and auto-configure
+- tests/cloudflare.test.ts — 15 unit tests covering all functions and edge cases
