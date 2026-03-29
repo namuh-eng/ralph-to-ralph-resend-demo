@@ -67,4 +67,38 @@
 - screenshots/inspect/ — 10 page screenshots
 
 ### Next:
-- Iteration 2: Deep dive — Emails page (Sending tab, detail view, Receiving tab)
+- Iteration 3: Deep dive — Broadcasts page
+
+---
+
+## Iteration 2: Emails Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Emails > Sending tab, inspected all interactive elements
+- Opened and inspected Date Range Picker: 6 presets (Today, Yesterday, Last 3/7/15/30 days) + calendar month view with range selection
+- Opened and inspected Status Filter: 12 status options (Bounced, Canceled, Clicked, Complained, Delivered, Delivery Delayed, Failed, Opened, Scheduled, Sent, Queued, Suppressed)
+- Inspected row actions: "More actions" → "Share email" only
+- Inspected header actions: "More actions" → "Go to docs" only
+- Opened API drawer: 9 language tabs (Node.js, Ruby, PHP, Python, Go, Rust, Java, .NET, cURL), code sections for Send Email, Send Batch Emails, Retrieve Email, Update Email
+- Navigated to Email Detail page (/emails/:id): metadata (From, Subject, To, ID with copy button), Email Events timeline (sent → delivered with timestamps)
+- Inspected email detail content tabs: Preview (iframe), Plain Text, HTML, Insights
+- Inspected Insights tab: 11 deliverability checks split into "Needs attention" and "Doing great" sections, each expandable accordion
+- Navigated to Emails > Receiving tab: empty state with instructions about predefined address + custom domain setup
+
+### Key findings:
+- Email list table has 4 columns: To, Status, Subject, Sent (no checkboxes unlike other list pages)
+- 12 possible email statuses: bounced, canceled, clicked, complained, delivered, delivery_delayed, failed, opened, scheduled, sent, queued, suppressed
+- Date range picker uses presets + calendar, not free-text input
+- API drawer is a shared component — appears on multiple pages with context-specific code examples
+- Email detail has 4 content tabs: Preview, Plain Text, HTML, Insights
+- Insights is a unique deliverability analysis feature with 11 checks
+- Row actions limited to "Share email" — no delete/resend
+- Receiving tab uses workspace-specific subdomain for inbound email (e.g., <anything>@yaniefenal.resend.app)
+
+### Files created/updated:
+- build-spec.md — Added section 6 (Feature Deep Dives) with Emails Sending tab, Receiving tab, and Email Detail
+- prd.json — Added 7 feature entries (feature-001 through feature-007)
+- screenshots/inspect/ — emails-sending.jpg, emails-date-range-picker.jpg, emails-status-filter.jpg, emails-api-drawer.jpg, email-detail.jpg, email-detail-insights.jpg, emails-receiving.jpg
+
+### Next:
+- Iteration 3: Deep dive — Broadcasts page

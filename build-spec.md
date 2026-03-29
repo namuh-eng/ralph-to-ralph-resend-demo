@@ -127,7 +127,95 @@ contact.created, contact.updated, contact.deleted
 ### Topic
 - id, name, description, defaultSubscription (opt_in|opt_out), visibility (public|private)
 
-## 6. Design System — PARTIAL (needs feature deep-dives)
+## 6. Feature Deep Dives
+
+### 6.1 Emails — Sending Tab (`/emails`)
+
+**Layout**: Page title "Emails" + tab bar (Sending | Receiving) + API drawer button + More actions button → filter bar → data table
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Date range picker** (button, default "Last 15 days") — opens popover with:
+   - Preset buttons: Today, Yesterday, Last 3 days, Last 7 days, Last 15 days, Last 30 days
+   - Calendar month view with selectable range (highlighted selected days)
+   - Navigate months with prev/next arrows
+3. **Status filter** (dropdown button, default "All Statuses") — 12 options:
+   - Bounced, Canceled, Clicked, Complained, Delivered, Delivery Delayed, Failed, Opened, Scheduled, Sent, Queued, Suppressed
+   - Each option has a colored dot indicator + label
+4. **API Keys filter** (combobox, default "All API Keys")
+5. **Export button** (right side, icon button)
+
+**Data Table**:
+- Columns: To, Status, Subject, Sent
+- No checkbox column (unlike other list pages)
+- **To** column: avatar icon + email address (clickable link to `/emails/:id`)
+- **Status** column: status badge button (e.g., "delivered") — clickable, likely shows tooltip
+- **Subject** column: plain text
+- **Sent** column: relative time with tooltip for exact timestamp
+- **Row actions**: three-dot "More actions" button → dropdown with "Share email"
+
+**Header Actions**:
+- **API drawer button**: Opens right-side drawer titled "Sending Email API" with:
+  - Language tabs: Node.js, Ruby, PHP, Python, Go, Rust, Java, .NET, cURL
+  - Code sections: Send Email, Send Batch Emails, Retrieve Email, Update Email (+ more below fold)
+  - Each section has a code block with copy button
+- **More actions button**: Dropdown with "Go to docs" link
+
+**Pagination**: Not visible with 3 items (likely appears with more data — 40/80/120 items per page based on other pages)
+
+### 6.2 Emails — Receiving Tab (`/emails/receiving`)
+
+**Layout**: Same header/tabs as Sending, Receiving tab active
+
+**Filter Bar**: Search + Date range picker + Export button (fewer filters than Sending)
+
+**Empty State**:
+- Title: "No received emails yet"
+- Description: "Start receiving emails with a predefined address `<anything>@{subdomain}.resend.app` or set up a custom domain."
+- Links to: custom domain page (`/domains`), docs
+- Each workspace gets a unique subdomain for inbound email
+
+### 6.3 Email Detail (`/emails/:id`)
+
+**Layout**: "Email" breadcrumb label + recipient email as h1 heading
+
+**Header Actions**: API drawer button + More actions ("Share email")
+
+**Email Metadata** (key-value pairs):
+- **From**: sender email address
+- **Subject**: email subject line
+- **To**: recipient email address
+- **ID**: UUID with copy-to-clipboard button
+
+**Email Events Timeline**:
+- Vertical timeline of delivery events
+- Each event: status badge (e.g., "sent", "delivered") + timestamp (e.g., "Mar 28, 4:14 PM")
+- Status badges are clickable (likely show details on hover/click)
+
+**Content Tabs** (4 tabs):
+1. **Preview** — rendered email in iframe (default active)
+2. **Plain Text** — plain text version of the email
+3. **HTML** — raw HTML source of the email
+4. **Insights** — deliverability analysis report:
+   - **Needs attention** section: items that need fixing (e.g., "Include valid DMARC record")
+   - **Doing great** section: passing checks (e.g., "Disable click tracking", "Use a subdomain", "Include plain text version", etc.)
+   - Each item is an expandable accordion
+   - 11 total insight checks:
+     1. Include valid DMARC record
+     2. Disable click tracking
+     3. Disable open tracking
+     4. Use a subdomain
+     5. Ensure link URLs match sending domain
+     6. Include plain text version
+     7. Keep email body size small
+     8. Don't use "no-reply"
+     9. Host images on the sending domain
+     10. Avoid SVG images
+     11. Use full YouTube URLs
+   - "Report generated on" timestamp at bottom
+- Copy button next to tabs (copies content of active tab)
+
+## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
 - **Sidebar**: ~240px, dark/neutral background, fixed left

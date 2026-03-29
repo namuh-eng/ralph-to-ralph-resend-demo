@@ -1,1 +1,321 @@
-[]
+[
+  {
+    "id": "feature-001",
+    "category": "layout",
+    "description": "Emails page layout with Sending/Receiving tab bar, page title, API drawer button, and More actions button",
+    "page": "Emails",
+    "ui_details": "Page title 'Emails' (h1), horizontal tab bar with 'Sending' and 'Receiving' tabs. Active tab has underline indicator. Right side: API drawer icon button + three-dot More actions button. Sending tab links to /emails, Receiving tab links to /emails/receiving.",
+    "behavior": "Clicking tabs navigates between Sending and Receiving views. Tabs update URL and active state. More actions dropdown shows 'Go to docs' link.",
+    "data_model": "N/A — layout only",
+    "priority": 6,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders Emails page with tab bar",
+          "description": "Page renders with Sending and Receiving tabs",
+          "input": "Navigate to /emails",
+          "expected_output": "Both tabs visible, Sending tab active by default"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "navigate between Sending and Receiving tabs",
+          "steps": [
+            "Navigate to /emails",
+            "Verify Sending tab is active",
+            "Click Receiving tab",
+            "Verify URL changes to /emails/receiving",
+            "Verify Receiving tab is now active"
+          ],
+          "expected": "Tab navigation works, URL updates, active state changes"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "direct URL to receiving tab",
+          "steps": ["Navigate directly to /emails/receiving"],
+          "expected": "Receiving tab is active, page loads correctly"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-002",
+    "category": "ui",
+    "description": "Emails Sending tab filter bar: search, date range picker, status filter, API key filter, export button",
+    "page": "Emails > Sending",
+    "ui_details": "Filter bar below tabs. Left to right: Search input (Shadow DOM, placeholder 'Search...'), Date range button (default 'Last 15 days'), Status dropdown (default 'All Statuses'), API Key combobox (default 'All API Keys'), Export icon button (right-aligned).",
+    "behavior": "Search filters emails by recipient or subject. Date range opens popover with presets (Today, Yesterday, Last 3/7/15/30 days) plus calendar for custom range. Status filter dropdown with 12 options (Bounced, Canceled, Clicked, Complained, Delivered, Delivery Delayed, Failed, Opened, Scheduled, Sent, Queued, Suppressed). API Key filter is a combobox for filtering by API key used.",
+    "data_model": "Filters: { search: string, dateRange: { from: Date, to: Date }, status: EmailStatus | null, apiKeyId: string | null }",
+    "priority": 6,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "date range picker renders preset options",
+          "description": "Date range popover shows 6 preset options",
+          "input": "Click date range button",
+          "expected_output": "Popover with Today, Yesterday, Last 3 days, Last 7 days, Last 15 days, Last 30 days"
+        },
+        {
+          "name": "status filter renders all 12 statuses",
+          "description": "Status dropdown shows all possible email statuses",
+          "input": "Click status dropdown",
+          "expected_output": "12 status options with colored indicators"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "filter emails by status",
+          "steps": [
+            "Navigate to /emails",
+            "Click 'All Statuses' dropdown",
+            "Select 'Delivered'",
+            "Verify table updates to show only delivered emails"
+          ],
+          "expected": "Table filters to show only emails with 'delivered' status"
+        },
+        {
+          "name": "filter emails by date range preset",
+          "steps": [
+            "Navigate to /emails",
+            "Click date range button",
+            "Click 'Today'",
+            "Verify button text updates to 'Today'"
+          ],
+          "expected": "Date range updates, table re-filters, button label changes"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "search with no results",
+          "steps": ["Type 'nonexistent@email.com' in search"],
+          "expected": "Table shows empty state or 'no results' message"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-003",
+    "category": "crud",
+    "description": "Emails Sending tab data table with columns: To, Status, Subject, Sent",
+    "page": "Emails > Sending",
+    "ui_details": "Data table with 4 columns. To: avatar + email link. Status: colored badge button. Subject: plain text. Sent: relative time with tooltip. Each row has a three-dot 'More actions' button on the right. Clicking email link navigates to /emails/:id.",
+    "behavior": "Rows are clickable via the email address link, navigating to the email detail page. Status badges show delivery status with color coding. Relative timestamps update dynamically. Row 'More actions' dropdown has 'Share email' option.",
+    "data_model": "Email list item: { id: string, to: string, status: EmailStatus, subject: string, sent_at: Date }. EmailStatus enum: bounced | canceled | clicked | complained | delivered | delivery_delayed | failed | opened | scheduled | sent | queued | suppressed",
+    "priority": 6,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders email rows with correct columns",
+          "description": "Each email row displays To, Status, Subject, Sent columns",
+          "input": "Array of email objects",
+          "expected_output": "Table rows with all 4 columns populated"
+        },
+        {
+          "name": "formats relative time correctly",
+          "description": "Sent column shows relative time like 'about 20 hours ago'",
+          "input": "Email sent 20 hours ago",
+          "expected_output": "'about 20 hours ago' text"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "click email navigates to detail page",
+          "steps": [
+            "Navigate to /emails",
+            "Click on the first email's recipient link",
+            "Verify URL changes to /emails/:id"
+          ],
+          "expected": "Navigation to email detail page with correct email data"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "empty email list",
+          "steps": ["Filter to a date range with no emails"],
+          "expected": "Empty state message displayed"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-004",
+    "category": "ui",
+    "description": "Email detail page — metadata display and event timeline",
+    "page": "Email Detail",
+    "ui_details": "Page header: 'Email' label + recipient email as h1. Metadata section with key-value pairs: From (email), Subject (text), To (email), ID (UUID with copy button). Email Events section: vertical timeline with status badge + timestamp for each event (e.g., sent Mar 28 4:14 PM → delivered Mar 28 4:14 PM).",
+    "behavior": "Copy button copies email ID to clipboard. Event timeline shows chronological delivery events. Status badges are interactive (clickable). Header has API drawer button and More actions (Share email).",
+    "data_model": "Email detail: { id: string, from: string, to: string, subject: string, html: string, text: string, events: Array<{ type: EmailStatus, timestamp: Date }> }",
+    "priority": 7,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders email metadata fields",
+          "description": "Shows From, Subject, To, and ID fields",
+          "input": "Email detail object",
+          "expected_output": "All 4 metadata fields displayed with correct values"
+        },
+        {
+          "name": "renders event timeline in order",
+          "description": "Events displayed chronologically with status and timestamp",
+          "input": "Email with sent and delivered events",
+          "expected_output": "Timeline shows sent first, then delivered, with formatted timestamps"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view email detail page from list",
+          "steps": [
+            "Navigate to /emails",
+            "Click on an email row",
+            "Verify email detail page loads",
+            "Verify From, Subject, To, ID fields are populated",
+            "Verify Email Events timeline is visible"
+          ],
+          "expected": "Email detail page shows all metadata and delivery events"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "copy email ID to clipboard",
+          "steps": ["Click copy button next to email ID"],
+          "expected": "ID copied to clipboard, toast or button state change confirms copy"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-005",
+    "category": "ui",
+    "description": "Email detail page — content tabs: Preview, Plain Text, HTML, Insights",
+    "page": "Email Detail",
+    "ui_details": "4 horizontal tabs below event timeline. Preview (default): rendered email in iframe. Plain Text: plain text content. HTML: raw HTML source. Insights: deliverability report. Copy button next to tabs copies content of active tab.",
+    "behavior": "Tabs switch content display. Preview shows rendered email. Insights tab shows two sections: 'Needs attention' (issues) and 'Doing great' (passing checks). Each insight is an expandable accordion item. 11 total insight checks covering DMARC, click/open tracking, subdomain usage, link URLs, plain text, body size, no-reply, image hosting, SVG images, YouTube URLs. Report timestamp shown at bottom.",
+    "data_model": "Insights: Array<{ name: string, status: 'needs_attention' | 'doing_great', details: string }>",
+    "priority": 7,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders 4 content tabs",
+          "description": "Preview, Plain Text, HTML, Insights tabs visible",
+          "input": "Email detail with html and text content",
+          "expected_output": "4 tabs rendered, Preview active by default"
+        },
+        {
+          "name": "insights categorized correctly",
+          "description": "Insights split into needs_attention and doing_great groups",
+          "input": "Array of insight results",
+          "expected_output": "Two sections with correct grouping"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "switch between content tabs",
+          "steps": [
+            "Navigate to an email detail page",
+            "Verify Preview tab is active",
+            "Click 'HTML' tab",
+            "Verify HTML source code is displayed",
+            "Click 'Insights' tab",
+            "Verify deliverability report shows"
+          ],
+          "expected": "Tab switching works, content updates for each tab"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "expand insight accordion item",
+          "steps": ["Click on 'Include valid DMARC record' in Insights tab"],
+          "expected": "Accordion expands to show detailed explanation"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-006",
+    "category": "ui",
+    "description": "API code drawer — slide-in panel with multi-language code examples",
+    "page": "Emails (shared component)",
+    "ui_details": "Right-side slide-in drawer triggered by API drawer icon button. Title matches page context (e.g., 'Sending Email API'). Language tabs: Node.js (default), Ruby, PHP, Python, Go, Rust, Java, .NET, cURL. Multiple code sections (Send Email, Send Batch Emails, Retrieve Email, Update Email). Each section has syntax-highlighted code block with copy button. Close button (X) at top.",
+    "behavior": "Clicking API drawer button opens panel from right. Language tabs switch all code blocks. Copy button copies code to clipboard. Close button or clicking outside closes drawer. For clone: only show Node.js and cURL tabs (per spec: TypeScript/Node.js only).",
+    "data_model": "API examples: Array<{ title: string, code: Record<Language, string> }>",
+    "priority": 9,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders API drawer with code sections",
+          "description": "Drawer shows correct API endpoints with code examples",
+          "input": "Open drawer on emails page",
+          "expected_output": "Drawer with Send Email, Send Batch Emails, Retrieve Email, Update Email sections"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "open and close API drawer",
+          "steps": [
+            "Navigate to /emails",
+            "Click API drawer button",
+            "Verify drawer slides in from right",
+            "Verify Node.js code is shown",
+            "Click close button",
+            "Verify drawer closes"
+          ],
+          "expected": "Drawer opens and closes smoothly with correct content"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "copy code to clipboard",
+          "steps": ["Open drawer", "Click copy button on first code block"],
+          "expected": "Code copied to clipboard, button shows success state"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-007",
+    "category": "ui",
+    "description": "Emails Receiving tab — list view with empty state",
+    "page": "Emails > Receiving",
+    "ui_details": "Same tab bar as Sending, Receiving tab active. Filter bar: Search input + Date range picker + Export button (fewer filters than Sending). Empty state: centered message 'No received emails yet' with description about predefined address (<anything>@{subdomain}.resend.app) and link to set up custom domain.",
+    "behavior": "When no received emails exist, empty state is shown with instructions. Each workspace gets a unique subdomain for inbound email. Links to /domains for custom domain setup and to docs.",
+    "data_model": "Received email: { id: string, from: string, to: string, subject: string, received_at: Date }",
+    "priority": 12,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders empty state when no received emails",
+          "description": "Shows empty state message with instructions",
+          "input": "Empty email list",
+          "expected_output": "Empty state with 'No received emails yet' and setup instructions"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view receiving tab empty state",
+          "steps": [
+            "Navigate to /emails/receiving",
+            "Verify empty state message is displayed",
+            "Verify link to domains page exists"
+          ],
+          "expected": "Empty state shows with correct message and links"
+        }
+      ],
+      "edge_cases": []
+    }
+  }
+]
