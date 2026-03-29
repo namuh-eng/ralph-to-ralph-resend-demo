@@ -54,7 +54,7 @@ for ((i=1; i<=$ITERATIONS; i++)); do
   echo "--- QA iteration $i/$ITERATIONS ---"
 
   # Use Codex as an independent evaluator (different model = different perspective)
-  result=$(codex exec --dangerously-bypass-approvals-and-sandbox \
+  result=$(timeout 600 codex exec --dangerously-bypass-approvals-and-sandbox \
 "$(cat qa-prompt.md)
 
 Read these files before starting:

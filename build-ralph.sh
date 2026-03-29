@@ -41,7 +41,7 @@ for ((i=1; i<=$ITERATIONS; i++)); do
     exit 0
   fi
 
-  result=$(claude -p --dangerously-skip-permissions --model claude-opus-4-6 \
+  result=$(timeout 600 claude -p --dangerously-skip-permissions --model claude-opus-4-6 \
 "@build-prompt.md @pre-setup.md @build-spec.md @prd.json @build-progress.txt @CLAUDE.md
 
 ITERATION: $i of $ITERATIONS
