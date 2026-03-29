@@ -53,7 +53,13 @@ test("sidebar is persistent across navigation", async ({ page }) => {
 
   await page.getByRole("link", { name: "Domains" }).click();
   await expect(sidebar).toBeVisible();
+  await expect(page).toHaveURL(/\/domains/);
+  await expect(page.getByRole("heading", { name: "Domains" })).toBeVisible();
 
   await page.getByRole("link", { name: "API Keys" }).click();
   await expect(sidebar).toBeVisible();
+  await expect(page).toHaveURL(/\/api-keys/);
+  await expect(
+    page.getByRole("heading", { name: "API Keys", exact: true }),
+  ).toBeVisible();
 });

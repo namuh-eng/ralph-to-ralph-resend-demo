@@ -24,5 +24,30 @@
       "Added MIME validation in src/lib/s3.ts to allow only image/*, text/html, and application/pdf, including text/html with charset parameters.",
       "Added regression tests for unsupported MIME rejection and HTML content type with charset in tests/s3.test.ts."
     ]
+  },
+  {
+    "feature_id": "layout-001",
+    "status": "pass",
+    "category": "layout",
+    "tested_steps": [
+      "Reviewed prd.json item layout-001 and confirmed the app shell requirements: 10 sidebar nav items, persistent sidebar, active nav highlighting, and route changes across dashboard pages.",
+      "Ran automated regression before and after the fix: make test passed with 35/35 files and 392/392 tests green.",
+      "Ran Playwright smoke against an isolated webpack dev server on http://localhost:3016 after the fix: tests/e2e/smoke.spec.ts passed 5/5.",
+      "Ran an Ever CLI manual pass on the isolated server: ever start --url http://localhost:3016/, ever snapshot --mode full to verify all 10 nav items, ever eval to route to /domains and /api-keys, then ever snapshot and ever screenshot to confirm the sidebar persisted and the destination pages rendered.",
+      "Captured Ever CLI screenshots during the manual pass to confirm the Emails, Domains, and API Keys dashboard states after navigation."
+    ],
+    "bugs_found": [
+      {
+        "severity": "major",
+        "description": "Navigating from the sidebar to /api-keys crashed the page when the database connection failed instead of rendering the API Keys shell with an empty state.",
+        "expected": "Sidebar navigation should route to /api-keys and keep the app shell usable even if API key data cannot be loaded.",
+        "actual": "Ever CLI navigation surfaced a server error page with digest 289396507 caused by a Postgres password authentication failure in src/app/(dashboard)/api-keys/page.tsx.",
+        "reproduction": "Start the local app, open /emails, navigate to /api-keys from the sidebar, and observe that the page throws before rendering the API Keys heading when DATABASE_URL rejects auth."
+      }
+    ],
+    "fixes_applied": [
+      "Wrapped the API Keys server-page data load in a try/catch and fell back to empty key/domain lists so the page still renders the layout shell and empty state when the database is unavailable.",
+      "Strengthened tests/e2e/smoke.spec.ts so the sidebar persistence flow now verifies the /api-keys URL and the exact API Keys heading."
+    ]
   }
 ]

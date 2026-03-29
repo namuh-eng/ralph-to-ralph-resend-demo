@@ -3,3 +3,4 @@
 infra-001: SKIP
 infra-002: PASS
 infra-004: PASS
+layout-001: PASS
