@@ -418,3 +418,46 @@
 
 ### Next:
 - Iteration 11: Deep dive — Settings page (Usage, SMTP, Integrations, Unsubscribe page, Documents tabs)
+
+---
+
+## Iteration 11: Settings Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Settings > Usage tab, inspected all interactive elements
+- Inspected 3 quota sections: Transactional (monthly 3,000 / daily 100), Marketing (contacts 1,000 / segments 3 / broadcasts unlimited), Team (domains 1 / rate limit 5 req/s)
+- Inspected Extras section: Pay-as-you-go ($0.90/1,000 emails) and Dedicated IPs add-on ($30/mo)
+- Navigated to Settings > SMTP tab
+- Inspected 4 read-only credential fields: Host (smtp.resend.com), Port (465), User (resend), Password (YOUR_API_KEY)
+- Inspected alternative port buttons: 2465, 587, 2587 (all clickable/copyable)
+- Navigated to Settings > Integrations tab
+- Inspected 2 integration cards: Supabase (Connect to Supabase) and Vercel (Go to Vercel Integration)
+- Navigated to Settings > Unsubscribe page tab
+- Inspected preview mode: 2 tabs (Preferences, Success) + Edit/Topics links
+- Inspected Preferences tab: heading "Do you want to unsubscribe?", subheading, Unsubscribe button, "Powered by Resend" footer
+- Inspected Success tab: "Your email preferences were updated." message
+- Clicked Edit — inspected full editor:
+  - Page selector: Unsubscribe page / Success page buttons
+  - Contenteditable rich text editor for heading and paragraph
+  - Right sidebar: Logo upload (jpeg/png/gif/svg), 3 color pickers (Background #05050A, Text #EDEEF0, Accent #363A3F), Hide branding toggle
+  - Header actions: Reset, Save
+- Navigated to Settings > Documents tab
+- Inspected 4 compliance document sections: Penetration test, SOC 2, DPA, Form W-9 — each with description + PDF download link
+
+### Key findings:
+- Settings has 7 tabs total, 5 in scope (Billing and Team are out of scope)
+- Usage tab is read-only dashboard with quota tables (used/limit format with progress icons)
+- SMTP tab is purely informational — static credentials with copy-to-clipboard
+- Integrations tab has only 2 third-party integrations (Supabase, Vercel) — out of scope for clone
+- Unsubscribe page has dual-mode view: preview (Preferences/Success tabs) and editor (rich text + visual customization)
+- Unsubscribe editor is simpler than broadcasts/templates editor — no block editor, just contenteditable h1+p
+- Documents tab is fully static — 4 compliance PDFs with descriptions
+- Settings tabs use Radix tabs with data-state="active"/"inactive" for navigation
+
+### Files created/updated:
+- build-spec.md — Added sections 6.23 (Usage), 6.24 (SMTP), 6.25 (Integrations), 6.26 (Unsubscribe page), 6.27 (Documents)
+- prd.json — Added 5 feature entries (feature-040 through feature-044)
+- screenshots/inspect/ — settings-usage.jpg, settings-smtp.jpg, settings-integrations.jpg, settings-unsubscribe-preferences.jpg, settings-unsubscribe-success.jpg, settings-unsubscribe-editor.jpg, settings-documents.jpg
+
+### Next:
+- Iteration 12: Final iteration — Finalize build-spec.md (clean up, complete design system, reorder PRD, write build order)

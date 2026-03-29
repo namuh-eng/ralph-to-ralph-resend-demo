@@ -1865,5 +1865,236 @@
         }
       ]
     }
+  },
+  {
+    "id": "feature-040",
+    "category": "settings",
+    "description": "Settings page layout with horizontal tab navigation (5 in-scope tabs: Usage, SMTP, Integrations, Unsubscribe page, Documents)",
+    "page": "Settings",
+    "ui_details": "Horizontal tab bar below 'Settings' heading. 7 tabs total (Billing and Team out of scope). Active tab has underline indicator. Tab bar is scrollable on narrow viewports.",
+    "behavior": "Clicking a tab navigates to the corresponding settings sub-page. Active tab is highlighted with data-state='active'. URL changes to /settings/<tab-name>.",
+    "data_model": "No data model — tabs are static navigation",
+    "priority": 17,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders 5 in-scope settings tabs",
+          "description": "Settings page shows Usage, SMTP, Integrations, Unsubscribe page, Documents tabs",
+          "input": "Navigate to /settings",
+          "expected_output": "5 tab links rendered with correct labels and hrefs"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "navigate between settings tabs",
+          "steps": [
+            "Navigate to /settings/usage",
+            "Click 'SMTP' tab",
+            "Verify URL is /settings/smtp",
+            "Click 'Documents' tab",
+            "Verify URL is /settings/documents"
+          ],
+          "expected": "Each tab click updates URL and shows correct content"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "direct URL navigation to settings tab",
+          "steps": ["Navigate directly to /settings/smtp"],
+          "expected": "SMTP tab is active and content is displayed correctly"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-041",
+    "category": "settings",
+    "description": "Settings Usage tab — read-only quota dashboard showing Transactional, Marketing, and Team limits",
+    "page": "Settings > Usage",
+    "ui_details": "3 quota sections (Transactional, Marketing, Team) each with plan badge 'Free', description text, and quota table showing used/limit. Progress indicator icons (colored SVGs) next to each row. Extras section below with Pay-as-you-go and Add-ons descriptions.",
+    "behavior": "Read-only display. Quota values update based on actual usage. Upgrade buttons present but out of scope.",
+    "data_model": "usage { transactional_monthly_used, transactional_monthly_limit, transactional_daily_used, transactional_daily_limit, contacts_used, contacts_limit, segments_used, segments_limit, domains_used, domains_limit, rate_limit }",
+    "priority": 17,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders transactional quota section",
+          "description": "Shows monthly and daily limits with used/total format",
+          "input": "Usage data with monthly_used=3, monthly_limit=3000, daily_used=0, daily_limit=100",
+          "expected_output": "Displays '3 / 3,000' for monthly and '0 / 100' for daily"
+        },
+        {
+          "name": "renders marketing quota section",
+          "description": "Shows contacts, segments, broadcasts limits",
+          "input": "Usage data with contacts=1/1000, segments=1/3, broadcasts=unlimited",
+          "expected_output": "Displays correct quota values with 'Unlimited' for broadcasts"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "usage page displays all quota sections",
+          "steps": [
+            "Navigate to /settings/usage",
+            "Verify 'Transactional' section with monthly and daily limits",
+            "Verify 'Marketing' section with contacts, segments, broadcasts limits",
+            "Verify 'Team' section with domains and rate limit"
+          ],
+          "expected": "All 3 quota sections visible with correct labels and values"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "quota at limit display",
+          "steps": ["View usage when monthly limit is 3000/3000"],
+          "expected": "Progress indicator shows full/warning state"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-042",
+    "category": "settings",
+    "description": "Settings SMTP tab — read-only SMTP credentials display with copy-to-clipboard",
+    "page": "Settings > SMTP",
+    "ui_details": "Heading 'SMTP' + description + 'See documentation' link. 4 read-only input fields: Host (smtp.resend.com), Port (465), User (resend), Password (YOUR_API_KEY). Each field has a label and copy-to-clipboard button. Port field has helper text listing alternative ports (2465, 587, 2587) as clickable copy buttons.",
+    "behavior": "All fields are read-only (data-state='read-only'). Copy buttons copy field value to clipboard. Alternative port buttons copy their respective port number to clipboard. Password field shows 'YOUR_API_KEY' placeholder directing user to API Keys page.",
+    "data_model": "No data model — static SMTP credentials derived from system config",
+    "priority": 17,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders SMTP credentials",
+          "description": "Displays host, port, user, and password fields with correct values",
+          "input": "Default SMTP config",
+          "expected_output": "Host=smtp.resend.com, Port=465, User=resend, Password=YOUR_API_KEY"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "SMTP page displays credentials with copy buttons",
+          "steps": [
+            "Navigate to /settings/smtp",
+            "Verify Host field shows 'smtp.resend.com'",
+            "Verify Port field shows '465'",
+            "Verify User field shows 'resend'",
+            "Verify Password field shows 'YOUR_API_KEY'",
+            "Click copy button on Host field"
+          ],
+          "expected": "All 4 credential fields displayed. Copy button copies value to clipboard."
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "fields are not editable",
+          "steps": ["Click on Host input and try to type"],
+          "expected": "Input remains read-only, value does not change"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-043",
+    "category": "settings",
+    "description": "Settings Unsubscribe page — preview mode with Preferences/Success tabs and editor with logo, colors, branding customization",
+    "page": "Settings > Unsubscribe page",
+    "ui_details": "Preview mode: 2 Radix tabs (Preferences, Success) + Edit/Topics links. Preferences shows heading, subheading, Unsubscribe button, 'Powered by' footer. Success shows confirmation message. Editor mode: back arrow, page selector (Unsubscribe/Success), contenteditable rich text, right sidebar with Logo upload (jpeg/png/gif/svg), 3 color pickers (Background #05050A, Text #EDEEF0, Accent #363A3F), Hide branding toggle. Reset and Save buttons in header.",
+    "behavior": "Preview tabs switch between Preferences and Success views. Edit navigates to editor. Editor allows editing heading/text content inline. Color pickers open color selection UI. Logo upload accepts image files. Save persists changes. Reset restores defaults.",
+    "data_model": "unsubscribe_page { logo_url, background_color, foreground_color, accent_color, hide_branding, preferences_heading, preferences_subheading, success_heading }",
+    "priority": 17,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders unsubscribe page preview with tabs",
+          "description": "Shows Preferences and Success tabs with correct content",
+          "input": "Default unsubscribe page config",
+          "expected_output": "Preferences tab shows 'Do you want to unsubscribe?' heading, Success tab shows 'Your email preferences were updated.'"
+        },
+        {
+          "name": "renders editor sidebar with color pickers",
+          "description": "Editor shows 3 color inputs with default values",
+          "input": "Default colors",
+          "expected_output": "Background=#05050A, Text=#EDEEF0, Accent=#363A3F"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "switch between preview tabs",
+          "steps": [
+            "Navigate to /settings/unsubscribe-page",
+            "Verify Preferences tab is active by default",
+            "Click Success tab",
+            "Verify success message is displayed"
+          ],
+          "expected": "Tabs switch content. Preferences shows unsubscribe form, Success shows confirmation."
+        },
+        {
+          "name": "edit unsubscribe page content and save",
+          "steps": [
+            "Navigate to /settings/unsubscribe-page",
+            "Click Edit link",
+            "Modify heading text to 'Want to leave?'",
+            "Click Save button",
+            "Navigate back to preview"
+          ],
+          "expected": "Editor opens with editable content. Save persists changes. Preview reflects updated text."
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "reset restores default values",
+          "steps": [
+            "Open editor",
+            "Change background color to #FFFFFF",
+            "Click Reset button"
+          ],
+          "expected": "All values revert to defaults (Background=#05050A, etc.)"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-044",
+    "category": "settings",
+    "description": "Settings Documents tab — static compliance documents list with download links",
+    "page": "Settings > Documents",
+    "ui_details": "4 document sections stacked vertically. Each has: title heading, multi-line description paragraph, 'Download' link to static PDF. Documents: Penetration test (Oneleet attestation), SOC 2 (Type II report), DPA (signed agreement), Form W-9 (signed tax form).",
+    "behavior": "Download links open/download static PDF files. No dynamic content, no forms, no API calls.",
+    "data_model": "No data model — static content with hardcoded PDF paths",
+    "priority": 18,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders 4 document sections",
+          "description": "All 4 compliance documents displayed with titles and descriptions",
+          "input": "Default documents config",
+          "expected_output": "Sections for Penetration test, SOC 2, DPA, Form W-9 each with title, description, and download link"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "documents page displays all sections with download links",
+          "steps": [
+            "Navigate to /settings/documents",
+            "Verify 'Penetration test' section exists with download link",
+            "Verify 'SOC 2' section exists with download link",
+            "Verify 'DPA' section exists with download link",
+            "Verify 'Form W-9' section exists with download link"
+          ],
+          "expected": "All 4 document sections visible with descriptive text and functional download links"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "download link points to valid path",
+          "steps": ["Check href of Penetration test download link"],
+          "expected": "Link href contains '/static/documents/' path to a PDF file"
+        }
+      ]
+    }
   }
 ]

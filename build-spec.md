@@ -849,6 +849,146 @@ contact.created, contact.updated, contact.deleted
 - 10 deliverability event types (fewer than the 17 webhook event types — these are display-only metrics events, not webhook subscriptions)
 - Data refreshes every 15 minutes (not real-time)
 
+### 6.23 Settings — Usage Tab (`/settings/usage`)
+
+**Layout**: Page title "Settings" + horizontal tab bar (7 tabs: Usage, ~~Billing~~, ~~Team~~, SMTP, Integrations, Unsubscribe page, Documents) → usage dashboard with 3 quota sections + extras section
+
+**Section 1: Transactional**
+- Description: "Integrate email into your app using the Resend API or SMTP interface."
+- "Upgrade" button (opens paywall — out of scope)
+- Plan badge: "Free"
+- Quota table (2 rows):
+  - Monthly limit: `{used} / 3,000` (with progress indicator)
+  - Daily limit: `{used} / 100` (with progress indicator)
+
+**Section 2: Marketing**
+- Description: "Design and send marketing emails using Broadcasts and Audiences."
+- "Upgrade" button
+- Plan badge: "Free"
+- Quota table (3 rows):
+  - Contacts limit: `{used} / 1,000`
+  - Segments limit: `{used} / 3`
+  - Broadcasts limit: Unlimited
+
+**Section 3: Team**
+- Description: "Understand the quotas and limits for your team."
+- Plan badge: "Free"
+- Quota table (2 rows):
+  - Domains: `{used} / 1`
+  - Rate limit: `5 req/s`
+
+**Section 4: Extras** (below main sections)
+- **Pay-as-you-go**: description + pricing ($0.90 / per 1,000 emails)
+- **Add-ons — Dedicated IPs**: $30/mo, description + "Check if a dedicated IP would be right for you" link + "View pricing" link
+
+**Key observations**:
+- Usage is a read-only dashboard — no forms, no create/edit actions
+- Quota tables show `{used} / {limit}` with progress indicators (colored SVG icons)
+- Out of scope: Billing tab, Team tab, Upgrade buttons, pricing links
+- No API drawer, no search, no pagination
+
+### 6.24 Settings — SMTP Tab (`/settings/smtp`)
+
+**Layout**: Tab heading "SMTP" + description + documentation link → 4 read-only credential fields
+
+**Description**: "Send emails using SMTP instead of the REST API." + "See documentation" link
+
+**Credential fields** (all read-only with copy-to-clipboard button):
+1. **Host**: `smtp.resend.com` (text input, `data-state=read-only`)
+2. **Port**: `465` (text input, read-only)
+   - Helper text: "For encrypted/TLS connections use `2465`, `587` or `2587`" — each port number is a clickable button (copies to clipboard)
+3. **User**: `resend` (text input, read-only)
+4. **Password**: `YOUR_API_KEY` (text input, read-only)
+
+**Key observations**:
+- Purely informational page — all fields read-only, no save/edit actions
+- Shadow DOM inputs used for credential display
+- Copy-to-clipboard buttons on each field
+- Alternative port numbers displayed as clickable copy buttons in helper text
+- Password is a placeholder string pointing to API Keys page
+
+### 6.25 Settings — Integrations Tab (`/settings/integrations`)
+
+**Layout**: Tab heading (implicit) → 2 integration cards stacked vertically
+
+**Integration 1: Supabase**
+- Description: "Integrate your Supabase account to send emails from Supabase Auth via SMTP."
+- Button: "Connect to Supabase"
+
+**Integration 2: Vercel**
+- Description: "Integrate your Resend API keys with Vercel environment variables."
+- Button: "Go to Vercel Integration"
+
+**Key observations**:
+- Simple card layout, no table/list
+- Only 2 integrations shown (Supabase + Vercel)
+- Both are external redirect buttons, not in-app configuration
+- Out of scope for clone — these integrate with third-party services
+- Could be replicated as static cards with external links
+
+### 6.26 Settings — Unsubscribe Page (`/settings/unsubscribe-page`)
+
+**Layout**: Two views — preview mode and editor mode
+
+**Preview Mode**:
+- 2 tabs (Radix tabs): **Preferences** (default, active) and **Success**
+- Action links: "Edit" → opens editor, "Topics" → navigates to `/audience/topics`
+- **Preferences tab preview**: Embedded page showing:
+  - Company logo placeholder (SVG)
+  - Heading: "Do you want to unsubscribe?"
+  - Subheading: "Confirm your email preferences:"
+  - "Unsubscribe" button
+  - Footer: "Powered by Resend"
+- **Success tab preview**: "Your email preferences were updated." + "Powered by Resend"
+
+**Editor Mode** (accessed via Edit button — separate route):
+- **Header**: Back arrow (returns to preview) + "Unsubscribe page" breadcrumb + "Edit" label + "Reset" button + "Save" button
+- **Page selector**: 2 buttons — "Unsubscribe page" and "Success page" (switch which page content you're editing)
+- **Content area**: `contenteditable` rich text editor
+  - Unsubscribe page: H1 heading + P paragraph (editable text)
+  - Success page: H1 heading + P paragraph (editable text)
+- **Right sidebar settings**:
+  - **Logo**: File upload button (accepts image/jpeg, image/png, image/gif, image/svg+xml)
+  - **Colors** (3 color pickers):
+    - Background: hex input + color swatch button (default: `#05050A`)
+    - Text: hex input + color swatch button (default: `#EDEEF0`)
+    - Accent: hex input + color swatch button (default: `#363A3F`)
+  - **Footer**: "Hide branding" toggle switch (default: off/closed)
+
+**Key observations**:
+- Unsubscribe page is a hosted page that recipients see when clicking unsubscribe links
+- Editor is a simple rich text editor (not the full block editor from broadcasts/templates)
+- Customization options: logo upload, 3 colors (background, text, accent), branding toggle
+- Two pages to customize: the confirmation page and the success page
+- "Reset" button presumably restores defaults
+- Topics link connects to Audience > Topics tab
+
+### 6.27 Settings — Documents Tab (`/settings/documents`)
+
+**Layout**: 4 document sections stacked vertically, each with title, description, and download link
+
+**Document 1: Penetration test**
+- Description: "Penetration testing is performed at least annually by third-party cybersecurity company, Oneleet. You can download the Letter of Attestation below."
+- Download link: `/static/documents/resend-pen-test-letter-of-attestation.pdf`
+
+**Document 2: SOC 2**
+- Description: "Resend is SOC 2 Type II compliant, a compliance framework developed by AICPA. This audit was completed by Vanta & Advantage Partners and covers the period of February 1, 2024 to February 1, 2025."
+- Download link: `/static/documents/resend-soc-2-type-ii-report.pdf`
+
+**Document 3: DPA**
+- Description: "Data Processing Agreement (DPA) is a contract that regulates data processing conducted for business purposes. The attached DPA is a version signed by us, and is considered fully executed once you signup to Resend."
+- Download link: `/static/documents/resend-dpa-signed.pdf`
+
+**Document 4: Form W-9**
+- Description: "Form W-9 is a document used in the United States by individuals and entities to provide their taxpayer identification number (TIN) to a person or business that will pay them income. You can download the signed Form W-9 below."
+- Download link: `/static/documents/resend-w9-signed.pdf`
+
+**Key observations**:
+- Purely static/informational page — no interactive elements beyond download links
+- 4 compliance documents with descriptions and PDF download links
+- Low priority for clone — could be replicated as static page with placeholder PDFs
+- No API drawer, no forms, no dynamic content
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
