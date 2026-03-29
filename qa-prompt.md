@@ -141,5 +141,6 @@ This is your **source of truth** — the clone should match the original's behav
 - **HARD STOP: Test exactly ONE feature per invocation.** Commit, push, output promise, stop.
 - Be skeptical. Assume things are broken until proven otherwise.
 - Fix ALL bugs for the feature, then run `make check && make test && make test-e2e` once before committing.
+- **NEVER weaken or delete tests to make them pass.** If a test fails, fix the code, not the test. Never replace meaningful assertions with trivial ones. If a test is genuinely wrong, rewrite it to test the correct behavior — don't remove it.
 - Output `<promise>NEXT</promise>` after committing if more features remain.
 - Output `<promise>QA_COMPLETE</promise>` only if ALL features are QA tested and all bugs fixed.

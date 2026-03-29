@@ -119,6 +119,7 @@ Always add a `/docs` page with all API endpoints, request/response schemas, and 
 - **HARD STOP: Implement exactly ONE feature per invocation.** Commit, push, output promise, stop.
 - Pick the FIRST `passes: false` entry in prd.json.
 - Quality over speed — all tests must pass before marking as done.
+- **NEVER write tests that just pass.** Every test must assert real behavior — check actual DOM content, verify API responses, test real data. If a test doesn't fail when the feature is broken, it's useless. No empty tests, no `expect(true).toBe(true)`, no mocking away the thing you're testing.
 - Match the original product's look and behavior as closely as possible.
 - Output `<promise>NEXT</promise>` after committing if more features remain.
 - Output `<promise>COMPLETE</promise>` only if ALL features pass.
