@@ -32,6 +32,54 @@ interface DomainDetailProps {
   domain: DomainDetailData;
 }
 
+function getStoredApiKey(): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage.getItem("api_key");
+  } catch {
+    return null;
+  }
+}
+
+function withApiKeyHeaders(
+  headers?: Record<string, string>,
+): Record<string, string> {
+  const apiKey = getStoredApiKey();
+
+  return apiKey
+    ? { ...headers, Authorization: `Bearer ${apiKey}` }
+    : { ...(headers ?? {}) };
+}
+
+async function apiRequest(
+  input: string,
+  init?: Omit<RequestInit, "headers"> & { headers?: Record<string, string> },
+): Promise<Response> {
+  const response = await fetch(input, {
+    ...init,
+    headers: withApiKeyHeaders(init?.headers),
+  });
+
+  if (!response.ok) {
+    let message = "Request failed";
+
+    try {
+      const data = (await response.json()) as {
+        details?: string;
+        error?: string;
+      };
+      message = data.details ?? data.error ?? message;
+    } catch {
+      // ignore non-JSON error bodies
+    }
+
+    throw new Error(message);
+  }
+
+  return response;
+}
+
 const REGION_DISPLAY: Record<string, string> = {
   "us-east-1": "North Virginia",
   "eu-west-1": "Ireland",
@@ -162,7 +210,7 @@ export function DomainDetail({ domain }: DomainDetailProps) {
     if (deleting) return;
     setDeleting(true);
     try {
-      await fetch(`/api/domains/${domain.id}`, { method: "DELETE" });
+      await apiRequest(`/api/domains/${domain.id}`, { method: "DELETE" });
       router.push("/domains");
     } catch {
       // silently fail
@@ -174,7 +222,7 @@ export function DomainDetail({ domain }: DomainDetailProps) {
   const handleRestart = useCallback(async () => {
     setActionsOpen(false);
     try {
-      await fetch(`/api/domains/${domain.id}/restart`, { method: "POST" });
+      await apiRequest(`/api/domains/${domain.id}/restart`, { method: "POST" });
       router.refresh();
     } catch {
       // silently fail
@@ -553,6 +601,9 @@ function DNSRecordTable({
 function RecordsTab({ domain }: { domain: DomainDetailData }) {
   const router = useRouter();
   const [autoConfiguring, setAutoConfiguring] = useState(false);
+  const [autoConfigureError, setAutoConfigureError] = useState<string | null>(
+    null,
+  );
   const [sendingEnabled, setSendingEnabled] = useState(domain.sendingEnabled);
   const [receivingEnabled, setReceivingEnabled] = useState(
     domain.receivingEnabled,
@@ -560,13 +611,18 @@ function RecordsTab({ domain }: { domain: DomainDetailData }) {
 
   const handleAutoConfigure = useCallback(async () => {
     setAutoConfiguring(true);
+    setAutoConfigureError(null);
+
     try {
-      await fetch(`/api/domains/${domain.id}/auto-configure`, {
+      await apiRequest(`/api/domains/${domain.id}/auto-configure`, {
         method: "POST",
       });
+
       router.refresh();
-    } catch {
-      // silently fail
+    } catch (error) {
+      setAutoConfigureError(
+        error instanceof Error ? error.message : "Auto-configure failed",
+      );
     } finally {
       setAutoConfiguring(false);
     }
@@ -575,7 +631,7 @@ function RecordsTab({ domain }: { domain: DomainDetailData }) {
   const handleToggle = useCallback(
     async (field: "sending_enabled" | "receiving_enabled", value: boolean) => {
       try {
-        await fetch(`/api/domains/${domain.id}`, {
+        await apiRequest(`/api/domains/${domain.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ [field]: value }),
@@ -634,6 +690,12 @@ function RecordsTab({ domain }: { domain: DomainDetailData }) {
           </button>
         </div>
       </div>
+
+      {autoConfigureError && (
+        <p role="alert" className="mb-4 text-[13px] text-red-400">
+          {autoConfigureError}
+        </p>
+      )}
 
       {/* Section 1: Domain Verification (DKIM) */}
       <div className="mb-8">
@@ -738,7 +800,7 @@ function ConfigurationTab({ domain }: { domain: DomainDetailData }) {
       const prev = tls;
       setTls(value);
       try {
-        await fetch(`/api/domains/${domain.id}`, {
+        await apiRequest(`/api/domains/${domain.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tls: value }),

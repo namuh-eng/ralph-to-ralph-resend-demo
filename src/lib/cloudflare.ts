@@ -132,5 +132,24 @@ export async function autoConfigureDomain(
     results.push(record);
   }
 
+  results.push(
+    await createDNSRecord({
+      type: "TXT",
+      name: domain,
+      content: "v=spf1 include:amazonses.com ~all",
+      ttl: 300,
+    }),
+  );
+
+  results.push(
+    await createDNSRecord({
+      type: "MX",
+      name: domain,
+      content: "feedback-smtp.us-east-1.amazonses.com",
+      ttl: 300,
+      priority: 10,
+    }),
+  );
+
   return results;
 }
