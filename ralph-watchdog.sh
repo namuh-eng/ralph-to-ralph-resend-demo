@@ -88,32 +88,12 @@ while ! inspect_done; do
   fi
 done
 
-# ─── PHASE 2 + 3: Build + Parallel QA ───
-#
-# Strategy: Start QA in background once enough features are built (QA_THRESHOLD).
-# Build continues in foreground. QA runs concurrently on completed features.
-# After build finishes, wait for QA. If QA found bugs, re-run build to fix.
-
-QA_THRESHOLD=10  # Start QA after this many features pass
-QA_STARTED=false
-QA_PID=""
-
-start_qa_background() {
-  if [ "$QA_STARTED" = false ]; then
-    log "Phase 3: Starting QA in PARALLEL ($(count_passes) features ready)"
-    ./qa-ralph.sh "$TARGET_URL" &
-    QA_PID=$!
-    QA_STARTED=true
-    log "Phase 3: QA running in background (PID $QA_PID)"
-  fi
-}
+# ─── PHASE 2 + 3: Build → QA → Fix loop ───
 
 MAX_CYCLES=5
 for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
   log ""
   log "===== CYCLE $cycle/$MAX_CYCLES ====="
-  QA_STARTED=false
-  QA_PID=""
 
   # ─── PHASE 2: Build ───
   MAX_BUILD_RESTARTS=10
@@ -129,12 +109,6 @@ for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
     ./build-ralph.sh || true
     cron_backup
 
-    # Start QA in parallel once threshold met
-    CURRENT_PASSES=$(count_passes)
-    if [ "$CURRENT_PASSES" -ge "$QA_THRESHOLD" ] && [ "$QA_STARTED" = false ]; then
-      start_qa_background
-    fi
-
     if all_passed; then
       log "Phase 2: All $(total_tasks) features pass!"
       break
@@ -146,14 +120,9 @@ for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
     sleep 5
   done
 
-  # ─── PHASE 3: QA (wait for parallel or start fresh) ───
-  if [ "$QA_STARTED" = true ] && [ -n "$QA_PID" ]; then
-    log "Phase 3: Waiting for parallel QA (PID $QA_PID) to finish..."
-    wait "$QA_PID" || true
-  else
-    log "Phase 3: Starting QA now..."
-    ./qa-ralph.sh "$TARGET_URL" || true
-  fi
+  # ─── PHASE 3: QA ───
+  log "Phase 3: Starting QA..."
+  ./qa-ralph.sh "$TARGET_URL" || true
   cron_backup
 
   AFTER_QA=$(count_passes)
