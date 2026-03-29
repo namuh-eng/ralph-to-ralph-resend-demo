@@ -2,7 +2,7 @@
 # from prd.json top-down; feature-001 handled by another session
 infra-001: SKIP
 infra-002: PASS
-<<<<<<< HEAD
+infra-003: PASS
 infra-004: PASS
 layout-001: PASS
 design-001: PASS
@@ -28,6 +28,3 @@ Current QA findings:
 Next up:
 - Continue PRD-ordered isolated QA from the next unverified feature.
 - Tighten the flaky/ambiguous E2E selectors uncovered during QA so future runs do not produce false positives.
-=======
-infra-003: PASS
->>>>>>> origin/qa/second-from-top-20260329-171418
