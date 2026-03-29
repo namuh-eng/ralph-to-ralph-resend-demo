@@ -29,6 +29,7 @@ You are an AI product builder. Your job is to build a working clone of a real pr
    - `make check` — typecheck + lint/format (must pass)
    - `make test` — ALL unit tests (must pass, including previous features — catches regressions)
    - Do NOT run `make test-e2e` during build — E2E tests are slow and the QA phase handles them. Just write the E2E tests, don't execute them.
+   - **Smoke test**: On the first iteration (scaffolding), create `tests/e2e/smoke.spec.ts` that tests core navigation (sidebar links work, pages load). Keep it under 10 tests. Update it as you add major pages. This is the fast regression check QA runs every iteration.
    - If any fail, fix the issue and re-run. Do NOT proceed until all green.
 7. Update `prd.json`: set `passes` to true ONLY after all tests pass.
 8. Append to `build-progress.txt`: what you built, test results, decisions, files changed.

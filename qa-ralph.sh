@@ -76,6 +76,9 @@ If ALL features have been QA tested and all bugs fixed, output <promise>QA_COMPL
 
   if [[ "$result" == *"<promise>QA_COMPLETE</promise>"* ]]; then
     echo ""
+    echo "--- Running final Playwright regression suite ---"
+    npx playwright test --reporter=list 2>&1 || echo "Some Playwright tests failed in final regression."
+    echo ""
     echo "=== QA complete after $i iterations! ==="
     exit 0
   fi
@@ -88,6 +91,11 @@ If ALL features have been QA tested and all bugs fixed, output <promise>QA_COMPL
   echo "WARNING: No promise found. Agent may have crashed. Restarting..."
   sleep 3
 done
+
+# Run full E2E regression at the end
+echo "--- Running final Playwright regression suite ---"
+npx playwright test --reporter=list 2>&1 || echo "Some Playwright tests failed in final regression."
+echo ""
 
 echo ""
 echo "=== QA finished after $ITERATIONS iterations ==="

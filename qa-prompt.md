@@ -30,9 +30,11 @@ This is your **source of truth** — the clone should match the original's behav
 1. Read `qa-progress.txt` to see what has been tested.
 2. Read `prd.json` to find the next feature to test (first entry you haven't QA'd yet).
 
-### Step 1: Check existing tests pass
+### Step 1: Automated checks (before manual testing)
 3. Run `make test` to verify unit tests still pass. If any fail, fix before proceeding.
-4. Note: `make test-e2e` (full Playwright regression) is run ONCE at the start of the QA phase by the shell script. You don't need to run it per feature — just focus on manual verification.
+4. Run the **smoke E2E suite**: `npx playwright test tests/e2e/smoke.spec.ts` — this is a small, fast test (~5-10 tests) that verifies core navigation and page loads still work. Run this every iteration.
+5. If your fix touched **shared code** (layout, API client, auth middleware, routing, reusable components), also run the full `make test-e2e` to catch cross-feature regressions. Otherwise skip it.
+6. Note: The shell script runs full `make test-e2e` at the START and END of the QA phase automatically.
 
 ### Step 2: Manual Verification (Ever CLI)
 5. Start the dev server if not running (`npm run dev`).
