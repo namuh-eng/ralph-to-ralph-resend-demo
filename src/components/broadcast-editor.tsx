@@ -181,6 +181,10 @@ export function BroadcastEditor({
     DEFAULT_BROADCAST_STYLE,
   );
 
+  // Review panel state
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [sliderValue, setSliderValue] = useState(0);
+
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const topicDropdownRef = useRef<HTMLDivElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
@@ -399,7 +403,12 @@ export function BroadcastEditor({
           </button>
           <button
             type="button"
-            className="h-8 px-4 text-[13px] font-medium bg-white text-black rounded-md hover:bg-gray-200 transition-colors"
+            onClick={() => setReviewOpen(!reviewOpen)}
+            className={`h-8 px-4 text-[13px] font-medium rounded-md transition-colors ${
+              reviewOpen
+                ? "bg-white text-black"
+                : "bg-white text-black hover:bg-gray-200"
+            }`}
           >
             Review
           </button>
@@ -842,6 +851,156 @@ export function BroadcastEditor({
           />
         )}
       </div>
+
+      {/* Review Panel */}
+      {reviewOpen && (
+        <div
+          data-testid="review-panel"
+          className="border-t border-[rgba(176,199,217,0.145)] bg-[#0a0a0a] px-6 py-5"
+        >
+          <div className="max-w-[500px] mx-auto">
+            <h3 className="text-[16px] font-semibold text-[#F0F0F0] mb-4">
+              Ready to send?
+            </h3>
+
+            {/* Checklist */}
+            <div className="space-y-2.5 mb-5">
+              {[
+                {
+                  label: 'Add a "from" address to continue',
+                  passed: !!from,
+                },
+                {
+                  label: "Select a recipient segment",
+                  passed: !!segmentId,
+                },
+                {
+                  label: "Add a subject line to continue",
+                  passed: !!subject,
+                },
+                {
+                  label: "No contacts in this segment",
+                  passed: !!segmentId,
+                },
+                {
+                  label: "No unsubscribe link detected",
+                  passed: false,
+                  isWarning: true,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2.5 text-[13px]"
+                >
+                  {item.passed ? (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-green-500 shrink-0"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M9 12l2 2 4-4"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className={`${item.isWarning ? "text-yellow-500" : "text-red-500"} shrink-0`}
+                      aria-hidden="true"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M12 8v4M12 16h.01"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                  <span
+                    className={
+                      item.passed ? "text-[#A1A4A5]" : "text-[#F0F0F0]"
+                    }
+                  >
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Slide to send */}
+            <div className="flex items-center gap-3 bg-[rgba(176,199,217,0.04)] border border-[rgba(176,199,217,0.1)] rounded-lg px-4 py-3">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-[#A1A4A5] shrink-0"
+                aria-hidden="true"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={sliderValue}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setSliderValue(val);
+                  if (val >= 100) {
+                    // Send the broadcast
+                    fetch(`/api/broadcasts/${broadcastId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ status: "sent" }),
+                    });
+                    setReviewOpen(false);
+                    setSliderValue(0);
+                  }
+                }}
+                onMouseUp={() => {
+                  if (sliderValue < 100) setSliderValue(0);
+                }}
+                onTouchEnd={() => {
+                  if (sliderValue < 100) setSliderValue(0);
+                }}
+                aria-label="Slide to send"
+                className="flex-1 h-2 appearance-none bg-[rgba(176,199,217,0.1)] rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing"
+              />
+              <span className="text-[13px] text-[#A1A4A5] shrink-0 min-w-[100px]">
+                Slide to send
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Toolbar */}
       <div className="border-t border-[rgba(176,199,217,0.145)] bg-[#0a0a0a]">

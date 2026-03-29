@@ -1051,3 +1051,32 @@
 - src/components/broadcast-editor.tsx — Integrated sidebar toggle, state management, layout changes
 - tests/broadcast-editor-sidebar.test.ts — 10 unit tests for sidebar data model and defaults
 - tests/e2e/broadcast-editor-sidebar.spec.ts — 4 E2E tests for sidebar interactions
+
+## Iteration 33 — feature-012: Broadcast Editor — Review Panel with Slide-to-Send (2026-03-29)
+
+### What was built
+- Review panel triggered by "Review" button in the broadcast editor header
+- Panel shows "Ready to send?" heading with a checklist of broadcast readiness items
+- Checklist validates: from address set, recipient segment selected, subject line set, contacts in segment, unsubscribe link presence
+- Each checklist item shows green check (passed) or red/yellow warning icon (not passed)
+- Slide-to-send slider control (range input, min 0, max 100) — user must drag to 100 to confirm sending
+- Slider resets to 0 on mouse/touch release if not dragged to 100 (safety mechanism)
+- When slider reaches 100, broadcasts status is updated to "sent" via PATCH API and panel closes
+- Review button toggles panel open/closed
+
+### Test results
+- 9 new unit tests passing (checklist validation: 5 tests, slide-to-send threshold: 4 tests)
+- 1 new E2E test (open/close review panel, verify slider attributes)
+- 379 total unit tests passing, no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Panel placed between editor content and bottom toolbar, matching screenshot reference
+- Checklist items mirror the original product's review panel (from, segment, subject, contacts, unsubscribe link)
+- Slide-to-send uses native range input with custom styling for the slider thumb
+- Slider resets on mouseup/touchend if value < 100 to prevent accidental sends
+
+### Files changed
+- src/components/broadcast-editor.tsx — Added review panel state, toggle, and full review panel UI with checklist and slide-to-send
+- tests/broadcast-review-panel.test.ts — 9 unit tests for checklist validation and slider threshold logic
+- tests/e2e/broadcast-review-panel.spec.ts — 1 E2E test for review panel toggle behavior
