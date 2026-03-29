@@ -67,7 +67,7 @@
 - screenshots/inspect/ — 10 page screenshots
 
 ### Next:
-- Iteration 3: Deep dive — Broadcasts page
+- Iteration 2: Deep dive — Emails page
 
 ---
 
@@ -101,4 +101,42 @@
 - screenshots/inspect/ — emails-sending.jpg, emails-date-range-picker.jpg, emails-status-filter.jpg, emails-api-drawer.jpg, email-detail.jpg, email-detail-insights.jpg, emails-receiving.jpg
 
 ### Next:
-- Iteration 3: Deep dive — Broadcasts page
+- Iteration 4: Deep dive — Templates page
+
+---
+
+## Iteration 3: Broadcasts Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Broadcasts list page, inspected all interactive elements
+- Opened and inspected Status filter: 5 options (Draft, Scheduled, Queued, Sent, Failed)
+- Opened and inspected Audiences filter: combobox listing audience/segment names (e.g., "General")
+- Inspected row actions: Edit broadcast, Duplicate broadcast, Clone as template, Remove broadcast
+- Navigated to Broadcast Editor (/broadcasts/:id/editor)
+- Inspected editor header: back arrow, breadcrumb, editable title, draft badge, Test email + Review buttons
+- Inspected form fields: From (autocomplete), Reply-To (toggleable), To (autocomplete contenteditable), When (date/time combobox, toggleable), Subscribe to (topic combobox), Subject, Preview text (toggleable, maxlength 150)
+- Tested '/' slash commands — 4 categories: Text (8 blocks), Media (3 blocks), Layout (8 blocks), Utility (2 blocks)
+- Inspected editor toolbar tabs: Text (formatting), Image, Components (10 items), Variables (4 contact properties + 1 system variable)
+- Inspected right sidebar: Page style (background, body with width/height/padding/rounded/border), Theme (minimal/basic presets + 4 text level styles), Global CSS (code editor + media query shortcuts)
+- Tested Test email button — shows validation "Fill out the From and Content fields before sending a test"
+- Tested Review button — opens bottom panel with "Ready to send?" + slide-to-send slider (0-100)
+
+### Key findings:
+- Broadcasts use a sophisticated block-based email editor (similar to Notion/email builders)
+- 5 broadcast statuses: draft, scheduled, queued, sent, failed (vs 12 email statuses)
+- Editor has 21 block types across 4 categories via slash commands
+- Contact property templating: {{{contact.first_name}}}, {{{contact.last_name}}}, {{{contact.email}}}, {{{contact.company_name}}}
+- System variable: {{{RESEND_UNSUBSCRIBE_URL}}}
+- Theme system: 2 presets (minimal, basic) with 4 text levels (Text 14px, Title 31px, Subtitle 25px, Heading 19px)
+- Default body width: 600px
+- Slide-to-send is a safety mechanism — slider from 0-100 prevents accidental broadcast sends
+- Reply-To, When (scheduling), and Preview text are toggleable (hidden by default)
+- Editor supports template picking, HTML upload, and image upload
+
+### Files created/updated:
+- build-spec.md — Added sections 6.4 (Broadcasts List) and 6.5 (Broadcast Editor)
+- prd.json — Added 5 feature entries (feature-008 through feature-012)
+- screenshots/inspect/ — broadcasts-list.jpg, broadcasts-editor.jpg, broadcasts-review-panel.jpg, broadcasts-editor-variables.jpg
+
+### Next:
+- Iteration 4: Deep dive — Templates page

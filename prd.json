@@ -317,5 +317,234 @@
       ],
       "edge_cases": []
     }
+  },
+  {
+    "id": "feature-008",
+    "category": "crud",
+    "description": "Broadcasts list page — table with Name, Status, Created columns, checkbox selection, filters, pagination",
+    "page": "Broadcasts",
+    "ui_details": "Page title 'Broadcasts' + 'Create email' button (right of title) + API drawer button. Filter bar: Search input (Shadow DOM), Status dropdown (All Statuses — Draft, Scheduled, Queued, Sent, Failed), Audiences combobox (All Audiences + segment names), Export button. Data table with checkbox column, Name (link to /broadcasts/:id/editor), Status (text badge), Created (relative time). Row actions: Edit, Duplicate, Clone as template, Remove. Pagination: 40/80/120 items per page.",
+    "behavior": "Clicking broadcast name navigates to editor. Checkboxes enable bulk selection. Status filter narrows list. Audiences filter narrows by segment. Create email button creates new broadcast and navigates to editor. Row actions open dropdown with 4 options (Edit, Duplicate, Clone as template, Remove — Remove has separator above it).",
+    "data_model": "Broadcast list item: { id: string, name: string, status: BroadcastStatus, created_at: Date }. BroadcastStatus enum: draft | scheduled | queued | sent | failed",
+    "priority": 8,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders broadcast rows with correct columns",
+          "description": "Each broadcast row displays Name, Status, Created columns with checkbox",
+          "input": "Array of broadcast objects",
+          "expected_output": "Table rows with all 3 columns populated and checkboxes"
+        },
+        {
+          "name": "status filter shows 5 broadcast statuses",
+          "description": "Status dropdown shows Draft, Scheduled, Queued, Sent, Failed",
+          "input": "Click status dropdown",
+          "expected_output": "5 status options plus 'All Statuses' default"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "navigate to broadcast editor from list",
+          "steps": [
+            "Navigate to /broadcasts",
+            "Click on a broadcast name link",
+            "Verify URL changes to /broadcasts/:id/editor"
+          ],
+          "expected": "Navigation to broadcast editor page"
+        },
+        {
+          "name": "filter broadcasts by status",
+          "steps": [
+            "Navigate to /broadcasts",
+            "Click 'All Statuses' dropdown",
+            "Select 'Draft'",
+            "Verify table updates to show only draft broadcasts"
+          ],
+          "expected": "Table filters to show only drafts"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "row action — remove broadcast",
+          "steps": ["Click three-dot menu on a broadcast row", "Click 'Remove broadcast'"],
+          "expected": "Confirmation dialog or broadcast removed from list"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-009",
+    "category": "crud",
+    "description": "Broadcast editor — form fields (From, Reply-To, To, When, Subscribe to, Subject, Preview text)",
+    "page": "Broadcasts > Editor",
+    "ui_details": "Full-page editor layout. Header: back arrow + breadcrumb 'Broadcasts' + editable title + draft badge + Test email button + Review button. Form fields: From (autocomplete input, placeholder 'Acme <acme@example.com>'), Reply-To (toggleable via button), To (contenteditable autocomplete for audiences/segments), When (date/time combobox, toggleable), Subscribe to (topic combobox), Subject (text input), Preview text (text input, maxlength 150, toggleable).",
+    "behavior": "Title is inline-editable. Reply-To, When, and Preview text fields are hidden by default — toggle buttons show them. From input has autocomplete from verified domains. To input autocompletes audience/segment names. When input accepts date/time for scheduling. Subscribe to selects a topic for unsubscribe management. Auto-saves as draft.",
+    "data_model": "Broadcast editor: { id: string, name: string, from: string, reply_to: string, to: string (audience/segment), when: Date | null, topic_id: string | null, subject: string, preview_text: string, html: string, status: BroadcastStatus }",
+    "priority": 8,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders all form fields",
+          "description": "Editor shows From, To, Subject fields by default; Reply-To, When, Preview text are toggleable",
+          "input": "Navigate to broadcast editor",
+          "expected_output": "From, To, Subject visible; Reply-To, When, Preview text hidden until toggled"
+        },
+        {
+          "name": "preview text has maxlength 150",
+          "description": "Preview text input enforces 150 character limit",
+          "input": "Type 160 characters into Preview text",
+          "expected_output": "Input truncated or blocked at 150 characters"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "edit broadcast title inline",
+          "steps": [
+            "Navigate to a broadcast editor",
+            "Click on the title 'Untitled'",
+            "Type 'My Newsletter'",
+            "Click outside the title",
+            "Verify title updates"
+          ],
+          "expected": "Title changes to 'My Newsletter'"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "test email validation — empty fields",
+          "steps": ["Click 'Test email' button without filling From or Content"],
+          "expected": "Validation message: 'Fill out the From and Content fields before sending a test'"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-010",
+    "category": "ui",
+    "description": "Broadcast editor — block-based content editor with slash commands",
+    "page": "Broadcasts > Editor",
+    "ui_details": "Contenteditable rich text editor with '/' slash command menu. Slash menu categories: Text (Text, Title, Subtitle, Heading, Bullet list, Numbered list, Quote, Code block), Media (Image, YouTube, X/Twitter), Layout (Button, Divider, Section, 2/3/4 columns, Social Links, Unsubscribe Footer), Utility (HTML, Variable). Bottom toolbar tabs: Text (formatting), Image, Components (same as Layout slash commands + HTML + Code), Variables (contact properties + system variables).",
+    "behavior": "Typing '/' opens command palette with categorized block types. Selecting a block inserts it at cursor. Text toolbar shows Bold, Italic, Underline, Strikethrough, Code, Uppercase toggles + alignment (left/center/right) + lists. Variables tab shows insertable template variables: {{{contact.first_name}}}, {{{contact.last_name}}}, {{{contact.email}}}, {{{contact.company_name}}}, {{{RESEND_UNSUBSCRIBE_URL}}}. 'Pick a template' button loads saved templates. 'Upload HTML' accepts .html files.",
+    "data_model": "Editor blocks: Array<{ type: 'text'|'title'|'subtitle'|'heading'|'bullet_list'|'numbered_list'|'quote'|'code_block'|'image'|'youtube'|'twitter'|'button'|'divider'|'section'|'columns'|'social_links'|'unsubscribe_footer'|'html'|'variable', content: any }>",
+    "priority": 9,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "slash command menu shows all block types",
+          "description": "Typing '/' shows categorized menu with Text, Media, Layout, Utility sections",
+          "input": "Type '/' in editor",
+          "expected_output": "Menu with 4 categories and all block type options"
+        },
+        {
+          "name": "variables tab shows contact properties and system variables",
+          "description": "Variables panel lists 4 contact properties + 1 system variable",
+          "input": "Click Variables toolbar tab",
+          "expected_output": "Shows {{{contact.first_name}}}, {{{contact.last_name}}}, {{{contact.email}}}, {{{contact.company_name}}}, {{{RESEND_UNSUBSCRIBE_URL}}}"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "insert text block via slash command",
+          "steps": [
+            "Navigate to broadcast editor",
+            "Click in editor area",
+            "Type '/'",
+            "Click 'Heading' in the slash menu",
+            "Type 'Hello World'",
+            "Verify heading block appears"
+          ],
+          "expected": "Heading block inserted with 'Hello World' text"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "insert variable into content",
+          "steps": ["Click Variables tab", "Click {{{contact.first_name}}}"],
+          "expected": "Variable placeholder inserted into editor content"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-011",
+    "category": "ui",
+    "description": "Broadcast editor — right sidebar: Page style, Theme, Global CSS panels",
+    "page": "Broadcasts > Editor",
+    "ui_details": "Right sidebar with 3 collapsible panels. Page style: Background (color picker, padding), Body (3 layout options, color, width default 600px, height, padding, rounded corners, border width + color). Theme: 2 presets (minimal, basic), text styles for 4 levels — Text (14px Regular), Title (31px Semi Bold), Subtitle (25px Semi Bold), Heading (19px Semi Bold) — each with color, size, weight, height, spacing, decoration. Global CSS: code editor with quick-insert buttons (@media dark, @media mobile, .button).",
+    "behavior": "Page style controls affect the email container. Theme presets change all typography at once. Individual text level overrides persist. Global CSS editor allows custom styles with syntax highlighting. Quick-insert buttons add media query or class scaffolding. 'Edit theme' and 'Global CSS' buttons toggle between sidebar panels. Close sidebar button available.",
+    "data_model": "Broadcast style: { background: { color: string, padding: number }, body: { layout: 'full'|'centered'|'narrow', color: string, width: number, height: number|'auto', padding: number, borderRadius: number, borderWidth: number, borderColor: string }, theme: 'minimal'|'basic', textStyles: Record<'text'|'title'|'subtitle'|'heading', { color: string, fontSize: number, fontWeight: string, lineHeight: number, letterSpacing: number, decoration: 'none'|'underline'|'strikethrough' }>, globalCSS: string }",
+    "priority": 10,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders page style panel with defaults",
+          "description": "Body width defaults to 600px, padding to 0, border color to #000000",
+          "input": "Open broadcast editor",
+          "expected_output": "Width=600, padding=0, border color=#000000"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "switch theme preset",
+          "steps": [
+            "Navigate to broadcast editor",
+            "Click 'minimal' theme preset button",
+            "Verify theme switches from 'basic' to 'minimal'"
+          ],
+          "expected": "Theme preset changes, typography updates accordingly"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "custom global CSS",
+          "steps": ["Click 'Global CSS' button", "Type 'p { color: red; }' in CSS editor"],
+          "expected": "CSS applied to email preview"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-012",
+    "category": "interaction",
+    "description": "Broadcast editor — Review panel with slide-to-send",
+    "page": "Broadcasts > Editor",
+    "ui_details": "Bottom panel triggered by 'Review' button. Shows 'Ready to send?' heading, broadcast details summary (loading state observed), and a 'Slide to send' slider control (range 0-100). Slider requires dragging to confirm send — prevents accidental sends.",
+    "behavior": "Review button toggles bottom panel. Panel shows broadcast summary (recipients, subject, etc.). Slide-to-send is a slider (aria-label 'Volume', min 0, max 100) — user must drag to 100 to confirm sending. This is a safety mechanism for broadcast sends.",
+    "data_model": "N/A — interaction only",
+    "priority": 10,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "review panel shows slide-to-send slider",
+          "description": "Panel contains slider with min 0 and max 100",
+          "input": "Click Review button",
+          "expected_output": "Bottom panel with 'Ready to send?' and slider control"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "open and close review panel",
+          "steps": [
+            "Navigate to broadcast editor",
+            "Click 'Review' button",
+            "Verify bottom panel appears with 'Ready to send?'",
+            "Click 'Review' button again",
+            "Verify panel closes"
+          ],
+          "expected": "Review panel toggles open/closed"
+        }
+      ],
+      "edge_cases": []
+    }
   }
 ]

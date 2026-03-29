@@ -215,6 +215,87 @@ contact.created, contact.updated, contact.deleted
    - "Report generated on" timestamp at bottom
 - Copy button next to tabs (copies content of active tab)
 
+### 6.4 Broadcasts — List Page (`/broadcasts`)
+
+**Layout**: Page title "Broadcasts" + "Create email" button + API drawer button → filter bar → data table → pagination
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Status filter** (dropdown button, default "All Statuses") — 5 options:
+   - Draft, Scheduled, Queued, Sent, Failed
+3. **Audiences filter** (combobox, default "All Audiences") — lists audience/segment names (e.g., "General")
+4. **Export button** (right side, icon button)
+
+**Data Table**:
+- Columns: Name, Status, Created
+- Checkbox column for bulk selection (header + per row)
+- **Name** column: clickable link to `/broadcasts/:id/editor`
+- **Status** column: text badge (e.g., "Draft")
+- **Created** column: relative time (e.g., "about 19 hours ago")
+- **Row actions**: three-dot "More actions" button → dropdown with:
+  - Edit broadcast
+  - Duplicate broadcast
+  - Clone as template
+  - *(separator)*
+  - Remove broadcast
+
+**Pagination**: Page indicator + items per page selector (40/80/120)
+
+### 6.5 Broadcasts — Editor (`/broadcasts/:id/editor`)
+
+**Layout**: Full-page editor. Header bar → form fields (left panel) + content editor (center) + style sidebar (right)
+
+**Header**:
+- Back arrow → "Broadcasts" breadcrumb link
+- Editable title button (default "Untitled")
+- Draft status badge
+- "Test email" button (validates From + Content required before sending)
+- "Review" button → opens bottom panel with "Ready to send?" + "Slide to send" slider control
+- Two additional action buttons (settings/more)
+
+**Form Fields** (left side, above editor):
+- **From**: text input with autocomplete (placeholder "Acme <acme@example.com>")
+- **Reply-To**: text input (toggleable, hidden by default — "Reply-To" button to show)
+- **To**: autocomplete contenteditable input (for selecting audiences/segments)
+- **When**: date/time combobox input (placeholder "Enter a date or time..." — toggleable, "When" button to show)
+- **Subscribe to**: combobox to select a topic (default "Select a topic")
+- **Subject**: text input (placeholder "Subject")
+- **Preview text**: text input (maxlength 150 — toggleable, "Preview text" button to show)
+
+**Content Editor** (block-based rich text editor):
+- Contenteditable div with '/' slash command menu
+- "Press '/' for commands" hint text
+- **Slash command blocks** organized in 4 categories:
+  - **Text**: Text, Title, Subtitle, Heading, Bullet list, Numbered list, Quote, Code block
+  - **Media**: Image, YouTube, X (former Twitter)
+  - **Layout**: Button, Divider, Section, 2 columns, 3 columns, 4 columns, Social Links, Unsubscribe Footer
+  - **Utility**: HTML, Variable
+- "Pick a template" button (loads from saved templates)
+- "Upload HTML" button (accepts .html files)
+- Image upload (accepts image/*)
+
+**Editor Toolbar Tabs** (bottom of editor area):
+1. **Text**: Typography presets (Title, Subtitle, Heading, Body), formatting (Bold, Italic, Underline, Strikethrough, Code, Uppercase), alignment (left, center, right), lists (bullet, ordered), blockquote, link, spacing, padding (T/R/B/L), background, border
+2. **Image**: Image-specific controls
+3. **Components**: Button, Divider, Section, 2/3/4 columns, Social Links, Unsubscribe Footer, HTML, Code
+4. **Variables**:
+   - Contact properties: `{{{contact.first_name}}}`, `{{{contact.last_name}}}`, `{{{contact.email}}}`, `{{{contact.company_name}}}`
+   - System: `{{{RESEND_UNSUBSCRIBE_URL}}}`
+   - "Create property" link
+
+**Right Sidebar** (3 panels):
+1. **Page style**:
+   - Background: color picker, padding (px)
+   - Body: 3 layout radio options, color, width (default 600px), height, padding, rounded corners, border (width + color)
+   - "Edit theme" button, "Global CSS" button
+2. **Theme**:
+   - Presets: minimal, basic
+   - Text styles for 4 levels: Text (14px Regular), Title (31px Semi Bold), Subtitle (25px Semi Bold), Heading (19px Semi Bold)
+   - Each level: color, font size, weight, line height, letter spacing, decoration (None, Underline, Strikethrough)
+3. **Global CSS**:
+   - CSS code editor (contenteditable) with syntax highlighting
+   - Quick-insert buttons: `@media (prefers-color-scheme: dark)`, `@media screen and (max-width: 480px)`, `.button`
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
