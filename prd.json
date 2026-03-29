@@ -179,7 +179,9 @@
       "edge_cases": [
         {
           "name": "empty table shows empty state",
-          "steps": ["Render table with 0 rows"],
+          "steps": [
+            "Render table with 0 rows"
+          ],
           "expected": "Empty state message displayed"
         }
       ]
@@ -285,12 +287,16 @@
       "edge_cases": [
         {
           "name": "batch send exceeds 100 limit",
-          "steps": ["POST /api/emails/batch with 101 emails"],
+          "steps": [
+            "POST /api/emails/batch with 101 emails"
+          ],
           "expected": "400 error: maximum 100 emails per batch"
         },
         {
           "name": "unauthorized request without API key",
-          "steps": ["POST /api/emails without Authorization header"],
+          "steps": [
+            "POST /api/emails without Authorization header"
+          ],
           "expected": "401 Unauthorized"
         }
       ]
@@ -337,7 +343,9 @@
       "edge_cases": [
         {
           "name": "empty API keys list",
-          "steps": ["Navigate to /api-keys with no keys created"],
+          "steps": [
+            "Navigate to /api-keys with no keys created"
+          ],
           "expected": "Empty state message displayed"
         }
       ]
@@ -432,7 +440,10 @@
       "edge_cases": [
         {
           "name": "total uses links to filtered logs",
-          "steps": ["Navigate to /api-keys/:id", "Click Total uses link"],
+          "steps": [
+            "Navigate to /api-keys/:id",
+            "Click Total uses link"
+          ],
           "expected": "Navigates to /logs page filtered by this API key ID"
         }
       ]
@@ -474,7 +485,9 @@
       "edge_cases": [
         {
           "name": "direct URL to receiving tab",
-          "steps": ["Navigate directly to /emails/receiving"],
+          "steps": [
+            "Navigate directly to /emails/receiving"
+          ],
           "expected": "Receiving tab is active, page loads correctly"
         }
       ]
@@ -531,7 +544,9 @@
       "edge_cases": [
         {
           "name": "search with no results",
-          "steps": ["Type 'nonexistent@email.com' in search"],
+          "steps": [
+            "Type 'nonexistent@email.com' in search"
+          ],
           "expected": "Table shows empty state or 'no results' message"
         }
       ]
@@ -577,7 +592,9 @@
       "edge_cases": [
         {
           "name": "empty email list",
-          "steps": ["Filter to a date range with no emails"],
+          "steps": [
+            "Filter to a date range with no emails"
+          ],
           "expected": "Empty state message displayed"
         }
       ]
@@ -625,7 +642,9 @@
       "edge_cases": [
         {
           "name": "copy email ID to clipboard",
-          "steps": ["Click copy button next to email ID"],
+          "steps": [
+            "Click copy button next to email ID"
+          ],
           "expected": "ID copied to clipboard, toast or button state change confirms copy"
         }
       ]
@@ -674,7 +693,9 @@
       "edge_cases": [
         {
           "name": "expand insight accordion item",
-          "steps": ["Click on 'Include valid DMARC record' in Insights tab"],
+          "steps": [
+            "Click on 'Include valid DMARC record' in Insights tab"
+          ],
           "expected": "Accordion expands to show detailed explanation"
         }
       ]
@@ -719,14 +740,19 @@
         },
         {
           "name": "navigate to domain detail",
-          "steps": ["Navigate to /domains", "Click domain name link"],
+          "steps": [
+            "Navigate to /domains",
+            "Click domain name link"
+          ],
           "expected": "Navigates to /domains/:id with domain detail page"
         }
       ],
       "edge_cases": [
         {
           "name": "empty domains list",
-          "steps": ["Filter to a status with no matching domains"],
+          "steps": [
+            "Filter to a status with no matching domains"
+          ],
           "expected": "Empty state shown with appropriate message"
         }
       ]
@@ -784,7 +810,9 @@
       "edge_cases": [
         {
           "name": "domain with pending status",
-          "steps": ["Navigate to a domain that is still pending verification"],
+          "steps": [
+            "Navigate to a domain that is still pending verification"
+          ],
           "expected": "Status shows 'pending', timeline shows only 'Domain added' event"
         }
       ]
@@ -874,7 +902,10 @@
       "edge_cases": [
         {
           "name": "toggle open tracking shows warning",
-          "steps": ["Click Configuration tab", "Toggle Open Tracking on"],
+          "steps": [
+            "Click Configuration tab",
+            "Toggle Open Tracking on"
+          ],
           "expected": "Setting is enabled, 'Not Recommended' label still visible"
         }
       ]
@@ -917,7 +948,10 @@
       "edge_cases": [
         {
           "name": "copy code to clipboard",
-          "steps": ["Open drawer", "Click copy button on first code block"],
+          "steps": [
+            "Open drawer",
+            "Click copy button on first code block"
+          ],
           "expected": "Code copied to clipboard, button shows success state"
         }
       ]
@@ -966,7 +1000,9 @@
       "edge_cases": [
         {
           "name": "direct URL to Topics tab",
-          "steps": ["Navigate directly to /audience/topics"],
+          "steps": [
+            "Navigate directly to /audience/topics"
+          ],
           "expected": "Topics tab is active, page loads correctly"
         }
       ]
@@ -1015,7 +1051,9 @@
       "edge_cases": [
         {
           "name": "empty contacts list",
-          "steps": ["Search for nonexistent email"],
+          "steps": [
+            "Search for nonexistent email"
+          ],
           "expected": "Empty state or 'no results' message displayed"
         }
       ]
@@ -1058,7 +1096,10 @@
       "edge_cases": [
         {
           "name": "add multiple contacts with commas",
-          "steps": ["Type 'a@b.com, c@d.com' in textarea", "Click Add"],
+          "steps": [
+            "Type 'a@b.com, c@d.com' in textarea",
+            "Click Add"
+          ],
           "expected": "Both contacts created successfully"
         }
       ]
@@ -1107,7 +1148,9 @@
       "edge_cases": [
         {
           "name": "copy contact ID to clipboard",
-          "steps": ["Click copy button next to ID"],
+          "steps": [
+            "Click copy button next to ID"
+          ],
           "expected": "ID copied to clipboard, button shows success state"
         }
       ]
@@ -1156,7 +1199,10 @@
       "edge_cases": [
         {
           "name": "property name maxlength",
-          "steps": ["Open add property modal", "Type 110 characters in Name"],
+          "steps": [
+            "Open add property modal",
+            "Type 110 characters in Name"
+          ],
           "expected": "Input truncated or blocked at 100 characters"
         }
       ]
@@ -1253,7 +1299,10 @@
       "edge_cases": [
         {
           "name": "topic name maxlength",
-          "steps": ["Open create topic modal", "Type 55 characters in Name"],
+          "steps": [
+            "Open create topic modal",
+            "Type 55 characters in Name"
+          ],
           "expected": "Input truncated or blocked at 50 characters"
         }
       ]
@@ -1411,7 +1460,10 @@
       "edge_cases": [
         {
           "name": "insert variable into content",
-          "steps": ["Click Variables tab", "Click {{{contact.first_name}}}"],
+          "steps": [
+            "Click Variables tab",
+            "Click {{{contact.first_name}}}"
+          ],
           "expected": "Variable placeholder inserted into editor content"
         }
       ]
@@ -1596,7 +1648,10 @@
       "edge_cases": [
         {
           "name": "preview text maxlength enforcement",
-          "steps": ["Toggle Preview text field", "Type 160 characters"],
+          "steps": [
+            "Toggle Preview text field",
+            "Type 160 characters"
+          ],
           "expected": "Input blocked or truncated at 150 characters"
         }
       ]
@@ -1649,7 +1704,9 @@
       "edge_cases": [
         {
           "name": "copy alias to clipboard",
-          "steps": ["Click copy button next to alias"],
+          "steps": [
+            "Click copy button next to alias"
+          ],
           "expected": "Alias copied to clipboard, button shows success state"
         }
       ]
@@ -1696,7 +1753,9 @@
       "edge_cases": [
         {
           "name": "empty state shows add webhook CTA",
-          "steps": ["Navigate to /webhooks with no webhooks"],
+          "steps": [
+            "Navigate to /webhooks with no webhooks"
+          ],
           "expected": "Empty state with description and add webhook button visible"
         }
       ]
@@ -1756,12 +1815,18 @@
       "edge_cases": [
         {
           "name": "submit without endpoint URL shows validation",
-          "steps": ["Open add webhook modal", "Click Add without filling URL"],
+          "steps": [
+            "Open add webhook modal",
+            "Click Add without filling URL"
+          ],
           "expected": "Validation error on Endpoint URL field (required)"
         },
         {
           "name": "search filters event types",
-          "steps": ["Open event types combobox", "Type 'email' in search"],
+          "steps": [
+            "Open event types combobox",
+            "Type 'email' in search"
+          ],
           "expected": "Only email-related events shown, contacts and domains filtered out"
         }
       ]
@@ -1808,7 +1873,10 @@
       "edge_cases": [
         {
           "name": "deselecting one event unchecks All Events",
-          "steps": ["Select All Events", "Deselect email.bounced"],
+          "steps": [
+            "Select All Events",
+            "Deselect email.bounced"
+          ],
           "expected": "All Events unchecked, Email category header unchecked, other events remain selected"
         }
       ]
@@ -1865,7 +1933,9 @@
       "edge_cases": [
         {
           "name": "empty logs state",
-          "steps": ["Navigate to /logs with no API requests made"],
+          "steps": [
+            "Navigate to /logs with no API requests made"
+          ],
           "expected": "Empty state message displayed"
         }
       ]
@@ -1912,7 +1982,10 @@
       "edge_cases": [
         {
           "name": "copy ID to clipboard",
-          "steps": ["Navigate to /logs/:id", "Click copy button next to ID"],
+          "steps": [
+            "Navigate to /logs/:id",
+            "Click copy button next to ID"
+          ],
           "expected": "UUID copied to clipboard, button shows confirmation state"
         }
       ]
@@ -2010,7 +2083,9 @@
       "edge_cases": [
         {
           "name": "no data for selected date range",
-          "steps": ["Select 'Today' when no emails sent today"],
+          "steps": [
+            "Select 'Today' when no emails sent today"
+          ],
           "expected": "Charts show empty/zero state, all percentages show 0%"
         }
       ]
@@ -2057,7 +2132,9 @@
       "edge_cases": [
         {
           "name": "100% deliverability rate display",
-          "steps": ["View metrics when all emails delivered successfully"],
+          "steps": [
+            "View metrics when all emails delivered successfully"
+          ],
           "expected": "Shows '100%' in summary and '100%' for each domain"
         }
       ]
@@ -2142,7 +2219,9 @@
       "edge_cases": [
         {
           "name": "zero complain rate display",
-          "steps": ["View metrics with no complaints"],
+          "steps": [
+            "View metrics with no complaints"
+          ],
           "expected": "Shows '0%' for complain rate, chart shows flat zero line"
         }
       ]
@@ -2217,7 +2296,9 @@
       "edge_cases": [
         {
           "name": "direct URL navigation to settings tab",
-          "steps": ["Navigate directly to /settings/smtp"],
+          "steps": [
+            "Navigate directly to /settings/smtp"
+          ],
           "expected": "SMTP tab is active and content is displayed correctly"
         }
       ]
@@ -2264,7 +2345,9 @@
       "edge_cases": [
         {
           "name": "quota at limit display",
-          "steps": ["View usage when monthly limit is 3000/3000"],
+          "steps": [
+            "View usage when monthly limit is 3000/3000"
+          ],
           "expected": "Progress indicator shows full/warning state"
         }
       ]
@@ -2307,7 +2390,9 @@
       "edge_cases": [
         {
           "name": "fields are not editable",
-          "steps": ["Click on Host input and try to type"],
+          "steps": [
+            "Click on Host input and try to type"
+          ],
           "expected": "Input remains read-only, value does not change"
         }
       ]
@@ -2411,7 +2496,9 @@
       "edge_cases": [
         {
           "name": "download link points to valid path",
-          "steps": ["Check href of Penetration test download link"],
+          "steps": [
+            "Check href of Penetration test download link"
+          ],
           "expected": "Link href contains '/static/documents/' path to a PDF file"
         }
       ]
@@ -2428,7 +2515,7 @@
     "data_model": "Resend class with sub-clients: emails, domains, apiKeys, contacts, segments, broadcasts, webhooks, templates, topics",
     "priority": 20,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2482,7 +2569,7 @@
     "data_model": "Query emails table with filters, stream as CSV",
     "priority": 9,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
@@ -2506,7 +2593,7 @@
     "data_model": "Derived from email record + domain config (DMARC, tracking settings)",
     "priority": 8,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {

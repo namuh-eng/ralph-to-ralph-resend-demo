@@ -42,7 +42,7 @@ export function EmailsSendingPage({ apiKeys, emails }: EmailsSendingPageProps) {
 
   return (
     <div>
-      <EmailsHeader activeTab="sending" />
+      <EmailsHeader activeTab="sending" apiKeys={apiKeys} />
       <EmailsSendingFilterBar apiKeys={apiKeys} onFiltersChange={setFilters} />
       <div className="mt-4">
         <EmailsSendingDataTable emails={filteredEmails} />

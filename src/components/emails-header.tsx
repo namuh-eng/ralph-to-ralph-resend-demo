@@ -1,11 +1,13 @@
 "use client";
 
 import { ApiCodeDrawer, ApiDrawerButton } from "@/components/api-code-drawer";
+import { ExportModal } from "@/components/export-modal";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 interface EmailsHeaderProps {
   activeTab: "sending" | "receiving";
+  apiKeys?: { id: string; name: string }[];
 }
 
 const tabs = [
@@ -13,9 +15,10 @@ const tabs = [
   { value: "receiving", label: "Receiving", href: "/emails/receiving" },
 ] as const;
 
-export function EmailsHeader({ activeTab }: EmailsHeaderProps) {
+export function EmailsHeader({ activeTab, apiKeys = [] }: EmailsHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,6 +83,16 @@ export function EmailsHeader({ activeTab }: EmailsHeaderProps) {
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-[8px] py-1 z-10">
+                <button
+                  type="button"
+                  className="w-full block px-3 py-2 text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] hover:bg-[rgba(176,199,217,0.1)] transition-colors text-left"
+                  onClick={() => {
+                    setExportOpen(true);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Export emails
+                </button>
                 <a
                   href="/docs"
                   className="block px-3 py-2 text-[13px] text-[#A1A4A5] hover:text-[#F0F0F0] hover:bg-[rgba(176,199,217,0.1)] transition-colors"
@@ -95,6 +108,11 @@ export function EmailsHeader({ activeTab }: EmailsHeaderProps) {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         context="emails"
+      />
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        apiKeys={apiKeys}
       />
     </div>
   );

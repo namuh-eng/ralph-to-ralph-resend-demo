@@ -1,0 +1,119 @@
+# resend-clone
+
+TypeScript SDK for the Resend Clone email API.
+
+## Installation
+
+```bash
+npm install resend-clone
+```
+
+## Getting Started
+
+```typescript
+import { ResendClone } from "resend-clone";
+
+const client = new ResendClone("re_your_api_key", {
+  baseUrl: "https://your-deployment.example.com",
+});
+```
+
+## Sending Emails
+
+```typescript
+const { data, error } = await client.emails.send({
+  from: "hello@updates.example.com",
+  to: "user@example.com",
+  subject: "Welcome!",
+  html: "<h1>Welcome aboard</h1>",
+});
+
+if (error) {
+  console.error(error.message);
+} else {
+  console.log("Sent:", data.id);
+}
+```
+
+### With React components
+
+```tsx
+const { data } = await client.emails.send({
+  from: "hello@updates.example.com",
+  to: "user@example.com",
+  subject: "Invoice",
+  react: <InvoiceEmail amount={49.99} />,
+});
+```
+
+## Listing Emails
+
+```typescript
+const { data } = await client.emails.list();
+console.log(data.data); // EmailListItem[]
+```
+
+## Getting an Email
+
+```typescript
+const { data } = await client.emails.get("email-id");
+```
+
+## Domains
+
+```typescript
+// Create a domain
+await client.domains.create({ name: "example.com" });
+
+// List domains
+const { data } = await client.domains.list();
+
+// Get a domain
+await client.domains.get("domain-id");
+
+// Verify a domain
+await client.domains.verify("domain-id");
+```
+
+## API Keys
+
+```typescript
+// Create an API key
+const { data } = await client.apiKeys.create({ name: "Production Key" });
+console.log(data.token); // Only shown once
+
+// List API keys
+await client.apiKeys.list();
+
+// Delete an API key
+await client.apiKeys.delete("key-id");
+```
+
+## Contacts
+
+```typescript
+// Create contacts
+await client.contacts.create({ emails: ["user@example.com"] });
+
+// List contacts
+const { data } = await client.contacts.list();
+
+// Get a contact
+await client.contacts.get("contact-id");
+```
+
+## Error Handling
+
+All methods return `{ data, error }`. Check `error` before using `data`:
+
+```typescript
+const { data, error } = await client.emails.send({ ... });
+
+if (error) {
+  console.error(`Error ${error.statusCode}: ${error.message}`);
+  return;
+}
+
+// data is guaranteed non-null here
+console.log(data.id);
+```
