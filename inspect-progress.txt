@@ -35,4 +35,36 @@
 - clone-product-docs/INDEX.md — master index
 
 ### Next:
-- Iteration 1: Map the site structure (sitemap.md) using Ever CLI
+- Iteration 2: Deep dive — Emails page (Sending tab, Receiving tab, email detail)
+
+---
+
+## Iteration 1: Site Map — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated all 10 main sidebar pages using Ever CLI
+- Captured screenshots of every page: dashboard-home, broadcasts, templates, audience, metrics, domains, logs, api-keys, webhooks, settings
+- Extracted tab/sub-page structure for multi-tab pages:
+  - Emails: Sending, Receiving
+  - Audience: Contacts, Properties, Segments, Topics
+  - Settings: Usage, Billing, Team, SMTP, Integrations, Unsubscribe page, Documents
+- Extracted all nav link URLs via eval
+- Identified common UI patterns across all pages
+
+### Key findings:
+- Layout: sidebar (left) + content area (right), consistent across all pages
+- Most pages follow a list pattern: header + filters + table + pagination
+- Pagination uses 40/80/120 items per page selector
+- Search inputs use Shadow DOM
+- All list pages have: search, filter dropdowns, checkbox selection, row action menus
+- API drawer button present on most resource pages
+- Detail pages accessible by clicking list items (e.g., /emails/:id, /domains/:id)
+- Settings has 7 tabs (Billing and Team are out of scope)
+
+### Files created/updated:
+- sitemap.md — complete site structure
+- build-spec.md — updated sections 6 (Design System partial), 7 (Site Map), 8 (Build Order)
+- screenshots/inspect/ — 10 page screenshots
+
+### Next:
+- Iteration 2: Deep dive — Emails page (Sending tab, detail view, Receiving tab)

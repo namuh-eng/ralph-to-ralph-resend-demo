@@ -1,6 +1,6 @@
 # Build Spec — Resend Clone
 
-> Status: PARTIAL — Docs extracted, UI inspection pending
+> Status: PARTIAL — Docs extracted, site mapped, feature deep-dives pending
 
 ## 1. Product Overview
 
@@ -127,11 +127,80 @@ contact.created, contact.updated, contact.deleted
 ### Topic
 - id, name, description, defaultSubscription (opt_in|opt_out), visibility (public|private)
 
-## 6. Design System — PENDING (needs UI inspection)
+## 6. Design System — PARTIAL (needs feature deep-dives)
 
-## 7. Site Map — PENDING (needs UI inspection)
+### Layout
+- **Sidebar**: ~240px, dark/neutral background, fixed left
+- **Content area**: White background, max-width container
+- **Page header**: Title (h1) + action buttons (right-aligned)
+- **Filter bar**: Search input + dropdown filters + date range picker
 
-## 8. Build Order — PENDING (needs full inspection)
+### Common Components
+- **Data tables**: Sortable columns, checkbox selection, row actions (three-dot menu)
+- **Pagination**: Items per page selector (40/80/120), cursor-based
+- **Search**: Shadow DOM text input with placeholder
+- **Status badges**: Colored pills (delivered, bounced, complained, etc.)
+- **API drawer**: Slide-in panel from right showing code examples
+- **Modals**: For create/edit forms
+- **Toast notifications**: Success/error feedback
+- **Date range picker**: Preset ranges (Last 15 days, etc.) + custom
+- **Tabs**: Horizontal tab bar for sub-pages (e.g., Emails: Sending/Receiving, Audience: 4 tabs, Settings: 7 tabs)
+
+### Colors — *To be captured during deep dives*
+### Typography — *To be captured during deep dives*
+
+## 7. Site Map
+
+**Layout**: Sidebar (left, 10 nav items) + Content area (right)
+
+| # | Page | URL | Type | Sub-tabs |
+|---|------|-----|------|----------|
+| 1 | Emails | `/emails` | List/table | Sending (`/emails`), Receiving (`/emails/receiving`) |
+| 2 | Broadcasts | `/broadcasts` | List | — |
+| 3 | Templates | `/templates` | List/card | — |
+| 4 | Audience | `/audience` | List/table | Contacts (`/audience/`), Properties (`/audience/properties`), Segments (`/audience/segments`), Topics (`/audience/topics`) |
+| 5 | Metrics | `/metrics` | Charts | — |
+| 6 | Domains | `/domains` | List | — |
+| 7 | Logs | `/logs` | List/table | — |
+| 8 | API Keys | `/api-keys` | List | — |
+| 9 | Webhooks | `/webhooks` | List/card | — |
+| 10 | Settings | `/settings` | Config | Usage, ~~Billing~~, ~~Team~~, SMTP, Integrations, Unsubscribe page, Documents |
+
+**Detail pages** (accessed from list items):
+- `/emails/:id` — Email detail (delivery status, headers, body preview)
+- `/broadcasts/:id` — Broadcast detail/editor
+- `/audience/:id` — Contact detail
+- `/domains/:id` — Domain detail (DNS records, verification)
+- `/templates/:id` — Template editor
+
+## 8. Build Order
+
+**Core features** (what makes Resend valuable):
+1. Send emails via API
+2. View email delivery status/logs
+3. Manage domains + DNS verification
+4. API key management
+
+**Priority order:**
+1. Project scaffolding (done — Next.js, Drizzle, Playwright, Biome)
+2. Core layout shell (sidebar nav, content area, routing)
+3. Design system foundations (colors, typography, shared table/filter components)
+4. Database schema (all models via Drizzle)
+5. **CORE: Email sending API** (`POST /api/emails`) + SES integration
+6. **CORE: Emails list page** (table, filters, search, status badges)
+7. **CORE: Email detail page** (delivery timeline, headers, body preview)
+8. **CORE: Domains** (add, verify via SES + Cloudflare, DNS records)
+9. **CORE: API Keys** (create, list, delete, permission scoping)
+10. Audience — Contacts (CRUD, search, import)
+11. Audience — Properties, Segments, Topics
+12. Templates (CRUD, variables, preview)
+13. Broadcasts (create, schedule, send to segment)
+14. Webhooks (create, manage, event types, signing)
+15. Logs (event log viewer with filters)
+16. Metrics (charts, aggregation queries)
+17. Settings — Usage, SMTP, Integrations, Unsubscribe page, Documents
+18. TypeScript SDK (`packages/sdk/`)
+19. Deployment (AWS App Runner + RDS)
 
 ## 9. Backend Architecture
 
