@@ -80,6 +80,7 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
   >("full_access");
   const [newDomainId, setNewDomainId] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
 
   // Filter keys
   const filtered = keys.filter((k) => {
@@ -156,11 +157,21 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
     },
   ];
 
+  const handlePermissionChange = useCallback(
+    (value: "full_access" | "sending_access") => {
+      setNewPermission(value);
+      if (value === "full_access") {
+        setNewDomainId("");
+      }
+    },
+    [],
+  );
+
   const handleCreate = useCallback(async () => {
     if (!newName.trim() || creating) return;
     setCreating(true);
     try {
-      await fetch("/api/api-keys", {
+      const res = await fetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -169,11 +180,10 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
           domain_id: newDomainId || undefined,
         }),
       });
-      setCreateOpen(false);
-      setNewName("");
-      setNewPermission("full_access");
-      setNewDomainId("");
-      window.location.reload();
+      if (res.ok) {
+        const data = await res.json();
+        setCreatedToken(data.token);
+      }
     } catch {
       // silently fail
     } finally {
@@ -231,14 +241,49 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
     );
   }
 
+  function handleCloseCreateModal() {
+    setCreateOpen(false);
+    setNewName("");
+    setNewPermission("full_access");
+    setNewDomainId("");
+    if (createdToken) {
+      setCreatedToken(null);
+      window.location.reload();
+    }
+  }
+
   function renderCreateModal() {
+    // Token reveal view after successful creation
+    if (createdToken) {
+      return (
+        <Modal
+          open={createOpen}
+          onClose={handleCloseCreateModal}
+          title="API Key Created"
+        >
+          <div className="space-y-4">
+            <p className="text-[13px] text-[#A1A4A5]">
+              This key will never be shown again. Please copy it and store it
+              securely.
+            </p>
+            <div className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-md py-3 px-4">
+              <code className="text-[14px] text-[#F0F0F0] font-mono break-all">
+                {createdToken}
+              </code>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
     return (
       <Modal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCloseCreateModal}
         title="Add API Key"
         actionLabel="Add"
         onAction={handleCreate}
+        actionDisabled={!newName.trim()}
       >
         <div className="space-y-4">
           <div>
@@ -268,7 +313,7 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
               id="ak-permission"
               value={newPermission}
               onChange={(e) =>
-                setNewPermission(
+                handlePermissionChange(
                   e.target.value as "full_access" | "sending_access",
                 )
               }
@@ -289,7 +334,8 @@ export function ApiKeysList({ keys, domains }: ApiKeysListProps) {
               id="ak-domain"
               value={newDomainId}
               onChange={(e) => setNewDomainId(e.target.value)}
-              className="w-full bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-md py-2 px-3 text-[14px] text-[#F0F0F0] outline-none focus:border-[rgba(176,199,217,0.3)] transition-colors appearance-none cursor-pointer"
+              disabled={newPermission === "full_access"}
+              className={`w-full bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-md py-2 px-3 text-[14px] text-[#F0F0F0] outline-none focus:border-[rgba(176,199,217,0.3)] transition-colors appearance-none cursor-pointer ${newPermission === "full_access" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <option value="">All Domains</option>
               {domains.map((d) => (

@@ -301,3 +301,29 @@
 - src/app/(dashboard)/api-keys/page.tsx — Server component fetching keys + domains
 - src/app/api/api-keys/route.ts — GET (list) and POST (create) API key endpoints
 - tests/api-keys-page.test.tsx — 11 unit tests for API Keys list page
+
+## Iteration 11 — feature-031: Create API Key Modal Behavior (2026-03-29)
+
+### What was built
+- Enhanced Create API Key modal in `ApiKeysList` component with:
+  - Domain field disabled when "Full access" permission is selected, enabled for "Sending access"
+  - Domain field resets to "All Domains" when switching back to Full access
+  - Add button disabled until name is entered (actionDisabled prop on Modal)
+  - Token reveal view after successful creation — shows raw API key once with warning "This key will never be shown again"
+- Added `actionDisabled` prop to shared Modal component for disabling action button
+
+### Test results
+- 8 new unit tests passing (domain disabled for full_access, domain enabled for sending_access, domain resets on switch, domain shows verified domains, Add button disabled when empty, Add button enabled with name, token reveal after creation, token warning message)
+- 164 total tests passing (156 previous + 8 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Token reveal replaces the form view in the same modal after successful POST
+- Modal close after token reveal triggers page reload to refresh the list
+- Added `actionDisabled` prop to shared Modal component (generic, reusable for other modals)
+- Permission change handler resets domain selection to prevent stale domain_id with full_access
+
+### Files changed
+- src/components/api-keys-list.tsx — Enhanced modal with domain disable logic, Add button disable, token reveal
+- src/components/modal.tsx — Added actionDisabled prop for disabling action button
+- tests/api-keys-modal.test.tsx — 8 unit tests for modal behavior

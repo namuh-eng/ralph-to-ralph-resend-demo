@@ -10,6 +10,7 @@ interface ModalProps {
   actionLabel?: string;
   onAction?: () => void;
   actionVariant?: "default" | "destructive";
+  actionDisabled?: boolean;
 }
 
 export function Modal({
@@ -20,6 +21,7 @@ export function Modal({
   actionLabel,
   onAction,
   actionVariant = "default",
+  actionDisabled = false,
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -74,11 +76,12 @@ export function Modal({
           {actionLabel && onAction && (
             <button
               type="button"
+              disabled={actionDisabled}
               className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
                 actionVariant === "destructive"
                   ? "bg-red-600 text-white hover:bg-red-700"
                   : "bg-white text-black hover:bg-gray-200"
-              }`}
+              } ${actionDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={onAction}
             >
               {actionLabel}
