@@ -146,10 +146,15 @@ Once all features are inspected, do a final cleanup pass on `build-spec.md`:
 **Step 1: Identify the CORE features of this product.**
 Before reordering, first answer: "What is this product's reason to exist? What are the 3-5 features that make it valuable?"
 
-For example, if cloning Resend:
+For example, if cloning an email API platform:
 - Core: sending emails via API, viewing email logs, managing API keys
 - Secondary: domains, webhooks, team settings
 - Nice-to-have: analytics charts, contact lists
+
+Or if cloning a CRM:
+- Core: contacts list, deal pipeline, activity feed
+- Secondary: reports, integrations, settings
+- Nice-to-have: email templates, automation rules
 
 The core features MUST be built first and get the most build iterations. If the loop runs out of time, the core features are done and the product is still useful.
 

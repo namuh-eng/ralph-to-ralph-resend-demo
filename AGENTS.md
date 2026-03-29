@@ -29,17 +29,11 @@ Use Ever CLI for visual and interactive testing:
 ### Step 3: Real API testing
 The clone has its own REST API. Test it directly:
 ```bash
-# Test email sending
-curl -X POST http://localhost:3015/api/emails \
-  -H "Authorization: Bearer re_dev_token_123" \
+# Test API endpoints (check build-progress.txt for dev API key and available routes)
+curl -X POST http://localhost:3015/api/<endpoint> \
+  -H "Authorization: Bearer <dev-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{"from":"hello@domain.com","to":["test@email.com"],"subject":"Test","html":"<p>Hello</p>"}'
-
-# Test domain creation
-curl -X POST http://localhost:3015/api/domains \
-  -H "Authorization: Bearer re_dev_token_123" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"example.com"}'
+  -d '{"<request body>"}'
 ```
 
 ### Step 4: SDK testing (if packages/sdk/ exists)
@@ -48,9 +42,10 @@ cd packages/sdk && npm test
 ```
 Also test the SDK manually:
 ```typescript
-import { ResendClone } from './packages/sdk';
-const client = new ResendClone('re_dev_token_123');
-const { data, error } = await client.emails.send({...});
+// Check packages/sdk/ for the SDK class name and available methods
+import { Client } from './packages/sdk';
+const client = new Client('<dev-api-key>');
+const { data, error } = await client.<resource>.<method>({...});
 ```
 
 ### Step 5: Deployed version

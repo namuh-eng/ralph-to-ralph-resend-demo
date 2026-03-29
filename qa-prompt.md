@@ -55,10 +55,11 @@ This is your **source of truth** — the clone should match the original's behav
    - Create an API key → does it authenticate real API requests?
    - Test via curl or the SDK directly, not just through the UI:
      ```bash
-     curl -X POST http://localhost:3015/api/emails \
-       -H "Authorization: Bearer re_dev_token_123" \
+     curl -X POST http://localhost:3015/api/<endpoint> \
+       -H "Authorization: Bearer <dev-api-key>" \
        -H "Content-Type: application/json" \
-       -d '{"from":"hello@domain.com","to":["test@email.com"],"subject":"QA test","html":"<p>Test</p>"}'
+       -d '{"<request body matching the API spec>"}'
+     # Check build-progress.txt or the API routes for the dev API key and available endpoints.
      ```
 
 ### Step 4: SDK Verification (if packages/sdk/ exists)

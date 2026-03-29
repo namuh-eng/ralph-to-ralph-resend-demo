@@ -66,7 +66,7 @@ Cloud Services:
 - **AWS SES**: For email sending (`@aws-sdk/client-sesv2`). SES is in production mode — can send to anyone.
 - **RDS Postgres**: `pg` + `drizzle-orm` for all data. Run `make db-push` for schema changes.
 - **Domain verification**: AWS SES `CreateEmailIdentity` + `GetEmailIdentity`. Auto-add DNS records to Cloudflare via REST API. Show DNS records table in UI with "Auto configure" button. Poll SES until verified. See `build-spec.md` for Cloudflare API details.
-- **API keys**: Generate with `re_` prefix + `crypto.randomUUID()`, hash and store in Postgres, validate on every request. Same keys unlock both API and dashboard.
+- **API keys**: Generate unique keys (e.g., prefix + `crypto.randomUUID()`), hash and store in Postgres, validate on every request. Same keys unlock both API and dashboard. Use a prefix that matches the target product's key format if known (check `clone-product-docs/`).
 - **Webhooks**: POST to registered URLs when email events occur.
 - **Logs**: Store every API request in Postgres.
 
