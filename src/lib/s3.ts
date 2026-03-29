@@ -57,8 +57,10 @@ export async function uploadFile(input: UploadInput): Promise<UploadResult> {
     }),
   );
 
+  const url = await getPresignedUrl(input.key);
+
   return {
-    url: `https://${BUCKET}.s3.${REGION}.amazonaws.com/${input.key}`,
+    url,
     key: input.key,
   };
 }
