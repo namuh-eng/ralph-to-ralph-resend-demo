@@ -605,6 +605,82 @@ contact.created, contact.updated, contact.deleted
   5. List Domains (`resend.domains.list()`)
   6. Delete Domain
 
+### 6.16 Logs — List Page (`/logs`)
+
+**Layout**: Page title "Logs" → filter bar → data table → pagination. No API drawer button. No "Add" action button.
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Status filter** (dropdown button, default "All Statuses") — grouped options:
+   - **Groups**: All Statuses, Successes, Errors
+   - *(separator)*
+   - **Individual HTTP codes** (10 options):
+     - 200 Ok, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Content, 429 Too Many Requests, 451 Unavailable For Legal Reasons, 500 Internal Server Error
+   - Each code shows: status code number + description label
+3. **Date range picker** (button, default "Last 15 days") — same shared date range picker component
+4. **User agents filter** (combobox, default "All user agents") — 12 options:
+   - All user agents, SMTP, Node.js, Ruby, PHP, Python, GO, Rust, Java, .NET, cURL, CLI
+5. **API Keys filter** (combobox, default "All API Keys") — filters by API key used
+6. **Export button** (right side, icon button)
+
+**Data Table**:
+- Columns: Endpoint, Status, Method, Created
+- **No checkbox column** (read-only log data, no bulk actions)
+- **No row actions** (no three-dot menu — unlike most other list pages)
+- **Endpoint** column: avatar icon + API path as clickable link to `/logs/:id` (e.g., "/emails")
+- **Status** column: HTTP status code button (e.g., "200", "403") — clickable, shows tooltip
+- **Method** column: HTTP method text (e.g., "POST")
+- **Created** column: relative time with tooltip for exact timestamp
+
+**Pagination**: Page indicator + items per page selector (40/80/120)
+
+### 6.17 Log Detail Page — Success (`/logs/:id`)
+
+**Layout**: "Log" breadcrumb label + HTTP method badge + endpoint path as heading + More actions button
+
+**Metadata** (key-value pairs):
+- **Endpoint**: API path (e.g., "/emails")
+- **Date**: relative timestamp with tooltip
+- **Status**: HTTP status code (e.g., "200")
+- **Method**: HTTP method (e.g., "POST")
+- **User-Agent**: client identifier (e.g., "curl/8.7.1")
+- **ID**: UUID with copy-to-clipboard button
+
+**More Actions**: "View email" — links to the associated email resource (`/emails/:id`)
+
+**Response Body**:
+- JSON code block with copy-to-clipboard button
+- Shows the API response (e.g., `{ "id": "..." }`)
+
+**Request Body**:
+- JSON code block with copy-to-clipboard button
+- Shows the full API request payload (from, to, subject, html, text, bcc, cc, replyTo fields)
+
+### 6.18 Log Detail Page — Error (`/logs/:id`)
+
+**Layout**: Same as success log detail, but with "Copy for AI" button instead of "More actions"
+
+**Metadata**: Same fields as success log detail (Endpoint, Date, Status, Method, User-Agent, ID)
+
+**Error Section** (appears between metadata and request body):
+- **Error title** (bold): descriptive error name (e.g., "Testing domain restriction")
+- **Error description**: explanation of the error with actionable guidance
+- **"Help me fix" button**: opens AI-assisted troubleshooting
+
+**Request Body**:
+- JSON code block with copy-to-clipboard button
+- **Error-causing values highlighted**: offending parts of the request are visually highlighted (e.g., `resend.dev` domain in a span)
+
+**No Response Body section** — error logs only show the error explanation + request body
+
+**Key Differences: Success vs Error Log Detail**:
+| Aspect | Success Log | Error Log |
+|--------|------------|-----------|
+| Header action | "More actions" → "View email" | "Copy for AI" button |
+| Response Body | Shown (JSON) | Not shown |
+| Error section | Not present | Error title + description + "Help me fix" |
+| Request highlighting | None | Error-causing values highlighted |
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
@@ -650,6 +726,7 @@ contact.created, contact.updated, contact.deleted
 - `/audience/:id` — Contact detail
 - `/domains/:id` — Domain detail (DNS records, verification)
 - `/templates/:id` — Template editor
+- `/logs/:id` — Log detail (API request/response, error explanation)
 
 ## 8. Build Order
 

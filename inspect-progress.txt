@@ -272,3 +272,39 @@
 
 ### Next:
 - Iteration 7: Deep dive — Logs page
+
+---
+
+## Iteration 7: Logs Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Logs list page, inspected all interactive elements
+- Opened and inspected Status filter: grouped into Successes/Errors categories + 10 individual HTTP status codes (200 Ok, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Content, 429 Too Many Requests, 451 Unavailable For Legal Reasons, 500 Internal Server Error)
+- Opened and inspected User agents filter: 12 options (All user agents, SMTP, Node.js, Ruby, PHP, Python, GO, Rust, Java, .NET, cURL, CLI)
+- Navigated to successful Log Detail page (/logs/:id with status 200)
+- Inspected detail metadata: Endpoint, Date, Status, Method, User-Agent, ID (with copy button)
+- Inspected Response Body (JSON code block with copy button) and Request Body (JSON code block with copy button)
+- Inspected More actions: "View email" (links to associated email)
+- Navigated to error Log Detail page (/logs/:id with status 403)
+- Inspected error-specific UI: "Copy for AI" button, error title + description section, "Help me fix" button
+- Observed error-causing values highlighted in Request Body (e.g., resend.dev domain)
+- Confirmed no Response Body section for error logs
+
+### Key findings:
+- Logs is an API request log viewer (not email event log — that's in Email Detail)
+- Logs table has 4 columns: Endpoint, Status, Method, Created — NO checkboxes, NO row actions
+- No API drawer button on Logs page (unlike most other pages)
+- Status filter uses HTTP status codes (not email delivery statuses)
+- User agents filter tracks which SDK/client made the request
+- Success log detail shows Response Body + Request Body with JSON blocks
+- Error log detail replaces "More actions" with "Copy for AI", shows error title/description, "Help me fix" button
+- Error-causing values are highlighted in the request body JSON
+- No Response Body section for error logs
+
+### Files created/updated:
+- build-spec.md — Added sections 6.16 (Logs List), 6.17 (Log Detail Success), 6.18 (Log Detail Error)
+- prd.json — Added 3 feature entries (feature-027 through feature-029)
+- screenshots/inspect/ — logs-list.jpg, logs-status-filter.jpg, log-detail.jpg, log-detail-error.jpg
+
+### Next:
+- Iteration 8: Deep dive — API Keys page

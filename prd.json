@@ -1239,5 +1239,157 @@
         }
       ]
     }
+  },
+  {
+    "id": "feature-027",
+    "category": "crud",
+    "description": "Logs list page with API request log table, HTTP status filter, date range, user agent filter, and API key filter",
+    "page": "Logs",
+    "ui_details": "Page title 'Logs'. Filter bar: Search (Shadow DOM), Status dropdown (grouped: All Statuses, Successes, Errors + separator + 10 individual HTTP codes: 200 Ok, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Content, 429 Too Many Requests, 451 Unavailable For Legal Reasons, 500 Internal Server Error), Date range picker (default 'Last 15 days'), User agents combobox (All user agents, SMTP, Node.js, Ruby, PHP, Python, GO, Rust, Java, .NET, cURL, CLI), API Keys combobox, Export button. Data table columns: Endpoint, Status, Method, Created. No checkboxes, no row actions. Endpoint column shows avatar + API path as link to /logs/:id. Status shows HTTP code button. Pagination with 40/80/120 items per page.",
+    "behavior": "Clicking a row navigates to /logs/:id detail page. Status filter groups options into Successes/Errors categories and individual HTTP codes. User agents filter identifies the SDK/client that made the request. No bulk actions available — logs are read-only.",
+    "data_model": "Log: id (UUID), endpoint (string, e.g. '/emails'), status (integer HTTP code), method (string, e.g. 'POST'), user_agent (string), api_key_id (foreign key), request_body (JSON), response_body (JSON nullable), error_title (string nullable), error_description (string nullable), created_at (timestamp)",
+    "priority": 15,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders logs table with correct columns",
+          "description": "Table shows Endpoint, Status, Method, Created columns",
+          "input": "Navigate to /logs with log data",
+          "expected_output": "All 4 columns visible with correct headers, no checkbox column"
+        },
+        {
+          "name": "status filter groups options correctly",
+          "description": "Status dropdown shows grouped options with separator",
+          "input": "Open status filter dropdown",
+          "expected_output": "Shows All Statuses, Successes, Errors groups, then separator, then 10 individual HTTP codes with code + description"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "filter logs by status code",
+          "steps": [
+            "Navigate to /logs",
+            "Click Status filter",
+            "Select '403 Forbidden'",
+            "Verify table updates to show only 403 status entries"
+          ],
+          "expected": "Table filters to show only log entries with 403 status"
+        },
+        {
+          "name": "navigate to log detail from list",
+          "steps": [
+            "Navigate to /logs",
+            "Click on a log entry endpoint link",
+            "Verify URL changes to /logs/:id",
+            "Verify detail page shows log metadata"
+          ],
+          "expected": "Log detail page shows Endpoint, Date, Status, Method, User-Agent, ID fields"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "empty logs state",
+          "steps": ["Navigate to /logs with no API requests made"],
+          "expected": "Empty state message displayed"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-028",
+    "category": "ui",
+    "description": "Log detail page for successful API requests showing metadata, response body, and request body",
+    "page": "Log Detail",
+    "ui_details": "Header: 'Log' breadcrumb + HTTP method badge (e.g., 'POST') + endpoint path. More actions button. Metadata key-value pairs: Endpoint, Date (relative time), Status (HTTP code), Method, User-Agent, ID (UUID with copy button). Response Body: JSON code block with copy button. Request Body: JSON code block with copy button showing full API request payload.",
+    "behavior": "More actions dropdown shows 'View email' link that navigates to the associated email (/emails/:id). Copy buttons copy JSON content to clipboard. ID copy button copies UUID.",
+    "data_model": "Uses Log model from feature-027",
+    "priority": 15,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders success log detail with all metadata fields",
+          "description": "Detail page shows all 6 metadata fields for a successful request",
+          "input": "Log entry with status 200",
+          "expected_output": "Shows Endpoint, Date, Status (200), Method, User-Agent, ID fields"
+        },
+        {
+          "name": "renders response and request body JSON blocks",
+          "description": "Both JSON code blocks render with copy buttons",
+          "input": "Log entry with response_body and request_body",
+          "expected_output": "Two formatted JSON blocks with copy-to-clipboard buttons"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view email from success log",
+          "steps": [
+            "Navigate to /logs/:id (successful request)",
+            "Click More actions button",
+            "Click 'View email'",
+            "Verify navigation to /emails/:id"
+          ],
+          "expected": "Navigates to the associated email detail page"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "copy ID to clipboard",
+          "steps": ["Navigate to /logs/:id", "Click copy button next to ID"],
+          "expected": "UUID copied to clipboard, button shows confirmation state"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-029",
+    "category": "ui",
+    "description": "Log detail page for error API requests showing error explanation, highlighted request body, and Help me fix button",
+    "page": "Log Detail (Error)",
+    "ui_details": "Same header as success log but with 'Copy for AI' button instead of More actions. Error section between metadata and request body: bold error title, descriptive error message with actionable guidance, 'Help me fix' button. Request Body JSON block has error-causing values visually highlighted (e.g., resend.dev domain wrapped in span). No Response Body section.",
+    "behavior": "'Copy for AI' button copies error context for AI debugging. 'Help me fix' button opens AI-assisted troubleshooting. Error-causing values in request body are highlighted with distinct styling. No 'View email' action since the request failed.",
+    "data_model": "Uses Log model from feature-027 — error logs have error_title and error_description populated, response_body is null",
+    "priority": 15,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "renders error log with error section",
+          "description": "Error logs show error title and description between metadata and request body",
+          "input": "Log entry with status 403 and error_title/error_description",
+          "expected_output": "Error title in bold, description text, 'Help me fix' button visible"
+        },
+        {
+          "name": "does not render response body for error logs",
+          "description": "Error log detail omits the Response Body section",
+          "input": "Log entry with status 403",
+          "expected_output": "No Response Body section rendered"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view error log detail",
+          "steps": [
+            "Navigate to /logs",
+            "Click on a log entry with 403 status",
+            "Verify error section appears",
+            "Verify 'Help me fix' button is present",
+            "Verify 'Copy for AI' button in header instead of More actions"
+          ],
+          "expected": "Error log detail shows error title, description, highlighted request body, and Help me fix button"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "error highlighting in request body",
+          "steps": ["Navigate to error log detail", "Inspect request body JSON"],
+          "expected": "Error-causing values (e.g., resend.dev domain) are visually highlighted in the JSON"
+        }
+      ]
+    }
   }
 ]
