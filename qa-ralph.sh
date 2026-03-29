@@ -4,7 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-ITERATIONS="${1:-999}"
+TARGET_URL="${1:-}"
+ITERATIONS="${2:-999}"
 
 if [ ! -f "prd.json" ]; then
   echo "Error: prd.json not found. Run build-ralph.sh first."
@@ -12,6 +13,7 @@ if [ ! -f "prd.json" ]; then
 fi
 
 echo "=== RALPH-TO-RALPH: Phase 3 (QA with Codex) ==="
+echo "Target: ${TARGET_URL:-none}"
 echo "Iterations: $ITERATIONS"
 echo ""
 
@@ -40,6 +42,14 @@ ever start --url http://localhost:3015
 echo "Ever CLI session started for QA."
 echo ""
 
+# Build target URL context for the prompt
+TARGET_CONTEXT=""
+if [ -n "$TARGET_URL" ]; then
+  TARGET_CONTEXT="
+TARGET_URL: $TARGET_URL
+When confused about how a feature should work, use 'ever start --url $TARGET_URL' to check the original product."
+fi
+
 for ((i=1; i<=$ITERATIONS; i++)); do
   echo "--- QA iteration $i/$ITERATIONS ---"
 
@@ -55,6 +65,7 @@ Read these files before starting:
 @ever-cli-reference.md
 
 ITERATION: $i of $ITERATIONS
+${TARGET_CONTEXT}
 
 Test exactly ONE feature, then commit, push, and stop.
 Output <promise>NEXT</promise> when done with this feature.

@@ -101,7 +101,7 @@ QA_PID=""
 start_qa_background() {
   if [ "$QA_STARTED" = false ]; then
     log "Phase 3: Starting QA in PARALLEL ($(count_passes) features ready)"
-    ./qa-ralph.sh &
+    ./qa-ralph.sh "$TARGET_URL" &
     QA_PID=$!
     QA_STARTED=true
     log "Phase 3: QA running in background (PID $QA_PID)"
@@ -152,7 +152,7 @@ for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
     wait "$QA_PID" || true
   else
     log "Phase 3: Starting QA now..."
-    ./qa-ralph.sh || true
+    ./qa-ralph.sh "$TARGET_URL" || true
   fi
   cron_backup
 
