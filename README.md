@@ -4,7 +4,7 @@
 
 Give it any URL → It inspects, builds, tests, and deploys a working clone.
 
-![Ralph-to-Ralph Architecture](decks/ralph-to-ralph/assets/architecture-diagram.png)
+![Ralph-to-Ralph Architecture](docs/assets/architecture-diagram.png)
 
 ## What Is This?
 
