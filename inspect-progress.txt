@@ -225,4 +225,50 @@
 - screenshots/inspect/ — audience-contacts.jpg, audience-add-contact-modal.jpg, audience-contact-detail.jpg, audience-properties.jpg, audience-add-property-modal.jpg, audience-segments.jpg, audience-create-segment-modal.jpg, audience-topics.jpg, audience-create-topic-modal.jpg
 
 ### Next:
-- Iteration 6: Deep dive — Domains page
+- Iteration 7: Deep dive — Logs page
+
+---
+
+## Iteration 6: Domains Page Deep Dive — COMPLETE (2026-03-29)
+
+### What was done:
+- Navigated to Domains list page, inspected all interactive elements
+- Opened and inspected Status filter: 4 options (Pending, Verified, Failed, Not Started)
+- Opened and inspected Region filter: 4 regions (North Virginia/us-east-1, Ireland/eu-west-1, São Paulo/sa-east-1, Tokyo/ap-northeast-1)
+- Inspected row actions: Delete domain (only action)
+- Tested "Add domain" button — shows upgrade/paywall modal on free plan
+- Navigated to Domain Detail page (/domains/:id)
+- Inspected domain metadata: Created, Status (verified badge), Provider (Cloudflare link), Region
+- Inspected Domain Events timeline: Domain added → DNS verified → Domain verified with timestamps
+- Inspected More actions: Restart, Go to docs, Delete domain
+- Inspected Records tab:
+  - Auto configure button (form with hidden domainId)
+  - Tutorial and Forward instructions buttons
+  - Domain Verification (DKIM): TXT record with DKIM public key, verified status
+  - Enable Sending (SPF): toggle switch (on), MX record (feedback-smtp.us-east-1.amazonses.com, priority 10), TXT record (v=spf1 include:amazonses.com ~all)
+  - Enable Receiving: toggle switch (off)
+  - DNS record table columns: Type, Name, Content, TTL, Priority, Status
+- Inspected Configuration tab:
+  - Click Tracking: toggle switch (default off)
+  - Open Tracking: toggle switch (default off), labeled "Not Recommended"
+  - TLS: combobox with Opportunistic (default) and Enforced options
+- Opened API drawer: 6 code sections (Add domain, Retrieve Domain, Verify Domain, Update Domain, List Domains, Delete Domain), same 9 language tabs
+
+### Key findings:
+- 4 domain statuses: pending, verified, failed, not_started
+- 4 SES regions: us-east-1, eu-west-1, sa-east-1, ap-northeast-1
+- Row actions on list page limited to Delete domain only (unlike other pages with more options)
+- Domain detail has auto-detected DNS provider (e.g., Cloudflare) with "Auto configure" button
+- DNS records organized in 3 sections: DKIM (verification), SPF (sending), Receiving
+- Sending and Receiving are independently toggleable via switch controls
+- Configuration has 3 settings: click tracking, open tracking (not recommended), TLS (opportunistic/enforced)
+- Domain events timeline shows 3 stages: added → DNS verified → domain verified
+- Long DNS record values use [...] truncation with expandable tooltips
+
+### Files created/updated:
+- build-spec.md — Added sections 6.14 (Domains List) and 6.15 (Domain Detail)
+- prd.json — Added 4 feature entries (feature-023 through feature-026)
+- screenshots/inspect/ — domains-list.jpg, domain-detail-config.jpg, domain-detail-records.jpg
+
+### Next:
+- Iteration 7: Deep dive — Logs page

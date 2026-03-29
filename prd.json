@@ -1038,5 +1038,206 @@
         }
       ]
     }
+  },
+  {
+    "id": "feature-023",
+    "category": "layout",
+    "description": "Domains list page layout with filters, data table, and pagination",
+    "page": "Domains",
+    "ui_details": "Page title 'Domains' (h1), 'Add domain' button, API drawer button. Filter bar: Search (Shadow DOM input), Status combobox (All Statuses, Pending, Verified, Failed, Not Started), Region combobox (All Regions, North Virginia/us-east-1, Ireland/eu-west-1, São Paulo/sa-east-1, Tokyo/ap-northeast-1), Export button. Data table columns: Domain, Status, Region, Created. Checkbox column for bulk selection. Domain column shows domain name as clickable link to /domains/:id. Status column shows colored badge (verified/pending/failed). Region shows display name + code. Created shows relative time. Pagination: 40/80/120 items per page.",
+    "behavior": "Status filter narrows list by domain verification state. Region filter narrows by SES region. Search filters by domain name. Clicking domain name navigates to detail page. Row actions: Delete domain only.",
+    "data_model": "Domain: id, name, status (pending|verified|failed|not_started), region (us-east-1|eu-west-1|sa-east-1|ap-northeast-1), created_at, provider",
+    "priority": 8,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "domain status badge rendering",
+          "description": "Status badge shows correct color for each domain status",
+          "input": "status: 'verified' | 'pending' | 'failed' | 'not_started'",
+          "expected_output": "Badge renders with appropriate color and text"
+        },
+        {
+          "name": "region display formatting",
+          "description": "Region displays both friendly name and code",
+          "input": "region: 'us-east-1'",
+          "expected_output": "Displays 'North Virginia us-east-1'"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "filter domains by status",
+          "steps": [
+            "Navigate to /domains",
+            "Click Status combobox",
+            "Select 'Verified'",
+            "Observe table updates"
+          ],
+          "expected": "Table shows only domains with verified status"
+        },
+        {
+          "name": "navigate to domain detail",
+          "steps": [
+            "Navigate to /domains",
+            "Click domain name link"
+          ],
+          "expected": "Navigates to /domains/:id with domain detail page"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "empty domains list",
+          "steps": ["Filter to a status with no matching domains"],
+          "expected": "Empty state shown with appropriate message"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-024",
+    "category": "crud",
+    "description": "Domain detail page with metadata, domain events timeline, and two content tabs (Records, Configuration)",
+    "page": "Domain Detail",
+    "ui_details": "'Domain' breadcrumb + domain name as h1 heading + API drawer button + More actions button. Metadata key-value pairs: Created (relative time), Status (badge), Provider (link, e.g. Cloudflare), Region (name + code). Domain Events timeline: vertical list of events (Domain added, DNS verified, Domain verified) with timestamps. More actions: Restart, Go to docs, Delete domain. Two tabs: Records (default) and Configuration.",
+    "behavior": "Metadata displays domain info. Timeline shows verification progress. More actions Restart re-triggers verification. Provider is auto-detected and shown as a link. Tabs switch between Records and Configuration views.",
+    "data_model": "Domain detail extends Domain with: provider (string), events[] (type, timestamp), dns_records[], configuration (click_tracking, open_tracking, tls)",
+    "priority": 8,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "domain events timeline rendering",
+          "description": "Events render in chronological order with timestamps",
+          "input": "events: [{type: 'domain_added', timestamp}, {type: 'dns_verified', timestamp}, {type: 'domain_verified', timestamp}]",
+          "expected_output": "Three timeline items rendered in order with formatted timestamps"
+        },
+        {
+          "name": "domain metadata display",
+          "description": "All metadata fields render correctly",
+          "input": "domain with status, provider, region, created_at",
+          "expected_output": "Status badge, provider link, region name+code, relative time all displayed"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view domain detail from list",
+          "steps": [
+            "Navigate to /domains",
+            "Click a domain name",
+            "Verify metadata section displays",
+            "Verify events timeline displays"
+          ],
+          "expected": "Domain detail page shows all metadata and events timeline"
+        },
+        {
+          "name": "switch between Records and Configuration tabs",
+          "steps": [
+            "Navigate to /domains/:id",
+            "Click Configuration tab",
+            "Verify configuration settings display",
+            "Click Records tab",
+            "Verify DNS records display"
+          ],
+          "expected": "Tab content switches correctly between Records and Configuration"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "domain with pending status",
+          "steps": ["Navigate to a domain that is still pending verification"],
+          "expected": "Status shows 'pending', timeline shows only 'Domain added' event"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-025",
+    "category": "data",
+    "description": "Domain DNS Records tab — DKIM, SPF, MX records with auto-configure and sending/receiving toggles",
+    "page": "Domain Detail",
+    "ui_details": "Records tab content: 'Auto configure' button (form with hidden domainId), Tutorial button, Forward instructions button. Three DNS sections: (1) Domain Verification (DKIM) with link, table (Type, Name, Content, TTL, Priority, Status), TXT record for DKIM key; (2) Enable Sending with SPF toggle switch, MX record (feedback-smtp.us-east-1.amazonses.com, priority 10), TXT record (v=spf1 include:amazonses.com ~all); (3) Enable Receiving with toggle switch. Long values truncated with [...] expandable tooltip. TTL shows 'Auto'. Status column shows verified/pending badges.",
+    "behavior": "Auto configure button triggers DNS auto-setup via detected provider API (e.g., Cloudflare). Sending toggle enables/disables sending capability with SPF/MX records. Receiving toggle enables/disables inbound email with additional MX records. Record values are copy-to-clipboard on click. Tutorial shows step-by-step DNS setup guide.",
+    "data_model": "DomainDNSRecord: type (TXT|MX|CNAME), name (string), content (string), ttl (string|'Auto'), priority (number|null), status (verified|pending|failed). Domain has sending_enabled (boolean), receiving_enabled (boolean).",
+    "priority": 8,
+    "core": true,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "DNS record table rendering",
+          "description": "Records render with correct columns and truncation",
+          "input": "Array of DNS records with type, name, content, ttl, priority, status",
+          "expected_output": "Table renders all columns, long content truncated with [...] indicator"
+        },
+        {
+          "name": "sending/receiving toggle state",
+          "description": "Toggle switches reflect domain capabilities",
+          "input": "sending_enabled: true, receiving_enabled: false",
+          "expected_output": "Sending toggle is on (checked), Receiving toggle is off (unchecked)"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "view DNS records for verified domain",
+          "steps": [
+            "Navigate to /domains/:id",
+            "Click Records tab",
+            "Verify DKIM section shows TXT record with 'verified' status",
+            "Verify SPF section shows MX and TXT records"
+          ],
+          "expected": "All DNS records display with correct types, names, and verification statuses"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "domain with unverified records",
+          "steps": ["View a domain where DNS records haven't been configured yet"],
+          "expected": "Status badges show 'pending' or 'not_started', auto-configure button prominent"
+        }
+      ]
+    }
+  },
+  {
+    "id": "feature-026",
+    "category": "settings",
+    "description": "Domain Configuration tab — click tracking, open tracking, and TLS settings",
+    "page": "Domain Detail",
+    "ui_details": "Configuration tab content: 3 settings. (1) Click Tracking — toggle switch (default off), description about link modification and redirect; (2) Open Tracking — toggle switch (default off), labeled 'Not Recommended', description about 1x1 pixel GIF tracking with link 'if open tracking is right for you'; (3) TLS — combobox with 2 options: Opportunistic (default, attempts secure then falls back) and Enforced (requires TLS).",
+    "behavior": "Click Tracking toggle enables/disables link tracking for all emails sent from this domain. Open Tracking toggle enables/disables open pixel — marked not recommended due to deliverability impact. TLS combobox changes encryption policy. All settings persist on change (auto-save, no submit button).",
+    "data_model": "DomainConfiguration: click_tracking (boolean, default false), open_tracking (boolean, default false), tls ('opportunistic'|'enforced', default 'opportunistic')",
+    "priority": 9,
+    "core": false,
+    "passes": false,
+    "tests": {
+      "unit": [
+        {
+          "name": "TLS option values",
+          "description": "TLS combobox has exactly 2 options",
+          "input": "TLS combobox options",
+          "expected_output": "Options: ['Opportunistic', 'Enforced']"
+        }
+      ],
+      "e2e": [
+        {
+          "name": "toggle click tracking",
+          "steps": [
+            "Navigate to /domains/:id",
+            "Click Configuration tab",
+            "Toggle Click Tracking switch on",
+            "Reload page"
+          ],
+          "expected": "Click Tracking switch remains on after reload (persisted)"
+        }
+      ],
+      "edge_cases": [
+        {
+          "name": "toggle open tracking shows warning",
+          "steps": ["Click Configuration tab", "Toggle Open Tracking on"],
+          "expected": "Setting is enabled, 'Not Recommended' label still visible"
+        }
+      ]
+    }
   }
 ]

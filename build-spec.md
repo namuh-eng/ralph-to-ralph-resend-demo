@@ -506,6 +506,105 @@ contact.created, contact.updated, contact.deleted
 
 **Edit Unsubscribe Page**: Link to `/audience/topics/unsubscribe-page/edit`
 
+### 6.14 Domains — List Page (`/domains`)
+
+**Layout**: Page title "Domains" + "Add domain" button + API drawer button → filter bar → data table → pagination
+
+**Filter Bar** (left to right):
+1. **Search** (Shadow DOM input, placeholder "Search...")
+2. **Status filter** (combobox, default "All Statuses") — 4 options:
+   - Pending, Verified, Failed, Not Started
+3. **Region filter** (combobox, default "All Regions") — 4 options:
+   - North Virginia (us-east-1), Ireland (eu-west-1), São Paulo (sa-east-1), Tokyo (ap-northeast-1)
+4. **Export button** (right side, icon button)
+
+**Data Table**:
+- Columns: Domain, Status, Region, Created
+- Checkbox column for bulk selection (header + per row)
+- **Domain** column: domain name as clickable link to `/domains/:id`
+- **Status** column: status badge button (e.g., "verified") — clickable tooltip
+- **Region** column: display name + region code (e.g., "North Virginia us-east-1")
+- **Created** column: relative time with tooltip for exact timestamp
+- **Row actions**: three-dot "More actions" button → dropdown with:
+  - Delete domain (only action)
+
+**Add Domain**: Button opens upgrade/paywall modal on free plan. On paid plans, opens add domain form.
+
+**Pagination**: Page indicator + items per page selector (40/80/120)
+
+### 6.15 Domain Detail Page (`/domains/:id`)
+
+**Layout**: "Domain" breadcrumb label + domain name as h1 heading + API drawer button + More actions button
+
+**Metadata** (key-value pairs):
+- **Created**: relative timestamp with tooltip
+- **Status**: text badge (e.g., "verified")
+- **Provider**: link (e.g., "Cloudflare") — auto-detected DNS provider
+- **Region**: display name + code (e.g., "North Virginia us-east-1")
+
+**Domain Events Timeline** (left sidebar area):
+- Header: "Domain verified: Your domain is ready to send emails"
+- Vertical timeline of domain events:
+  - "Domain added" + timestamp (e.g., "Mar 28, 4:06 PM")
+  - "DNS verified" + timestamp
+  - "Domain verified" + timestamp
+- Each event is a clickable button (likely expandable)
+
+**More Actions**:
+- Restart (re-trigger verification)
+- Go to docs
+- *(separator)*
+- Delete domain
+
+**Content Tabs** (2 tabs):
+
+#### Tab 1: Records
+- **"Auto configure" button** — form with hidden domainId, auto-configures DNS via detected provider (e.g., Cloudflare)
+- **Tutorial button** — shows setup tutorial
+- **Forward instructions button** — share DNS setup instructions
+
+**DNS Records** organized in 3 sections:
+1. **Domain Verification (DKIM)**:
+   - Link to DKIM docs
+   - Table: Type, Name, Content, TTL, Priority, Status
+   - TXT record: `resend._domainkey.<subdomain>` → DKIM public key
+   - Status badge: "verified"
+
+2. **Enable Sending (SPF)** — toggle switch (on/off):
+   - Link to SPF docs
+   - MX record: `send.<subdomain>` → `feedback-smtp.us-east-1.amazonses.com` (priority 10)
+   - TXT record: `send.<subdomain>` → `v=spf1 include:amazonses.com ~all`
+   - Both with status badges
+
+3. **Enable Receiving** — toggle switch (on/off):
+   - Additional DNS records for inbound email (MX records pointing to Resend's inbound servers)
+
+**DNS Record Table Columns**: Type, Name, Content, TTL, Priority, Status
+- Name and Content columns use truncation with `[…]` for long values (expandable via tooltip)
+- TTL shows "Auto"
+- Status shows verified/pending badges
+
+#### Tab 2: Configuration
+3 settings:
+1. **Click Tracking** — toggle switch (default off)
+   - Description: modifies links for click tracking, redirects through Resend server
+2. **Open Tracking** — toggle switch (default off), labeled "Not Recommended"
+   - Description: inserts 1x1 pixel transparent GIF, can decrease deliverability
+   - Link: "if open tracking is right for you"
+3. **TLS (Transport Layer Security)** — combobox with 2 options:
+   - **Opportunistic** (default) — attempts secure connection, falls back to unencrypted
+   - **Enforced** — requires TLS, no fallback
+
+**API Drawer** (Domains API):
+- Same 9 language tabs as Emails API drawer
+- 6 code sections:
+  1. Add domain (`resend.domains.create({ name: '...' })`)
+  2. Retrieve Domain (`resend.domains.get('id')`)
+  3. Verify Domain (`resend.domains.verify('id')`)
+  4. Update Domain (`resend.domains.update({ id, openTracking, clickTracking })`)
+  5. List Domains (`resend.domains.list()`)
+  6. Delete Domain
+
 ## 7. Design System — PARTIAL (needs more deep dives)
 
 ### Layout
