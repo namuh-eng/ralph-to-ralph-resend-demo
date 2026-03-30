@@ -6,11 +6,25 @@ Give it any URL → It inspects, builds, tests, and deploys a working clone.
 
 ![Ralph-to-Ralph Architecture](docs/assets/architecture-diagram.png)
 
+## 5 Hours. Zero Human Code. Deployed to AWS.
+
+At Ralphthon Seoul 2026, we hit start and **walked away from our computers**. For 5 hours straight, Ralph-to-Ralph ran completely autonomously — inspecting [resend.com](https://resend.com), generating its own PRD and build spec, writing the full stack, running tests, and deploying to AWS. **We did not write a single line of code.** The loops did everything: 184K lines of code generated across 102 autonomous commits.
+
+After the loops finished, we spent **1 additional hour of manual debugging** to polish edge cases — the only human intervention in the entire build.
+
+**Result:** A fully working Resend clone, live in production on AWS, built and deployed by AI agents alone.
+
+> **Top 5 Finalist** — Ralphthon Seoul 2026
+
+---
+
 ### Powered by [Ever](https://foreverbrowsing.com) — Our Browser Agent
 
-The first phase of every Ralph-to-Ralph loop is powered by **Ever**, our browser agent built as a Chrome extension, along with **Ever CLI** — a command-line tool we created for autonomous website inspection. Ever navigates, screenshots, and deeply inspects any website — its docs, API reference, sitemap, and every interactive element. It's what makes the entire pipeline possible.
+The first phase of every Ralph-to-Ralph loop is powered by **Ever**, our browser agent built as a Chrome extension, along with **Ever CLI** — a command-line tool we created for autonomous website inspection. Ever navigates, screenshots, and deeply inspects any website — its docs, API reference, sitemap, and every interactive element. **Ever is our moat** — without it, the Inspect loop can't run.
 
 **[Try Ever → foreverbrowsing.com](https://foreverbrowsing.com)**
+
+---
 
 ## What Is This?
 
@@ -18,7 +32,7 @@ Ralph-to-Ralph clones real products end-to-end — from browser analysis to depl
 
 **The problem:** Non-technical founders know exactly what product they want to build or clone, but can't build and launch it at production quality themselves. Getting to production typically takes months or years, requires entire engineering teams, and costs significant money.
 
-**The solution:** Ralph-to-Ralph automates the entire process. Point it at any SaaS product URL and it autonomously inspects, plans, builds, tests, and deploys a fully working clone.
+**The solution:** Ralph-to-Ralph automates the entire process. Point it at any SaaS product URL and it autonomously inspects, plans, builds, tests, and deploys a fully working clone. The loop IS the product — all you need is our harness.
 
 ## How It Works
 
@@ -75,13 +89,16 @@ We ran Ralph-to-Ralph against [resend.com](https://resend.com) — an email API 
 
 | Metric | Value |
 |--------|-------|
+| Total autonomous runtime | **5 hours** (hands-off) |
+| Manual debugging after | **1 hour** |
+| Lines of code generated | **184,000+** |
+| Autonomous commits | **102** |
 | Features built | 52 |
-| Lines of code | 24,000+ |
 | Unit tests | 388 passing |
 | Test files | 35 |
 | Dashboard pages | 10 |
 | API endpoints | 16+ |
-| Build time | ~4 hours (fully autonomous) |
+| Human code written | **0 lines** |
 
 ### What Actually Works
 
