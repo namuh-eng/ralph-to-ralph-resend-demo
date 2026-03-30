@@ -2133,7 +2133,7 @@
     "data_model": "Complain rate = complaints / sent * 100. Single category: complained.",
     "priority": 16,
     "core": false,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {

@@ -8,7 +8,7 @@ const resend = new ResendClone("re_demo_key", {
 
 // React email component
 const WelcomeEmail = ({ name }: { name: string }) => (
-  <html>
+  <html lang="en">
     <body
       style={{ background: "#0a0a0a", fontFamily: "sans-serif", padding: 40 }}
     >

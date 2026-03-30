@@ -140,6 +140,23 @@ export async function GET(request: NextRequest) {
     rate: r.total > 0 ? Math.round((r.bounced / r.total) * 10000) / 100 : 0,
   }));
 
+  // Daily complain rate data (percentage per day)
+  const dailyComplainRows = await db
+    .select({
+      date: sql<string>`to_char(${emails.createdAt}::date, 'YYYY-MM-DD')`,
+      total: sql<number>`count(*)::int`,
+      complained: sql<number>`count(*) filter (where ${emails.status} = 'complained')::int`,
+    })
+    .from(emails)
+    .where(and(...conditions))
+    .groupBy(sql`${emails.createdAt}::date`)
+    .orderBy(sql`${emails.createdAt}::date`);
+
+  const dailyComplainData = dailyComplainRows.map((r) => ({
+    date: r.date,
+    rate: r.total > 0 ? Math.round((r.complained / r.total) * 10000) / 100 : 0,
+  }));
+
   // Per-domain breakdown
   const domainBreakdownRows = await db
     .select({
@@ -177,6 +194,8 @@ export async function GET(request: NextRequest) {
       undetermined: stats.undetermined_bounced,
     },
     dailyBounceData,
+    complained: stats.complained,
+    dailyComplainData,
     lastUpdated: new Date().toISOString(),
   });
 }

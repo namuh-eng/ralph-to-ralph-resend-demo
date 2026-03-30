@@ -7,6 +7,7 @@ import {
   ComboboxFilter,
   type ComboboxOption,
 } from "@/components/combobox-filter";
+import { ComplainRateSection } from "@/components/complain-rate-section";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { DeliverabilitySection } from "@/components/deliverability-section";
 import { useCallback, useEffect, useState } from "react";
@@ -46,16 +47,23 @@ interface DailyBouncePoint {
   rate: number;
 }
 
+interface DailyComplainPoint {
+  date: string;
+  rate: number;
+}
+
 interface MetricsData {
   totalEmails: number;
   deliverabilityRate: number;
   bounceRate: number;
   complainRate: number;
+  complained: number;
   domains: string[];
   dailyData: DailyDataPoint[];
   domainBreakdown: DomainBreakdownEntry[];
   bounceBreakdown: BounceBreakdown;
   dailyBounceData: DailyBouncePoint[];
+  dailyComplainData: DailyComplainPoint[];
   lastUpdated: string;
 }
 
@@ -244,12 +252,18 @@ export function MetricsPage() {
           title="COMPLAIN RATE"
           value={loading ? "—" : `${data?.complainRate ?? 0}%`}
           defaultOpen={true}
-          infoButton={true}
+          infoButton={false}
         >
-          {/* Chart placeholder — implemented in feature-039 */}
-          <div className="h-[200px] flex items-center justify-center text-[#A1A4A5] text-[13px]">
-            {loading ? "Loading..." : "No data for this period"}
-          </div>
+          <ComplainRateSection
+            data={{
+              complainRate: data?.complainRate ?? 0,
+              complaints: data?.complained ?? 0,
+              sent: data?.totalEmails ?? 0,
+              dailyComplainData: data?.dailyComplainData ?? [],
+            }}
+            loading={loading}
+            dateRange={dateRange}
+          />
         </MetricSection>
       </div>
 

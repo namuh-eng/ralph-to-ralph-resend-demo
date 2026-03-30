@@ -1189,3 +1189,37 @@
 - tests/bounce-rate-section.test.ts — 12 unit tests
 - tests/e2e/bounce-rate.spec.ts — 3 E2E tests
 - prd.json — feature-038 passes: true
+
+## Iteration 56 — feature-039: Complain Rate Section (2026-03-30)
+
+### What was built
+- ComplainRateSection component (`src/components/complain-rate-section.tsx`) following same pattern as BounceRateSection
+- `calculateComplainRate()` — exported pure function: complaints / sent * 100, rounded to 2 decimal places
+- Info panel ("How Complain Rate Works") — explains complaints, risk levels (0.1% threshold), formula, reduction tips
+- SVG chart with 0-0.2% Y-axis scale (orange #F97316 color to distinguish from bounce red)
+- Breakdown table with single "Complained" row linking to `/emails?statuses=complained&startDate=...&endDate=...`
+- Wired into MetricsPage replacing placeholder div inside existing COMPLAIN RATE collapsible section
+- Updated metrics API (`/api/metrics`) to query and return `dailyComplainData` (per-day complaint rates) and `complained` count
+- Info panel supports Escape key and close button dismissal
+
+### Test results
+- 13 new unit tests passing (calculateComplainRate: 3, component: 10 — export, chart, breakdown, info panel open/close, percentages, links, loading, zero rate)
+- 3 E2E tests written (info panel open/close, breakdown table Complained row, Escape key)
+- 430 total unit tests passing (417 previous + 13 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Followed exact same architecture as BounceRateSection for consistency
+- Y-axis max set to 0.2% (vs 8% for bounces) since complaints are much rarer
+- Used orange (#F97316) for chart color to visually distinguish from bounce rate's red (#EF4444)
+- Single breakdown row (Complained) vs 3 for bounce rate (Transient/Permanent/Undetermined)
+- Daily complain data query reuses same pattern as dailyBounceRows in metrics API
+
+### Files changed
+- src/components/complain-rate-section.tsx — New: ComplainRateSection with info panel, chart, breakdown
+- src/components/metrics-page.tsx — Wired ComplainRateSection, added dailyComplainData/complained to MetricsData interface
+- src/app/api/metrics/route.ts — Added dailyComplainData query and complained count to response
+- tests/complain-rate-section.test.ts — 13 unit tests
+- tests/e2e/complain-rate.spec.ts — 3 E2E tests
+- scripts/demo-slide.tsx — Fixed pre-existing lint error (added lang="en" to html element)
+- prd.json — feature-039 passes: true
