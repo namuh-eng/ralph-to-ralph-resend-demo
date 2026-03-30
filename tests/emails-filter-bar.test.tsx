@@ -131,6 +131,8 @@ describe("EmailsSendingFilterBar", () => {
   });
 
   it("calls onFiltersChange when search changes", () => {
+    vi.useFakeTimers();
+
     const onChange = vi.fn();
     render(
       <EmailsSendingFilterBar
@@ -141,9 +143,14 @@ describe("EmailsSendingFilterBar", () => {
     fireEvent.change(screen.getByPlaceholderText("Search..."), {
       target: { value: "test@email.com" },
     });
+
+    vi.advanceTimersByTime(300);
+
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ search: "test@email.com" }),
     );
+
+    vi.useRealTimers();
   });
 
   it("calls onFiltersChange when status changes", () => {

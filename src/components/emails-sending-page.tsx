@@ -9,20 +9,76 @@ import {
   type EmailFilters,
   EmailsSendingFilterBar,
 } from "@/components/emails-sending-filter-bar";
-import { useMemo, useState } from "react";
+import {
+  getDateRangeBounds,
+  isCustomDateRange,
+  parseCustomDateRange,
+} from "@/lib/date-range";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 interface EmailsSendingPageProps {
   apiKeys: { id: string; name: string }[];
   emails: EmailListItem[];
 }
 
+function parseInitialFilters(searchParams: URLSearchParams): EmailFilters {
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+
+  return {
+    search: searchParams.get("search") ?? "",
+    dateRange:
+      startDate && endDate
+        ? `custom:${startDate}:${endDate}`
+        : (searchParams.get("dateRange") ?? "Last 15 days"),
+    status: searchParams.get("status") ?? searchParams.get("statuses") ?? "",
+    apiKeyId:
+      searchParams.get("apiKeyId") ?? searchParams.get("api_key_id") ?? "",
+  };
+}
+
+function buildQueryString(filters: EmailFilters): string {
+  const params = new URLSearchParams();
+
+  if (filters.search) {
+    params.set("search", filters.search);
+  }
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+  if (filters.apiKeyId) {
+    params.set("apiKeyId", filters.apiKeyId);
+  }
+
+  if (isCustomDateRange(filters.dateRange)) {
+    const customRange = parseCustomDateRange(filters.dateRange);
+    if (customRange) {
+      params.set("startDate", customRange.startDate);
+      params.set("endDate", customRange.endDate);
+    }
+  } else if (filters.dateRange !== "Last 15 days") {
+    params.set("dateRange", filters.dateRange);
+  }
+
+  return params.toString();
+}
+
 export function EmailsSendingPage({ apiKeys, emails }: EmailsSendingPageProps) {
-  const [filters, setFilters] = useState<EmailFilters>({
-    search: "",
-    dateRange: "Last 15 days",
-    status: "",
-    apiKeyId: "",
-  });
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialFilters = useMemo(
+    () => parseInitialFilters(searchParams),
+    [searchParams],
+  );
+  const [filters, setFilters] = useState<EmailFilters>(initialFilters);
+
+  useEffect(() => {
+    const nextQuery = buildQueryString(filters);
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    router.replace(nextUrl);
+  }, [filters, pathname, router]);
 
   const filteredEmails = useMemo(() => {
     let result = emails;
@@ -37,13 +93,22 @@ export function EmailsSendingPage({ apiKeys, emails }: EmailsSendingPageProps) {
     if (filters.status) {
       result = result.filter((e) => e.lastEvent === filters.status);
     }
+    const { start, end } = getDateRangeBounds(filters.dateRange);
+    result = result.filter((e) => {
+      const createdAt = new Date(e.createdAt);
+      return createdAt >= start && createdAt <= end;
+    });
     return result;
-  }, [emails, filters.search, filters.status]);
+  }, [emails, filters.dateRange, filters.search, filters.status]);
 
   return (
     <div>
       <EmailsHeader activeTab="sending" apiKeys={apiKeys} />
-      <EmailsSendingFilterBar apiKeys={apiKeys} onFiltersChange={setFilters} />
+      <EmailsSendingFilterBar
+        apiKeys={apiKeys}
+        initialFilters={initialFilters}
+        onFiltersChange={setFilters}
+      />
       <div className="mt-4">
         <EmailsSendingDataTable emails={filteredEmails} />
       </div>

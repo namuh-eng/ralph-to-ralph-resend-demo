@@ -1,15 +1,15 @@
 "use client";
 
+import {
+  DATE_RANGE_PRESETS,
+  formatDateRangeLabel,
+  getDateRangeBounds,
+  parseCustomDateRange,
+  parseIsoDate,
+  serializeCustomDateRange,
+  toIsoDate,
+} from "@/lib/date-range";
 import { useEffect, useRef, useState } from "react";
-
-const PRESETS = [
-  "Today",
-  "Yesterday",
-  "Last 3 days",
-  "Last 7 days",
-  "Last 15 days",
-  "Last 30 days",
-] as const;
 
 const DAY_HEADERS = [
   { key: "sun", label: "S" },
@@ -37,6 +37,9 @@ function getFirstDayOfMonth(year: number, month: number): number {
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
+  const [pendingRangeStart, setPendingRangeStart] = useState<string | null>(
+    null,
+  );
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,44 +85,41 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const todayMonth = today.getMonth();
   const todayYear = today.getFullYear();
 
-  const presetDays: Record<string, number> = {
-    Today: 0,
-    Yesterday: 1,
-    "Last 3 days": 3,
-    "Last 7 days": 7,
-    "Last 15 days": 15,
-    "Last 30 days": 30,
+  const isInRange = (day: number): boolean => {
+    const date = new Date(year, month, day);
+    const { start, end } = getDateRangeBounds(value, today);
+    return date >= start && date <= end;
   };
 
-  const rangeDays = presetDays[value] ?? 15;
-  const rangeStart = new Date(today);
-  if (value === "Yesterday") {
-    rangeStart.setDate(rangeStart.getDate() - 1);
-  } else if (value === "Today") {
-    // just today
-  } else {
-    rangeStart.setDate(rangeStart.getDate() - rangeDays);
-  }
+  const isPendingRangeStart = (day: number): boolean => {
+    if (!pendingRangeStart) {
+      return false;
+    }
 
-  const isInRange = (day: number): boolean => {
-    const d = new Date(year, month, day);
-    if (value === "Yesterday") {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return (
-        d.getFullYear() === yesterday.getFullYear() &&
-        d.getMonth() === yesterday.getMonth() &&
-        d.getDate() === yesterday.getDate()
-      );
+    return pendingRangeStart === toIsoDate(new Date(year, month, day));
+  };
+
+  const handleDayClick = (day: number) => {
+    const clickedDate = new Date(year, month, day);
+    const clickedIso = toIsoDate(clickedDate);
+
+    if (!pendingRangeStart) {
+      setPendingRangeStart(clickedIso);
+      return;
     }
-    if (value === "Today") {
-      return (
-        d.getFullYear() === todayYear &&
-        d.getMonth() === todayMonth &&
-        d.getDate() === todayDate
-      );
-    }
-    return d >= rangeStart && d <= today;
+
+    const start =
+      parseIsoDate(pendingRangeStart) <= clickedDate
+        ? parseIsoDate(pendingRangeStart)
+        : clickedDate;
+    const end =
+      parseIsoDate(pendingRangeStart) <= clickedDate
+        ? clickedDate
+        : parseIsoDate(pendingRangeStart);
+
+    onChange(serializeCustomDateRange(start, end));
+    setPendingRangeStart(null);
+    setOpen(false);
   };
 
   return (
@@ -129,7 +129,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-[#F0F0F0] bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] rounded-[12px] hover:border-[rgba(176,199,217,0.3)] transition-colors"
       >
-        {value}
+        {formatDateRangeLabel(value)}
         <svg
           aria-hidden="true"
           width="12"
@@ -146,13 +146,14 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         <div className="absolute left-0 top-full mt-1 z-50 rounded-[12px] border border-[rgba(176,199,217,0.145)] bg-[rgba(24,25,28,0.88)] shadow-lg backdrop-blur-sm flex">
           {/* Presets */}
           <div className="py-1 border-r border-[rgba(176,199,217,0.145)] min-w-[140px]">
-            {PRESETS.map((preset) => (
+            {DATE_RANGE_PRESETS.map((preset) => (
               <button
                 key={preset}
                 type="button"
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-[#F0F0F0] hover:bg-[rgba(176,199,217,0.145)] transition-colors"
                 onClick={() => {
                   onChange(preset);
+                  setPendingRangeStart(null);
                   setOpen(false);
                 }}
               >
@@ -234,22 +235,25 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 if (cell.day === null) {
                   return <div key={cell.key} className="py-1" />;
                 }
-                const inRange = isInRange(cell.day);
+                const day = cell.day;
+                const inRange = isInRange(day);
                 const isToday =
-                  cell.day === todayDate &&
+                  day === todayDate &&
                   month === todayMonth &&
                   year === todayYear;
                 return (
-                  <div
+                  <button
                     key={cell.key}
+                    type="button"
+                    onClick={() => handleDayClick(day)}
                     className={`text-center text-[12px] py-1 cursor-pointer rounded transition-colors ${
                       inRange
                         ? "bg-[rgba(176,199,217,0.2)] text-[#F0F0F0]"
                         : "text-[#A1A4A5] hover:bg-[rgba(176,199,217,0.1)]"
-                    } ${isToday ? "font-bold" : ""}`}
+                    } ${isPendingRangeStart(day) ? "ring-1 ring-[#F0F0F0]" : ""} ${isToday ? "font-bold" : ""}`}
                   >
-                    {cell.day}
-                  </div>
+                    {day}
+                  </button>
                 );
               })}
             </div>

@@ -6,7 +6,7 @@ import { DropdownFilter } from "@/components/dropdown-filter";
 import type { DropdownFilterOption } from "@/components/dropdown-filter";
 import { ExportButton } from "@/components/export-button";
 import { SearchInput } from "@/components/search-input";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface EmailFilters {
   search: string;
@@ -17,6 +17,7 @@ export interface EmailFilters {
 
 interface EmailsSendingFilterBarProps {
   apiKeys: { id: string; name: string }[];
+  initialFilters?: Partial<EmailFilters>;
   onFiltersChange: (filters: EmailFilters) => void;
 }
 
@@ -38,42 +39,61 @@ const STATUS_OPTIONS: DropdownFilterOption[] = [
 
 export function EmailsSendingFilterBar({
   apiKeys,
+  initialFilters,
   onFiltersChange,
 }: EmailsSendingFilterBarProps) {
-  const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState("Last 15 days");
-  const [status, setStatus] = useState("");
-  const [apiKeyId, setApiKeyId] = useState("");
+  const [filters, setFilters] = useState<EmailFilters>({
+    search: initialFilters?.search ?? "",
+    dateRange: initialFilters?.dateRange ?? "Last 15 days",
+    status: initialFilters?.status ?? "",
+    apiKeyId: initialFilters?.apiKeyId ?? "",
+  });
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const emitChange = (overrides: Partial<EmailFilters>) => {
-    const next: EmailFilters = {
-      search,
-      dateRange,
-      status,
-      apiKeyId,
-      ...overrides,
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
     };
-    onFiltersChange(next);
+  }, []);
+
+  const updateFilters = (
+    overrides: Partial<EmailFilters>,
+    options?: { debounceSearch?: boolean },
+  ) => {
+    setFilters((prev) => {
+      const next = { ...prev, ...overrides };
+
+      if (options?.debounceSearch) {
+        if (searchTimeout.current) {
+          clearTimeout(searchTimeout.current);
+        }
+        searchTimeout.current = setTimeout(() => {
+          onFiltersChange(next);
+        }, 300);
+      } else {
+        onFiltersChange(next);
+      }
+
+      return next;
+    });
   };
 
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    emitChange({ search: value });
+    updateFilters({ search: value }, { debounceSearch: true });
   };
 
   const handleDateRangeChange = (value: string) => {
-    setDateRange(value);
-    emitChange({ dateRange: value });
+    updateFilters({ dateRange: value });
   };
 
   const handleStatusChange = (value: string) => {
-    setStatus(value);
-    emitChange({ status: value });
+    updateFilters({ status: value });
   };
 
   const handleApiKeyChange = (value: string) => {
-    setApiKeyId(value);
-    emitChange({ apiKeyId: value });
+    updateFilters({ apiKeyId: value });
   };
 
   const handleExport = () => {
@@ -88,17 +108,20 @@ export function EmailsSendingFilterBar({
   return (
     <div className="flex items-center gap-2 mt-4">
       <div className="w-[200px]">
-        <SearchInput value={search} onChange={handleSearchChange} />
+        <SearchInput value={filters.search} onChange={handleSearchChange} />
       </div>
-      <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+      <DateRangePicker
+        value={filters.dateRange}
+        onChange={handleDateRangeChange}
+      />
       <DropdownFilter
         options={STATUS_OPTIONS}
-        value={status}
+        value={filters.status}
         onChange={handleStatusChange}
       />
       <ComboboxFilter
         options={apiKeyOptions}
-        value={apiKeyId}
+        value={filters.apiKeyId}
         onChange={handleApiKeyChange}
       />
       <div className="ml-auto">

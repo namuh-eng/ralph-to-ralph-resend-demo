@@ -89,6 +89,22 @@ describe("DateRangePicker", () => {
     expect(screen.getByLabelText("Previous month")).toBeTruthy();
     expect(screen.getByLabelText("Next month")).toBeTruthy();
   });
+
+  it("calls onChange with a custom range when two calendar days are selected", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-29T12:00:00Z"));
+
+    const onChange = vi.fn();
+    render(<DateRangePicker value="Last 15 days" onChange={onChange} />);
+
+    fireEvent.click(screen.getByText("Last 15 days"));
+    fireEvent.click(screen.getByText("20"));
+    fireEvent.click(screen.getByText("25"));
+
+    expect(onChange).toHaveBeenCalledWith("custom:2026-03-20:2026-03-25");
+
+    vi.useRealTimers();
+  });
 });
 
 describe("DropdownFilter", () => {
