@@ -1288,3 +1288,32 @@
 - tests/settings-documents.test.tsx — 5 unit tests for DocumentsTab
 - tests/e2e/settings-documents.spec.ts — E2E test for documents page
 - public/static/documents/*.pdf — 4 placeholder PDF files
+
+## Iteration 7 — deploy-001: AWS App Runner Deployment (2026-03-30)
+
+### What was built
+- Deploy script (`scripts/deploy.sh`) for AWS App Runner deployment via ECR:
+  - Docker authentication with ECR
+  - Multi-stage Docker build (deps → builder → runner)
+  - Tag and push image to ECR (`699486076867.dkr.ecr.us-east-1.amazonaws.com/resend-clone`)
+  - Create or update App Runner service automatically
+  - Output live service URL on completion
+- Verified production build succeeds (Next.js 16 Turbopack, 20 static + 30+ dynamic routes)
+- Existing Dockerfile already configured with standalone output, port 3000, multi-stage build
+
+### Test results
+- 6 new unit tests passing (standalone config, Dockerfile stages, port exposure, deploy script, build script, dockerignore)
+- 451 total unit tests passing (42 test files), no regressions
+- make check: typecheck + lint passing
+- npm run build: production build succeeds (compiled in 2.5s)
+
+### Decisions
+- Deploy script supports custom image tags via argument (defaults to `latest`)
+- Uses `start-deployment` for existing services (triggers re-pull from ECR)
+- Uses `create-service` with 1 vCPU / 2GB memory for new services
+
+### Files changed
+- scripts/deploy.sh — New deploy script for ECR + App Runner
+- tests/deploy.test.ts — 6 unit tests for deployment configuration
+
+### STATUS: ALL 59 FEATURES PASSING — BUILD COMPLETE

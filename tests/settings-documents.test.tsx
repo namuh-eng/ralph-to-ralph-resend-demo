@@ -20,15 +20,9 @@ describe("DocumentsTab", () => {
     expect(
       screen.getByText(/Penetration testing is performed at least annually/),
     ).toBeDefined();
-    expect(
-      screen.getByText(/SOC 2 Type II compliant/),
-    ).toBeDefined();
-    expect(
-      screen.getByText(/Data Processing Agreement/),
-    ).toBeDefined();
-    expect(
-      screen.getByText(/Form W-9 is a tax document/),
-    ).toBeDefined();
+    expect(screen.getByText(/SOC 2 Type II compliant/)).toBeDefined();
+    expect(screen.getByText(/Data Processing Agreement/)).toBeDefined();
+    expect(screen.getByText(/Form W-9 is a tax document/)).toBeDefined();
   });
 
   it("renders a Download link for each document", () => {
@@ -48,11 +42,7 @@ describe("DocumentsTab", () => {
 
   it("renders secondary description text for documents", () => {
     render(<DocumentsTab />);
-    expect(
-      screen.getByText(/Letter of Attestation/),
-    ).toBeDefined();
-    expect(
-      screen.getByText(/Vanta & Advantage Partners/),
-    ).toBeDefined();
+    expect(screen.getByText(/Letter of Attestation/)).toBeDefined();
+    expect(screen.getByText(/Vanta & Advantage Partners/)).toBeDefined();
   });
 });

@@ -21,9 +21,7 @@ test.describe("Settings Documents Page", () => {
 
     // Verify SOC 2 section
     await expect(page.locator("text=SOC 2").first()).toBeVisible();
-    await expect(
-      page.locator("text=/SOC 2 Type II compliant/"),
-    ).toBeVisible();
+    await expect(page.locator("text=/SOC 2 Type II compliant/")).toBeVisible();
 
     // Verify DPA section
     await expect(page.locator("text=DPA").first()).toBeVisible();
