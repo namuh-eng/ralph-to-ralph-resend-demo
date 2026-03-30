@@ -59,6 +59,16 @@ Phase 1: Inspect (Claude + Ever CLI) → Phase 2: Build (Claude + Playwright E2E
   - `DASHBOARD_KEY` — master key for dashboard access
   - Target product API keys (for testing/comparing only, not for the clone's backend)
 
+## Security — Secrets Management
+- **NEVER hardcode passwords, tokens, or API keys** in scripts or source code
+- **RDS master password** is stored in AWS Secrets Manager: `resend-clone/db/master-password` (region: `us-east-1`)
+- To retrieve the DB password at runtime:
+  ```bash
+  aws secretsmanager get-secret-value --secret-id resend-clone/db/master-password --region us-east-1 --query SecretString --output text
+  ```
+- When provisioning or updating infrastructure, always pull secrets from Secrets Manager — never use inline defaults
+- **`scripts/`** directory is gitignored (except `start.sh`) because it contains infra scripts with environment-specific values. These files live locally only — do not re-commit them
+
 ## Out of Scope — DO NOT build
 - Login / signup / authentication (use API key auth wall instead)
 - Paywalls, billing, subscription management

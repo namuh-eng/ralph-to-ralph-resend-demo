@@ -12,6 +12,10 @@ dist/
 !.omx/logs/session-history.jsonl
 !.omx/logs/notify-fallback-*.jsonl
 
+# Scripts with sensitive infra/demo data (keep start.sh tracked)
+scripts/*
+!scripts/start.sh
+
 # Runtime files
 *.log
 .ralph-watchdog.lock
