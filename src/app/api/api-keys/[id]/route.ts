@@ -1,3 +1,4 @@
+import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -5,9 +6,13 @@ import { eq } from "drizzle-orm";
 // ── GET /api/api-keys/:id ───────────────────────────────────────────
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  if (!validateDashboardKey(request.headers.get("authorization"))) {
+    return unauthorizedResponse();
+  }
+
   const { id } = await params;
   try {
     const [key] = await db
@@ -54,6 +59,10 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  if (!validateDashboardKey(request.headers.get("authorization"))) {
+    return unauthorizedResponse();
+  }
+
   const { id } = await params;
   let body: UpdateApiKeyBody;
   try {
@@ -107,9 +116,13 @@ export async function PATCH(
 // ── DELETE /api/api-keys/:id ────────────────────────────────────────
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  if (!validateDashboardKey(request.headers.get("authorization"))) {
+    return unauthorizedResponse();
+  }
+
   const { id } = await params;
   try {
     const [deleted] = await db
