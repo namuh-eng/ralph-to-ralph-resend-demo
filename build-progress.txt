@@ -1223,3 +1223,41 @@
 - tests/e2e/complain-rate.spec.ts — 3 E2E tests
 - scripts/demo-slide.tsx — Fixed pre-existing lint error (added lang="en" to html element)
 - prd.json — feature-039 passes: true
+
+## Iteration 57 — feature-041: Settings Usage Tab (2026-03-30)
+
+### What was built
+- UsageTab component (`src/components/settings-usage.tsx`) — read-only quota dashboard with 3 sections:
+  - Transactional: Monthly limit and Daily limit with circular SVG progress indicators
+  - Marketing: Contacts limit, Segments limit, Broadcasts limit (Unlimited)
+  - Team: Domains limit, Rate limit (X / sec)
+- Each section has: title heading, "Free" plan badge, description text, Upgrade button, quota rows
+- Circular SVG progress indicators (QuotaIndicator) — blue for normal, yellow >80%, red at limit
+- At-limit state adds `.at-limit` CSS class for warning styling
+- Number formatting with commas (e.g. 3,000)
+- GET /api/usage route (`src/app/api/usage/route.ts`) — counts DB records for real usage data:
+  - Monthly emails (since start of month), daily emails (since start of day)
+  - Total contacts, segments, domains
+  - Hardcoded free tier limits: 3000/month, 100/day, 1000 contacts, 3 segments, 3 domains, 2/sec rate
+- Integrated into settings-page.tsx as default active tab ("Usage") alongside existing SMTP and Unsubscribe tabs
+
+### Test results
+- 10 new unit tests passing (transactional section, monthly/daily limits, marketing section, team section, descriptions, upgrade buttons, progress indicators, at-limit state, number formatting)
+- 1 new E2E test (all quota sections visible with correct labels and values)
+- 440 total unit tests passing (430 previous + 10 new), no regressions
+- make check: typecheck + lint passing
+
+### Decisions
+- Usage tab set as default active tab (matching Resend's Settings page behavior)
+- API route uses Promise.all for parallel DB queries (5 concurrent counts)
+- Free tier limits hardcoded (no billing system — out of scope)
+- Broadcasts limit shows "Unlimited" text with empty circle indicator (no progress tracking)
+- Rate limit displayed as "X / sec" format (not a progress indicator)
+
+### Files changed
+- src/components/settings-usage.tsx — UsageTab component with QuotaSection, QuotaRow, QuotaIndicator
+- src/components/settings-page.tsx — Added Usage tab as default, imports UsageTab, fetches /api/usage
+- src/app/api/usage/route.ts — GET endpoint counting DB records for real usage data
+- tests/settings-usage.test.tsx — 10 unit tests for UsageTab component
+- tests/e2e/settings-usage.spec.ts — 1 E2E test for settings usage page
+- prd.json — feature-041 passes: true

@@ -1,7 +1,8 @@
 "use client";
 
 import { CopyToClipboard } from "@/components/copy-to-clipboard";
-import { useState } from "react";
+import { type UsageData, UsageTab } from "@/components/settings-usage";
+import { useEffect, useState } from "react";
 
 const SMTP_CREDENTIALS = [
   { label: "Host", value: "smtp.resend-clone.com" },
@@ -10,8 +11,37 @@ const SMTP_CREDENTIALS = [
   { label: "Password", value: "YOUR_API_KEY" },
 ];
 
+const DEFAULT_USAGE: UsageData = {
+  transactional: {
+    monthlyUsed: 0,
+    monthlyLimit: 3000,
+    dailyUsed: 0,
+    dailyLimit: 100,
+  },
+  marketing: {
+    contactsUsed: 0,
+    contactsLimit: 1000,
+    segmentsUsed: 0,
+    segmentsLimit: 3,
+    broadcastsLimit: "Unlimited",
+  },
+  team: { domainsUsed: 0, domainsLimit: 3, rateLimit: 2 },
+};
+
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"smtp" | "unsubscribe">("smtp");
+  const [activeTab, setActiveTab] = useState<"usage" | "smtp" | "unsubscribe">(
+    "usage",
+  );
+  const [usage, setUsage] = useState<UsageData>(DEFAULT_USAGE);
+
+  useEffect(() => {
+    if (activeTab === "usage") {
+      fetch("/api/usage")
+        .then((r) => r.json())
+        .then((data) => setUsage(data))
+        .catch(() => {});
+    }
+  }, [activeTab]);
 
   return (
     <div>
@@ -22,6 +52,7 @@ export function SettingsPage() {
         <div className="flex items-center gap-0">
           {(
             [
+              { key: "usage", label: "Usage" },
               { key: "smtp", label: "SMTP" },
               { key: "unsubscribe", label: "Unsubscribe Page" },
             ] as const
@@ -42,6 +73,9 @@ export function SettingsPage() {
           ))}
         </div>
       </div>
+
+      {/* Usage Tab */}
+      {activeTab === "usage" && <UsageTab usage={usage} />}
 
       {/* SMTP Tab */}
       {activeTab === "smtp" && (

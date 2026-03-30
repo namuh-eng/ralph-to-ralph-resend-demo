@@ -2248,7 +2248,7 @@
     "behavior": "Read-only display. Quota values update based on actual usage. Upgrade buttons present but out of scope.",
     "data_model": "usage { transactional_monthly_used, transactional_monthly_limit, transactional_daily_used, transactional_daily_limit, contacts_used, contacts_limit, segments_used, segments_limit, domains_used, domains_limit, rate_limit }",
     "priority": 18,
-    "passes": false,
+    "passes": true,
     "tests": {
       "unit": [
         {
