@@ -93,7 +93,7 @@ We ran Ralph-to-Ralph against [resend.com](https://resend.com) — an email API 
 
 https://github.com/jaeyunha/ralph-to-ralph-prod/raw/main/docs/assets/demo-send-email.mp4
 
-**Live deployed clone:** [zjucbjapsn.us-east-1.awsapprunner.com](https://zjucbjapsn.us-east-1.awsapprunner.com)
+**Live deployed clone:** [YOUR_APP_RUNNER_URL](https://YOUR_APP_RUNNER_URL)
 
 > Request an API key from the team to access the dashboard and send emails.
 
@@ -142,7 +142,7 @@ https://github.com/jaeyunha/ralph-to-ralph-prod/raw/main/docs/assets/demo-send-e
 ### Send an Email (Try It)
 
 ```bash
-curl -X POST https://zjucbjapsn.us-east-1.awsapprunner.com/api/emails \
+curl -X POST https://YOUR_APP_RUNNER_URL/api/emails \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"from":"hello@foreverbrowsing.com","to":["your@email.com"],"subject":"Hello!","html":"<h1>It works!</h1>"}'
@@ -154,7 +154,7 @@ Or with the TypeScript SDK:
 import { ResendClone } from "resend-clone";
 
 const resend = new ResendClone("YOUR_API_KEY", {
-  baseUrl: "https://zjucbjapsn.us-east-1.awsapprunner.com",
+  baseUrl: "https://YOUR_APP_RUNNER_URL",
 });
 
 await resend.emails.send({
