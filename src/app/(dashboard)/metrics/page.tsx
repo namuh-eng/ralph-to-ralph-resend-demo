@@ -1,7 +1,7 @@
-export default function MetricsPage() {
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold text-[#F0F0F0]">Metrics</h1>
-    </div>
-  );
+// ABOUTME: Metrics dashboard page — renders MetricsPage component with domain filter, date range, and 3 metric sections
+
+import { MetricsPage } from "@/components/metrics-page";
+
+export default function Page() {
+  return <MetricsPage />;
 }

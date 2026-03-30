@@ -1080,3 +1080,39 @@
 - src/components/broadcast-editor.tsx — Added review panel state, toggle, and full review panel UI with checklist and slide-to-send
 - tests/broadcast-review-panel.test.ts — 9 unit tests for checklist validation and slider threshold logic
 - tests/e2e/broadcast-review-panel.spec.ts — 1 E2E test for review panel toggle behavior
+
+## Iteration 53 — feature-036: Metrics Page Layout (2026-03-30)
+
+### What was built
+- MetricsPage client component (`src/components/metrics-page.tsx`) with:
+  - Page header: "Metrics" title + "All Domains" combobox filter + "Last 15 days" date range picker
+  - 3 collapsible MetricSection components: Deliverability Rate, Bounce Rate, Complain Rate
+  - Each section shows rate percentage, collapsible chevron, optional info button
+  - Deliverability section includes sub-header with total email count
+  - Chart placeholder divs for each section (chart rendering in features 037-039)
+  - Footer: "Data is updated every 15 minutes. Last updated [time]."
+  - Domain filter populated from API response, date range uses shared DateRangePicker component
+- Metrics API endpoint (`src/app/api/metrics/route.ts`):
+  - GET /api/metrics with ?range= and ?domain= query params
+  - Aggregates from emails table: total count, delivered/bounced/complained counts
+  - Computes deliverability/bounce/complain rates as percentages
+  - Extracts unique domains from email `from` field
+  - Supports 6 date range presets: today, yesterday, last_3/7/15/30_days
+- Updated metrics page route to use MetricsPage component
+
+### Test results
+- 7 new unit tests passing (component exports, render with title/value, collapsible toggle, default collapsed, expand on click, info button)
+- 394 total unit tests passing (387 previous + 7 new), no regressions
+- make check: typecheck passing, lint passing (1 pre-existing error in scripts/demo-slide.tsx)
+
+### Decisions
+- Metrics computed from emails table status field (no separate email_events aggregation table needed for layout)
+- Domain extraction uses PostgreSQL substring regex on `from` field: `substring(from '@([^>]+)')`
+- MetricSection exported separately for reuse by future features (037-039) that add chart content
+- Bounce rate includes bounced, hard_bounced, soft_bounced statuses
+
+### Files changed
+- src/components/metrics-page.tsx — MetricsPage + MetricSection components
+- src/app/api/metrics/route.ts — Metrics aggregation API endpoint
+- src/app/(dashboard)/metrics/page.tsx — Updated to render MetricsPage component
+- tests/metrics-page.test.ts — 7 unit tests for component structure and collapsible behavior
