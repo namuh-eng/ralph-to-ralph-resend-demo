@@ -2,7 +2,7 @@
 
 import { formatRelativeTime } from "@/components/emails-sending-data-table";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Broadcast {
@@ -31,13 +31,19 @@ function capitalize(s: string): string {
 
 export function BroadcastsList() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(40);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [audienceFilter, setAudienceFilter] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || "",
+  );
+  const [audienceFilter, setAudienceFilter] = useState(
+    searchParams.get("segmentId") || "",
+  );
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [segments, setSegments] = useState<SegmentOption[]>([]);
@@ -88,6 +94,42 @@ export function BroadcastsList() {
   useEffect(() => {
     fetchSegments();
   }, [fetchSegments]);
+
+  useEffect(() => {
+    const nextSearch = searchParams.get("search") || "";
+    const nextStatus = searchParams.get("status") || "";
+    const nextAudience = searchParams.get("segmentId") || "";
+    const nextPage = Number(searchParams.get("page")) || 1;
+    const nextLimit = Number(searchParams.get("limit")) || 40;
+
+    setSearch(nextSearch);
+    setStatusFilter(nextStatus);
+    setAudienceFilter(nextAudience);
+    setPage(Math.max(1, nextPage));
+    setLimit(nextLimit === 80 || nextLimit === 120 ? nextLimit : 40);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (limit !== 40) {
+      params.set("limit", String(limit));
+    }
+    if (search) {
+      params.set("search", search);
+    }
+    if (statusFilter) {
+      params.set("status", statusFilter);
+    }
+    if (audienceFilter) {
+      params.set("segmentId", audienceFilter);
+    }
+
+    const nextUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    router.replace(nextUrl);
+  }, [page, limit, search, statusFilter, audienceFilter, pathname, router]);
 
   // Close dropdowns on outside click
   useEffect(() => {

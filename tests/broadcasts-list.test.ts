@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockRouter = {
+  push: vi.fn(),
+  refresh: vi.fn(),
+  replace: vi.fn(),
+};
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => mockRouter,
   usePathname: () => "/broadcasts",
+  useSearchParams: () => ({
+    get: () => null,
+  }),
 }));
 
 // Mock next/link
@@ -282,5 +291,37 @@ describe("BroadcastsList", () => {
     // Check pagination info exists
     const pageInfo = screen.getByText(/Page 1/);
     expect(pageInfo).toBeDefined();
+  });
+
+  it("syncs search and filters into URL query params", async () => {
+    mockFetchSuccess();
+    render(React.createElement(BroadcastsList));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Search...")).toBeDefined();
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search...");
+    fireEvent.change(searchInput, { target: { value: "broadcast" } });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith(
+        expect.stringContaining("search=broadcast"),
+      );
+    });
+
+    const statusTrigger = screen.getByText("All Statuses");
+    fireEvent.click(statusTrigger);
+    await waitFor(() => {
+      expect(screen.getAllByRole("menuitem", { name: "Draft" })).toHaveLength(
+        1,
+      );
+    });
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "Draft" })[0]);
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith(
+        expect.stringContaining("status=draft"),
+      );
+    });
   });
 });
