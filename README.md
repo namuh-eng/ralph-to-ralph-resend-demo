@@ -14,7 +14,7 @@ After the loops finished, we spent **1 additional hour of manual debugging** to 
 
 **Result:** A fully working Resend clone, live in production on AWS, built and deployed by AI agents alone.
 
-> **Top 5 Finalist** — Ralphthon Seoul 2026
+> **2nd Place Winner** — Ralphthon Seoul 2026
 
 ---
 
