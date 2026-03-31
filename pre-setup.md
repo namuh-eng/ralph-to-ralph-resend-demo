@@ -25,8 +25,8 @@ Everything listed here is already installed and configured. Do NOT reinstall, re
 ## AWS Infrastructure (already provisioned)
 - **RDS Postgres** — `resend-clone-db` in us-east-1, connection string in `.env` as `DATABASE_URL`
 - **AWS SES** — production mode (can send to anyone), `foreverbrowsing.com` domain verified with DKIM
-- **S3** — `resend-clone-storage-699486076867` with prefixes: `attachments/`, `templates/`, `inbound/`
-- **ECR** — `resend-clone` repository at `699486076867.dkr.ecr.us-east-1.amazonaws.com/resend-clone`
+- **S3** — bucket name in `.env` as `S3_BUCKET_NAME`, with prefixes: `attachments/`, `templates/`, `inbound/`
+- **ECR** — `resend-clone` repository (URI in deploy script, not committed)
 - **AWS CLI** — configured via `~/.aws/credentials`, use `us-east-1` for SES
 
 ## Cloudflare DNS

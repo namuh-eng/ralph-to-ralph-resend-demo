@@ -58,6 +58,7 @@ Phase 1: Inspect (Claude + Ever CLI) → Phase 2: Build (Claude + Playwright E2E
   - `DATABASE_URL` — Postgres connection string (set by preflight script)
   - `DASHBOARD_KEY` — master key for dashboard access
   - Target product API keys (for testing/comparing only, not for the clone's backend)
+- **Deployment**: see local memory for service name, URL, and ECR details. Deploy via `bash scripts/deploy.sh`
 
 ## Security — Secrets Management
 - **NEVER hardcode passwords, tokens, or API keys** in scripts or source code

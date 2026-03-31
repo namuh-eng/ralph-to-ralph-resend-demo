@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// Set S3 bucket name before module import
+vi.hoisted(() => {
+  process.env.S3_BUCKET_NAME = "test-bucket";
+});
+
 // Mock the AWS S3 SDK — vi.hoisted ensures mockSend is available during mock factory
 const { mockSend } = vi.hoisted(() => ({
   mockSend: vi.fn(),
@@ -35,7 +40,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 
 import { deleteFile, getPresignedUrl, uploadFile } from "@/lib/s3";
 
-const BUCKET = "resend-clone-storage-699486076867";
+const BUCKET = process.env.S3_BUCKET_NAME ?? "test-bucket";
 
 describe("S3 Storage Client", () => {
   beforeEach(() => {

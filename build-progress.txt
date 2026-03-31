@@ -84,7 +84,7 @@
 - `getPresignedUrl()` — generates presigned download URLs with configurable expiry (default 3600s)
 - `deleteFile()` — deletes files from S3 by key
 - Input validation: rejects missing key, body, or contentType before calling S3
-- Uses bucket `resend-clone-storage-699486076867` in us-east-1
+- Uses S3 bucket from `S3_BUCKET_NAME` env var in us-east-1
 
 ### Test results
 - 15 new unit tests passing (uploadFile: 7 tests, getPresignedUrl: 4 tests, deleteFile: 4 tests)
@@ -1295,7 +1295,7 @@
 - Deploy script (`scripts/deploy.sh`) for AWS App Runner deployment via ECR:
   - Docker authentication with ECR
   - Multi-stage Docker build (deps → builder → runner)
-  - Tag and push image to ECR (`699486076867.dkr.ecr.us-east-1.amazonaws.com/resend-clone`)
+  - Tag and push image to ECR (URI configured in deploy script)
   - Create or update App Runner service automatically
   - Output live service URL on completion
 - Verified production build succeeds (Next.js 16 Turbopack, 20 static + 30+ dynamic routes)
