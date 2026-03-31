@@ -46,11 +46,23 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.from !== undefined) updateData.from = body.from;
+    if (body.subject !== undefined) updateData.subject = body.subject;
+    if (body.html !== undefined) updateData.html = body.html;
+    if (body.replyTo !== undefined) updateData.replyTo = body.replyTo;
+    if (body.previewText !== undefined)
+      updateData.previewText = body.previewText;
+    if (body.audienceId !== undefined) updateData.audienceId = body.audienceId;
+    if (body.topicId !== undefined) updateData.topicId = body.topicId;
+    if (body.scheduledAt !== undefined)
+      updateData.scheduledAt = body.scheduledAt;
+
     const [updated] = await db
       .update(broadcasts)
-      .set({
-        ...body,
-      })
+      .set(updateData)
       .where(eq(broadcasts.id, id))
       .returning();
 

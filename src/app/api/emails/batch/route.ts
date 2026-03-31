@@ -48,14 +48,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const results: Array<{ id: string }> = [];
-
+    // Validate all items first
     for (const item of body) {
-      const to = normalizeToArray(item.to) as string[];
-      const cc = normalizeToArray(item.cc);
-      const bcc = normalizeToArray(item.bcc);
-      const replyTo = normalizeToArray(item.reply_to);
-
       if (
         !item.from ||
         !item.to ||
@@ -67,37 +61,54 @@ export async function POST(request: Request): Promise<Response> {
           { status: 422 },
         );
       }
+    }
 
-      const sesResult = await sesSendEmail({
-        from: item.from,
-        to,
-        cc,
-        bcc,
-        subject: item.subject,
-        html: item.html,
-        text: item.text,
-        replyTo,
-      });
+    // Send emails with controlled concurrency (5 at a time)
+    const CONCURRENCY = 5;
+    const results: Array<{ id: string }> = [];
 
-      const [email] = await db
-        .insert(emails)
-        .values({
-          from: item.from,
-          to,
-          cc: cc ?? [],
-          bcc: bcc ?? [],
-          replyTo: replyTo ?? [],
-          subject: item.subject,
-          html: item.html ?? "",
-          text: item.text ?? "",
-          tags: item.tags ?? [],
-          headers: {},
-          attachments: [],
-          status: "sent",
-        })
-        .returning({ id: emails.id });
+    for (let i = 0; i < body.length; i += CONCURRENCY) {
+      const chunk = body.slice(i, i + CONCURRENCY);
+      const chunkResults = await Promise.all(
+        chunk.map(async (item) => {
+          const to = normalizeToArray(item.to) as string[];
+          const cc = normalizeToArray(item.cc);
+          const bcc = normalizeToArray(item.bcc);
+          const replyTo = normalizeToArray(item.reply_to);
 
-      results.push({ id: email.id });
+          await sesSendEmail({
+            from: item.from,
+            to,
+            cc,
+            bcc,
+            subject: item.subject,
+            html: item.html,
+            text: item.text,
+            replyTo,
+          });
+
+          const [email] = await db
+            .insert(emails)
+            .values({
+              from: item.from,
+              to,
+              cc: cc ?? [],
+              bcc: bcc ?? [],
+              replyTo: replyTo ?? [],
+              subject: item.subject,
+              html: item.html ?? "",
+              text: item.text ?? "",
+              tags: item.tags ?? [],
+              headers: {},
+              attachments: [],
+              status: "sent",
+            })
+            .returning({ id: emails.id });
+
+          return { id: email.id };
+        }),
+      );
+      results.push(...chunkResults);
     }
 
     return Response.json({ data: results });

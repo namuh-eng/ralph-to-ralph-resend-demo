@@ -75,8 +75,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rawIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+  const ip = /^[\d.a-fA-F:]+$/.test(rawIp) ? rawIp : "unknown";
   const authKey = request.headers.get("authorization")?.slice(0, 20) ?? "anon";
   const rateLimitKey = `${ip}:${authKey}:${pathname}`;
 

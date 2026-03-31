@@ -1,3 +1,4 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { templates } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,6 +8,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const [template] = await db
@@ -35,15 +39,29 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const body = await request.json();
 
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.alias !== undefined) updateData.alias = body.alias;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.subject !== undefined) updateData.subject = body.subject;
+    if (body.from !== undefined) updateData.from = body.from;
+    if (body.replyTo !== undefined) updateData.replyTo = body.replyTo;
+    if (body.previewText !== undefined)
+      updateData.previewText = body.previewText;
+    if (body.html !== undefined) updateData.html = body.html;
+    if (body.text !== undefined) updateData.text = body.text;
+    if (body.variables !== undefined) updateData.variables = body.variables;
+
     const [updated] = await db
       .update(templates)
-      .set({
-        ...body,
-      })
+      .set(updateData)
       .where(eq(templates.id, id))
       .returning();
 
@@ -68,6 +86,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const { id } = await params;
     const [deleted] = await db

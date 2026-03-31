@@ -1,3 +1,4 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { templates } from "@/lib/db/schema";
 import { type SQL, and, count, desc, eq, ilike } from "drizzle-orm";
@@ -13,6 +14,9 @@ function generateAlias(name: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const url = request.nextUrl;
     const search = url.searchParams.get("search")?.trim() || "";
@@ -66,6 +70,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
   try {
     const body = await request.json();
     const name = body.name?.trim() || "Untitled Template";

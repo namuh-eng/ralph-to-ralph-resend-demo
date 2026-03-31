@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts } from "@/lib/db/schema";
-import { desc, eq, ilike, or } from "drizzle-orm";
+import { type SQL, and, desc, eq, ilike, or } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -118,25 +118,26 @@ export async function GET(request: Request) {
       createdAt: c.createdAt,
     }));
 
-    // Get total count
-    let countQuery = db.$count(contacts);
+    // Get total count — combine search + status filters
+    const countConditions: SQL[] = [];
     if (search) {
-      countQuery = db.$count(
-        contacts,
-        or(
-          ilike(contacts.email, `%${search}%`),
-          ilike(contacts.firstName, `%${search}%`),
-          ilike(contacts.lastName, `%${search}%`),
-        ),
+      const searchFilter = or(
+        ilike(contacts.email, `%${search}%`),
+        ilike(contacts.firstName, `%${search}%`),
+        ilike(contacts.lastName, `%${search}%`),
       );
+      if (searchFilter) countConditions.push(searchFilter);
     }
     if (status === "subscribed") {
-      countQuery = db.$count(contacts, eq(contacts.unsubscribed, false));
+      countConditions.push(eq(contacts.unsubscribed, false));
     } else if (status === "unsubscribed") {
-      countQuery = db.$count(contacts, eq(contacts.unsubscribed, true));
+      countConditions.push(eq(contacts.unsubscribed, true));
     }
 
-    const total = await countQuery;
+    const total = await db.$count(
+      contacts,
+      countConditions.length > 0 ? and(...countConditions) : undefined,
+    );
 
     return NextResponse.json({
       data,

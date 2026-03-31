@@ -120,36 +120,32 @@ export async function autoConfigureDomain(
   if (!dkimTokens || dkimTokens.length === 0)
     throw new Error("DKIM tokens are required");
 
-  const results: DNSRecordResult[] = [];
-
-  for (const token of dkimTokens) {
-    const record = await createDNSRecord({
+  // Create all DNS records in parallel
+  const dkimPromises = dkimTokens.map((token) =>
+    createDNSRecord({
       type: "CNAME",
       name: `${token}._domainkey.${domain}`,
       content: `${token}.dkim.amazonses.com`,
       ttl: 300,
-    });
-    results.push(record);
-  }
+    }),
+  );
 
-  results.push(
-    await createDNSRecord({
+  const [dkimResults, spfRecord, mxRecord] = await Promise.all([
+    Promise.all(dkimPromises),
+    createDNSRecord({
       type: "TXT",
       name: domain,
       content: "v=spf1 include:amazonses.com ~all",
       ttl: 300,
     }),
-  );
-
-  results.push(
-    await createDNSRecord({
+    createDNSRecord({
       type: "MX",
       name: domain,
       content: "feedback-smtp.us-east-1.amazonses.com",
       ttl: 300,
       priority: 10,
     }),
-  );
+  ]);
 
-  return results;
+  return [...dkimResults, spfRecord, mxRecord];
 }
