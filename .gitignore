@@ -29,3 +29,6 @@ playwright-report/
 
 # Stress testing / local data sources (not committed)
 .ralph_to_ralph_source/
+
+# Superset terminal app config
+.superset/
