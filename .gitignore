@@ -28,4 +28,4 @@ playwright-report/
 .omx/
 
 # Stress testing / local data sources (not committed)
-.source/
+.ralph_to_ralph_source/
