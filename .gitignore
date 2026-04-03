@@ -16,9 +16,16 @@ dist/
 scripts/*
 !scripts/start.sh
 
+# Playwright test artifacts
+test-results/
+playwright-report/
+
 # Runtime files
 *.log
 .ralph-watchdog.lock
 .ever-session-id
 .inspect-complete
 .omx/
+
+# Stress testing / local data sources (not committed)
+.ralph_to_ralph_source/

@@ -57,7 +57,7 @@ export default async function ApiKeyDetailPage({
         totalUses: 0,
         lastUsedAt: keyResult.createdAt.toISOString(),
         createdAt: keyResult.createdAt.toISOString(),
-        creatorEmail: "jaeyunha@foreverbrowsing.com",
+        creatorEmail: "",
       }}
       domains={domainList}
     />

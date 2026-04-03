@@ -1,5 +1,5 @@
 {
-  "name": "ralph-to-ralph-prod",
+  "name": "resend-clone",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -18,7 +18,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",
     "@aws-sdk/client-sesv2": "^3.1019.0",
-    "@aws-sdk/client-sns": "^3.1019.0",
     "@aws-sdk/s3-request-presigner": "^3.1019.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -30,8 +29,7 @@
     "next": "^16.2.1",
     "pg": "^8.16.3",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "slides-grab": "^1.2.0"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

@@ -91,11 +91,7 @@ We ran Ralph-to-Ralph against [resend.com](https://resend.com) — an email API 
 
 ### Video Demo — Sending a Real Email
 
-https://github.com/jaeyunha/ralph-to-ralph-prod/raw/main/docs/assets/demo-send-email.mp4
-
-**Live deployed clone:** [YOUR_APP_RUNNER_URL](https://YOUR_APP_RUNNER_URL)
-
-> Request an API key from the team to access the dashboard and send emails.
+**Live deployed clone:** deploy your own with `bash scripts/deploy.sh`
 
 ### By the Numbers
 
@@ -145,7 +141,7 @@ https://github.com/jaeyunha/ralph-to-ralph-prod/raw/main/docs/assets/demo-send-e
 curl -X POST https://YOUR_APP_RUNNER_URL/api/emails \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"from":"hello@foreverbrowsing.com","to":["your@email.com"],"subject":"Hello!","html":"<h1>It works!</h1>"}'
+  -d '{"from":"hello@yourdomain.com","to":["your@email.com"],"subject":"Hello!","html":"<h1>It works!</h1>"}'
 ```
 
 Or with the TypeScript SDK:
@@ -158,7 +154,7 @@ const resend = new ResendClone("YOUR_API_KEY", {
 });
 
 await resend.emails.send({
-  from: "hello@foreverbrowsing.com",
+  from: "hello@yourdomain.com",
   to: "your@email.com",
   subject: "Built by AI",
   react: <WelcomeEmail name="World" />,

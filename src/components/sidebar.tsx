@@ -224,7 +224,7 @@ export function Sidebar() {
           f
         </div>
         <span className="text-[13px] font-medium text-[#F0F0F0] flex-1 truncate">
-          foreverbrowsing
+          My Team
         </span>
         <svg
           aria-hidden="true"
@@ -273,7 +273,7 @@ export function Sidebar() {
             J
           </div>
           <span className="text-[12px] text-[#A1A4A5] truncate">
-            jaeyunha@foreverbrowsing.com
+            user@example.com
           </span>
         </div>
       </div>
