@@ -40,35 +40,20 @@ export async function POST(
     }
 
     // Step 2: Auto-configure DNS records via Cloudflare
-    const cfRecords = await autoConfigureDomain(domain.name, dkimTokens);
+    const { records: cfRecords, warnings } = await autoConfigureDomain(
+      domain.name,
+      dkimTokens,
+    );
 
-    // Step 3: Build records array for DB storage
-    const dkimRecords = dkimTokens.map((token, i) => ({
-      type: "CNAME" as const,
-      name: `${token}._domainkey.${domain.name}`,
-      value: `${token}.dkim.amazonses.com`,
+    // Step 3: Build records array for DB storage from what was actually created
+    const allRecords = cfRecords.map((r) => ({
+      type: r.type,
+      name: r.name,
+      value: r.content,
       status: "pending" as const,
       ttl: "Auto",
+      ...(r.priority !== undefined ? { priority: r.priority } : {}),
     }));
-
-    const spfRecord = {
-      type: "TXT" as const,
-      name: domain.name,
-      value: "v=spf1 include:amazonses.com ~all",
-      status: "pending" as const,
-      ttl: "Auto",
-    };
-
-    const mxRecord = {
-      type: "MX" as const,
-      name: domain.name,
-      value: "feedback-smtp.us-east-1.amazonses.com",
-      status: "pending" as const,
-      ttl: "Auto",
-      priority: 10,
-    };
-
-    const allRecords = [...dkimRecords, spfRecord, mxRecord];
 
     // Step 4: Update domain in DB with records and pending status
     await db
@@ -83,6 +68,7 @@ export async function POST(
       ok: true,
       records: allRecords,
       cloudflare_records: cfRecords.length,
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

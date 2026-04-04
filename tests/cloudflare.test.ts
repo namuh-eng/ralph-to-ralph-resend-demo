@@ -320,7 +320,17 @@ describe("Cloudflare DNS Client", () => {
   });
 
   describe("autoConfigureDomain", () => {
-    it("creates DKIM, SPF, and MX records for a domain", async () => {
+    it("creates DKIM, SPF, and MX records for a domain with no existing records", async () => {
+      // listDNSRecords for MX → empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, result: [] }),
+      });
+      // listDNSRecords for TXT → empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, result: [] }),
+      });
       // Three DKIM records, one SPF record, one MX record
       for (let i = 0; i < 5; i++) {
         mockFetch.mockResolvedValueOnce({
@@ -346,21 +356,26 @@ describe("Cloudflare DNS Client", () => {
       }
 
       const dkimTokens = ["token1", "token2", "token3"];
-      const results = await autoConfigureDomain("example.com", dkimTokens);
+      const { records, warnings } = await autoConfigureDomain(
+        "example.com",
+        dkimTokens,
+      );
 
-      expect(results).toHaveLength(5);
-      expect(mockFetch).toHaveBeenCalledTimes(5);
+      expect(records).toHaveLength(5);
+      expect(warnings).toHaveLength(0);
+      // 2 GETs (list) + 3 DKIM + 1 SPF + 1 MX
+      expect(mockFetch).toHaveBeenCalledTimes(7);
 
       // Verify each DKIM CNAME record was created correctly
       for (let i = 0; i < 3; i++) {
-        const call = mockFetch.mock.calls[i];
+        const call = mockFetch.mock.calls[i + 2];
         const body = JSON.parse(call[1].body);
         expect(body.type).toBe("CNAME");
         expect(body.name).toBe(`token${i + 1}._domainkey.example.com`);
         expect(body.content).toBe(`token${i + 1}.dkim.amazonses.com`);
       }
 
-      const spfCall = mockFetch.mock.calls[3];
+      const spfCall = mockFetch.mock.calls[5];
       const spfBody = JSON.parse(spfCall[1].body);
       expect(spfBody).toEqual({
         type: "TXT",
@@ -369,7 +384,7 @@ describe("Cloudflare DNS Client", () => {
         ttl: 300,
       });
 
-      const mxCall = mockFetch.mock.calls[4];
+      const mxCall = mockFetch.mock.calls[6];
       const mxBody = JSON.parse(mxCall[1].body);
       expect(mxBody).toEqual({
         type: "MX",
@@ -378,6 +393,84 @@ describe("Cloudflare DNS Client", () => {
         ttl: 300,
         priority: 10,
       });
+    });
+
+    it("skips MX and merges SPF when existing records are present", async () => {
+      // listDNSRecords for MX → existing iCloud MX
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: [
+            {
+              id: "existing-mx",
+              type: "MX",
+              name: "example.com",
+              content: "mx01.mail.icloud.com",
+              ttl: 3600,
+              priority: 10,
+            },
+          ],
+        }),
+      });
+      // listDNSRecords for TXT → existing iCloud SPF
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: [
+            {
+              id: "existing-spf",
+              type: "TXT",
+              name: "example.com",
+              content: "v=spf1 include:icloud.com ~all",
+              ttl: 3600,
+            },
+          ],
+        }),
+      });
+      // 3 DKIM creates
+      for (let i = 0; i < 3; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            success: true,
+            result: {
+              id: `dkim-${i}`,
+              type: "CNAME",
+              name: `token${i + 1}._domainkey.example.com`,
+              content: `token${i + 1}.dkim.amazonses.com`,
+              ttl: 300,
+            },
+          }),
+        });
+      }
+      // SPF update (PUT)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: {
+            id: "existing-spf",
+            type: "TXT",
+            name: "example.com",
+            content: "v=spf1 include:icloud.com include:amazonses.com ~all",
+            ttl: 3600,
+          },
+        }),
+      });
+
+      const { records, warnings } = await autoConfigureDomain("example.com", [
+        "token1",
+        "token2",
+        "token3",
+      ]);
+
+      // 3 DKIM + 1 SPF update (no MX)
+      expect(records).toHaveLength(4);
+      expect(warnings).toHaveLength(2);
+      expect(warnings[0]).toMatch(/Merged amazonses.com into existing SPF/);
+      expect(warnings[1]).toMatch(/Existing MX records found/);
     });
 
     it("throws when domain is empty", async () => {

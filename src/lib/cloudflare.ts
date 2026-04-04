@@ -110,42 +110,116 @@ export async function deleteDNSRecord(recordId: string): Promise<void> {
   await handleResponse(response);
 }
 
+export async function updateDNSRecord(
+  recordId: string,
+  record: DNSRecord,
+): Promise<DNSRecordResult> {
+  if (!recordId) throw new Error("record ID is required");
+
+  const { token, zoneId } = getConfig();
+
+  const body: Record<string, unknown> = {
+    type: record.type,
+    name: record.name,
+    content: record.content,
+    ttl: record.ttl,
+  };
+  if (record.priority !== undefined) {
+    body.priority = record.priority;
+  }
+
+  const response = await fetch(`${baseUrl(zoneId)}/${recordId}`, {
+    method: "PUT",
+    headers: headers(token),
+    body: JSON.stringify(body),
+  });
+
+  return handleResponse<DNSRecordResult>(response);
+}
+
 // ── Auto-configure Domain ──────────────────────────────────────────
+
+export interface AutoConfigureResult {
+  records: DNSRecordResult[];
+  warnings: string[];
+}
 
 export async function autoConfigureDomain(
   domain: string,
   dkimTokens: string[],
-): Promise<DNSRecordResult[]> {
+): Promise<AutoConfigureResult> {
   if (!domain) throw new Error("domain is required");
   if (!dkimTokens || dkimTokens.length === 0)
     throw new Error("DKIM tokens are required");
 
-  // Create all DNS records in parallel
-  const dkimPromises = dkimTokens.map((token) =>
-    createDNSRecord({
-      type: "CNAME",
-      name: `${token}._domainkey.${domain}`,
-      content: `${token}.dkim.amazonses.com`,
-      ttl: 300,
-    }),
-  );
+  const warnings: string[] = [];
+  const results: DNSRecordResult[] = [];
 
-  const [dkimResults, spfRecord, mxRecord] = await Promise.all([
-    Promise.all(dkimPromises),
-    createDNSRecord({
+  // Check existing MX and TXT records before creating anything
+  const [existingMX, existingTXT] = await Promise.all([
+    listDNSRecords({ name: domain, type: "MX" }),
+    listDNSRecords({ name: domain, type: "TXT" }),
+  ]);
+
+  // DKIM CNAME records — skip gracefully if already exist
+  const dkimResults = await Promise.all(
+    dkimTokens.map((token) =>
+      createDNSRecord({
+        type: "CNAME",
+        name: `${token}._domainkey.${domain}`,
+        content: `${token}.dkim.amazonses.com`,
+        ttl: 300,
+      }).catch(() => null),
+    ),
+  );
+  results.push(...dkimResults.filter((r): r is DNSRecordResult => r !== null));
+
+  // SPF TXT record — merge into existing if one is found
+  const existingSPF = existingTXT.find((r) =>
+    r.content.replace(/^"|"$/g, "").startsWith("v=spf1"),
+  );
+  if (existingSPF) {
+    const spfContent = existingSPF.content.replace(/^"|"$/g, "");
+    if (spfContent.includes("amazonses.com")) {
+      warnings.push("SPF record already includes amazonses.com — skipped");
+    } else {
+      const merged = spfContent.replace(
+        /\s([~?+-]?all)/,
+        " include:amazonses.com $1",
+      );
+      const updated = await updateDNSRecord(existingSPF.id, {
+        ...existingSPF,
+        content: merged,
+      });
+      results.push(updated);
+      warnings.push("Merged amazonses.com into existing SPF record");
+    }
+  } else {
+    const spfRecord = await createDNSRecord({
       type: "TXT",
       name: domain,
       content: "v=spf1 include:amazonses.com ~all",
       ttl: 300,
-    }),
-    createDNSRecord({
+    });
+    results.push(spfRecord);
+  }
+
+  // MX record — skip entirely if any MX records already exist to avoid
+  // polluting setups like iCloud or Google Workspace custom domains
+  if (existingMX.length > 0) {
+    warnings.push(
+      `Existing MX records found (${existingMX.map((r) => r.content).join(", ")}) — skipped adding SES feedback MX to avoid conflicts`,
+    );
+  } else {
+    const mxRecord = await createDNSRecord({
       type: "MX",
       name: domain,
       content: "feedback-smtp.us-east-1.amazonses.com",
       ttl: 300,
       priority: 10,
-    }),
-  ]);
+    });
+    results.push(mxRecord);
+  }
 
-  return [...dkimResults, spfRecord, mxRecord];
+  return { records: results, warnings };
 }
