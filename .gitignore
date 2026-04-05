@@ -20,6 +20,9 @@ scripts/*
 test-results/
 playwright-report/
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Runtime files
 *.log
 .ralph-watchdog.lock
