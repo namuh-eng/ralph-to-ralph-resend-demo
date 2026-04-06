@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "bash scripts/postinstall-star.sh 2>/dev/null || true",
     "dev": "next dev --port 3015",
     "build": "next build",
     "start": "next start",

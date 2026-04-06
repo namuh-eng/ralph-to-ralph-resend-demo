@@ -15,6 +15,7 @@ dist/
 # Scripts with sensitive infra/demo data (keep start.sh tracked)
 scripts/*
 !scripts/start.sh
+!scripts/postinstall-star.sh
 
 # Playwright test artifacts
 test-results/

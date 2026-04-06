@@ -4,8 +4,8 @@
 
 1. Clone the repo and install dependencies:
    ```bash
-   git clone https://github.com/namuh-eng/ralph-to-ralph-resend-demo
-   cd ralph-to-ralph-resend-demo
+   git clone https://github.com/namuh-eng/namuh-send.git
+   cd namuh-send
    npm install
    ```
 
