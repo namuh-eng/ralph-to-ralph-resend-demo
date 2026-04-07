@@ -12,6 +12,17 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# Migration runner — lightweight image with drizzle-kit + pg
+FROM base AS migrator
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY drizzle ./drizzle
+COPY drizzle.config.ts ./
+COPY src/lib/db/schema.ts ./src/lib/db/schema.ts
+COPY package.json ./
+CMD ["npx", "drizzle-kit", "migrate", "--config", "drizzle.config.ts"]
+
+# Production app
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
