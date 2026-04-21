@@ -9,13 +9,18 @@ import {
 } from "@aws-sdk/client-sesv2";
 
 // ── Local Dev Detection ───────────────────────────────────────────
+// Stub SES only in development mode with no creds. In test, we want the
+// mocked client to be exercised; in production, a missing credential should
+// surface loudly rather than silently "succeed".
 
 const hasAwsCredentials =
   !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
   !!process.env.AWS_PROFILE ||
   existsSync(join(process.env.HOME ?? "", ".aws", "credentials"));
 
-if (!hasAwsCredentials && process.env.NODE_ENV !== "test") {
+const useDevStub = process.env.NODE_ENV === "development" && !hasAwsCredentials;
+
+if (useDevStub) {
   console.log(
     "[namuh-send] AWS credentials not found — emails will be logged to console instead of sent via SES.",
   );
@@ -67,7 +72,7 @@ export async function sendEmail(
     throw new Error("html or text body is required");
 
   // Local dev fallback — log to console instead of sending
-  if (!hasAwsCredentials) {
+  if (useDevStub) {
     const devId = `dev_${Date.now()}`;
     console.log("\n┌─ [DEV] Email (not sent — no AWS credentials) ─────────");
     console.log(`│ ID:      ${devId}`);
@@ -135,7 +140,7 @@ export async function createDomainIdentity(
 ): Promise<CreateDomainResult> {
   if (!domain) throw new Error("domain is required");
 
-  if (!hasAwsCredentials) {
+  if (useDevStub) {
     console.log(`[DEV] Would create SES identity for domain: ${domain}`);
     return {
       dkimTokens: ["dev-token-1", "dev-token-2", "dev-token-3"],
@@ -160,7 +165,7 @@ export async function getDomainIdentity(
 ): Promise<GetDomainResult> {
   if (!domain) throw new Error("domain is required");
 
-  if (!hasAwsCredentials) {
+  if (useDevStub) {
     return { verified: false, dkimStatus: "NOT_STARTED", dkimTokens: [] };
   }
 
@@ -180,7 +185,7 @@ export async function getDomainIdentity(
 export async function deleteDomainIdentity(domain: string): Promise<void> {
   if (!domain) throw new Error("domain is required");
 
-  if (!hasAwsCredentials) {
+  if (useDevStub) {
     console.log(`[DEV] Would delete SES identity for domain: ${domain}`);
     return;
   }
