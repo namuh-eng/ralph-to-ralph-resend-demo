@@ -48,6 +48,13 @@ export async function uploadFile(input: UploadInput): Promise<UploadResult> {
     );
   }
 
+  if (!BUCKET) {
+    console.log(
+      `[DEV] S3 upload skipped (S3_BUCKET_NAME not set): ${input.key} (${input.contentType}, ${input.body.length} bytes)`,
+    );
+    return { url: `https://localhost/dev/${input.key}`, key: input.key };
+  }
+
   await s3.send(
     new PutObjectCommand({
       Bucket: BUCKET,
@@ -73,6 +80,10 @@ export async function getPresignedUrl(
 ): Promise<string> {
   if (!key) throw new Error("key is required");
 
+  if (!BUCKET) {
+    return `https://localhost/dev/${key}`;
+  }
+
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,
@@ -85,6 +96,11 @@ export async function getPresignedUrl(
 
 export async function deleteFile(key: string): Promise<void> {
   if (!key) throw new Error("key is required");
+
+  if (!BUCKET) {
+    console.log(`[DEV] S3 delete skipped (S3_BUCKET_NAME not set): ${key}`);
+    return;
+  }
 
   await s3.send(
     new DeleteObjectCommand({

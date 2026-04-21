@@ -1,4 +1,4 @@
-.PHONY: check test test-e2e typecheck lint format fix all dev build clean
+.PHONY: check test test-e2e typecheck lint format fix all dev build clean setup
 
 # Full validation: check + test
 all: check test
@@ -46,6 +46,15 @@ db-migrate:
 
 db-push:
 	npx drizzle-kit push --config drizzle.config.ts
+
+# One-command local setup (requires Docker)
+setup:
+	@echo "→ Starting Postgres..." && docker compose up -d
+	@echo "→ Installing dependencies..." && npm install
+	@test -f .env || (cp .env.example .env && echo "  ✓ Created .env from .env.example — edit DASHBOARD_KEY")
+	@echo "→ Pushing schema..." && npx drizzle-kit push --config drizzle.config.ts
+	@echo "→ Seeding database..." && npx tsx scripts/seed.ts
+	@echo "\n✓ Setup complete! Run 'make dev' to start the server."
 
 # Clean build artifacts
 clean:

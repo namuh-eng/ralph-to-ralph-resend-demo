@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   CreateEmailIdentityCommand,
   DeleteEmailIdentityCommand,
@@ -5,6 +7,24 @@ import {
   SESv2Client,
   SendEmailCommand,
 } from "@aws-sdk/client-sesv2";
+
+// ── Local Dev Detection ───────────────────────────────────────────
+// Stub SES only in development mode with no creds. In test, we want the
+// mocked client to be exercised; in production, a missing credential should
+// surface loudly rather than silently "succeed".
+
+const hasAwsCredentials =
+  !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
+  !!process.env.AWS_PROFILE ||
+  existsSync(join(process.env.HOME ?? "", ".aws", "credentials"));
+
+const useDevStub = process.env.NODE_ENV === "development" && !hasAwsCredentials;
+
+if (useDevStub) {
+  console.log(
+    "[namuh-send] AWS credentials not found — emails will be logged to console instead of sent via SES.",
+  );
+}
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -50,6 +70,20 @@ export async function sendEmail(
   if (!input.subject) throw new Error("subject is required");
   if (!input.html && !input.text)
     throw new Error("html or text body is required");
+
+  // Local dev fallback — log to console instead of sending
+  if (useDevStub) {
+    const devId = `dev_${Date.now()}`;
+    console.log("\n┌─ [DEV] Email (not sent — no AWS credentials) ─────────");
+    console.log(`│ ID:      ${devId}`);
+    console.log(`│ From:    ${input.from}`);
+    console.log(`│ To:      ${input.to.join(", ")}`);
+    if (input.cc?.length) console.log(`│ CC:      ${input.cc.join(", ")}`);
+    if (input.bcc?.length) console.log(`│ BCC:     ${input.bcc.join(", ")}`);
+    console.log(`│ Subject: ${input.subject}`);
+    console.log("└────────────────────────────────────────────────────────\n");
+    return { id: devId };
+  }
 
   // Build raw MIME message if attachments present
   if (input.attachments && input.attachments.length > 0) {
@@ -106,6 +140,14 @@ export async function createDomainIdentity(
 ): Promise<CreateDomainResult> {
   if (!domain) throw new Error("domain is required");
 
+  if (useDevStub) {
+    console.log(`[DEV] Would create SES identity for domain: ${domain}`);
+    return {
+      dkimTokens: ["dev-token-1", "dev-token-2", "dev-token-3"],
+      status: "PENDING",
+    };
+  }
+
   const command = new CreateEmailIdentityCommand({
     EmailIdentity: domain,
   });
@@ -123,6 +165,10 @@ export async function getDomainIdentity(
 ): Promise<GetDomainResult> {
   if (!domain) throw new Error("domain is required");
 
+  if (useDevStub) {
+    return { verified: false, dkimStatus: "NOT_STARTED", dkimTokens: [] };
+  }
+
   const command = new GetEmailIdentityCommand({
     EmailIdentity: domain,
   });
@@ -138,6 +184,11 @@ export async function getDomainIdentity(
 
 export async function deleteDomainIdentity(domain: string): Promise<void> {
   if (!domain) throw new Error("domain is required");
+
+  if (useDevStub) {
+    console.log(`[DEV] Would delete SES identity for domain: ${domain}`);
+    return;
+  }
 
   const command = new DeleteEmailIdentityCommand({
     EmailIdentity: domain,
