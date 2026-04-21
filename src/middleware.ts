@@ -1,3 +1,4 @@
+import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Simple in-memory rate limiter for middleware
@@ -70,8 +71,20 @@ function getLimits(
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only rate limit API routes
+  // Protect non-API page routes with session check
   if (!pathname.startsWith("/api/")) {
+    // Allow auth page and static assets
+    if (
+      pathname === "/auth" ||
+      pathname.startsWith("/_next/") ||
+      pathname.startsWith("/favicon")
+    ) {
+      return NextResponse.next();
+    }
+    const sessionCookie = getSessionCookie(request);
+    if (!sessionCookie) {
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
     return NextResponse.next();
   }
 
@@ -98,5 +111,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

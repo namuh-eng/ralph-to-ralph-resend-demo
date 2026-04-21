@@ -1,4 +1,4 @@
-import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
+import { getServerSession, unauthorizedResponse } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -9,7 +9,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  if (!validateDashboardKey(request.headers.get("authorization"))) {
+  const session = await getServerSession();
+  if (!session) {
     return unauthorizedResponse();
   }
 
@@ -59,7 +60,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  if (!validateDashboardKey(request.headers.get("authorization"))) {
+  const session = await getServerSession();
+  if (!session) {
     return unauthorizedResponse();
   }
 
@@ -119,7 +121,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  if (!validateDashboardKey(request.headers.get("authorization"))) {
+  const session = await getServerSession();
+  if (!session) {
     return unauthorizedResponse();
   }
 

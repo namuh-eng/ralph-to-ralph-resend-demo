@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { auth } from "./auth";
 
 export interface AuthResult {
   apiKeyId: string;
@@ -64,4 +66,11 @@ export function unauthorizedResponse(): Response {
     { error: "Missing or invalid API key" },
     { status: 401 },
   );
+}
+
+/**
+ * Get the current server session via Better Auth.
+ */
+export async function getServerSession() {
+  return auth.api.getSession({ headers: await headers() });
 }

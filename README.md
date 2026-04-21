@@ -1,139 +1,74 @@
-# Namuh Send
+<p align="center">
+  <h1 align="center">Namuh Send</h1>
+  <p align="center">
+    Open-source email infrastructure for developers.
+    <br />
+    Send transactional emails, manage domains, build broadcasts — all self-hosted.
+  </p>
+  <p align="center">
+    <a href="https://github.com/namuh-eng/namuh-send/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-ELv2-blue" alt="License" /></a>
+    <a href="https://github.com/namuh-eng/namuh-send/stargazers"><img src="https://img.shields.io/github/stars/namuh-eng/namuh-send?style=social" alt="GitHub Stars" /></a>
+    <a href="https://github.com/namuh-eng/namuh-send/issues"><img src="https://img.shields.io/github/issues/namuh-eng/namuh-send" alt="Issues" /></a>
+  </p>
+</p>
 
-Open-source email infrastructure platform — a feature-complete clone of [Resend.com](https://resend.com). REST API, TypeScript SDK, dashboard, domain verification, broadcasts, templates, webhooks, and delivery analytics.
+<p align="center">
+  <a href="#one-click-deploy">Deploy</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#api-quickstart">API</a> ·
+  <a href="#self-hosting">Self-Hosting</a> ·
+  <a href="./CONTRIBUTING.md">Contributing</a>
+</p>
 
-**Repo**: [`namuh-eng/namuh-send`](https://github.com/namuh-eng/namuh-send)
-**License**: [Elastic License 2.0](./LICENSE)
-**Default port**: `3015`
-
-> Built with [Ralph-to-Ralph](https://github.com/namuh-eng/ralph-to-ralph) — an autonomous SaaS cloning pipeline. See [`ralph_to_ralph_archive/`](./ralph_to_ralph_archive/) for the build log.
+<p align="center">
+  <img src="docs/assets/screenshot-dashboard.png" alt="Namuh Send Dashboard" width="800" />
+</p>
 
 ---
 
-## Agent Setup Guide
+## What is Namuh Send?
 
-This README is structured for AI coding agents to set up and operate this project on behalf of users. Each step includes verification commands. Execute steps sequentially — each depends on the previous.
+Namuh Send is a **self-hostable email platform** that gives you the same developer experience as Resend — REST API, TypeScript SDK, React email templates, domain verification, webhooks, and a full dashboard — running on your own infrastructure.
 
-### Quick start
+**Use it if you want:**
+- Full control over your email infrastructure
+- No per-email pricing — send as much as your SES quota allows
+- A drop-in Resend-compatible API for your existing code
+- An admin dashboard for domains, templates, broadcasts, and analytics
 
-```bash
-git clone https://github.com/namuh-eng/namuh-send.git && cd namuh-send
-npm install
-cp .env.example .env
-# → Agent: edit .env — set DATABASE_URL and DASHBOARD_KEY (both required)
-npm run db:migrate
-npm run dev
-# → Server ready at http://localhost:3015
-```
+## One-Click Deploy
 
-### Prerequisites
-
-Run each check command. All must exit `0` before proceeding.
-
-| Requirement | Check command | Minimum version |
-|---|---|---|
-| Node.js | `node -v` | `v18.0.0` |
-| npm | `npm -v` | `9.0.0` |
-| PostgreSQL | `psql --version` | `14` |
-| AWS CLI | `aws --version` | `2.0` |
-| AWS credentials | `aws sts get-caller-identity` | — |
-| Cloudflare *(optional)* | Set `CLOUDFLARE_API_TOKEN` in `.env` | — |
-| gh CLI *(optional)* | `gh --version` | — |
-
-### Step 1 — Clone and install
+The fastest way to get Namuh Send running:
 
 ```bash
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
-npm install
-```
-
-**Verify**: `[ -d node_modules ] && node -e "require('./package.json')" && echo "OK"`
-
-### Step 2 — Configure environment
-
-```bash
 cp .env.example .env
+# Edit .env — set DASHBOARD_KEY (required), add AWS credentials for email sending
+docker compose up -d
 ```
 
-Edit `.env` with the required values listed in [Environment Variables](#environment-variables).
+That's it. Open **http://localhost:3015** and enter your dashboard key.
 
-**Verify**: `[ -f .env ] && grep -q DATABASE_URL .env && echo "OK"`
-
-### Step 3 — Run database migrations
-
-Requires a running PostgreSQL instance at the `DATABASE_URL` configured in step 2.
-
-```bash
-npm run db:migrate
-```
-
-**Verify**: exit code `0` (idempotent — safe to re-run)
-
-### Step 4 — Start development server
-
-```bash
-npm run dev
-```
-
-**Verify**: `curl -sf http://localhost:3015 > /dev/null && echo "OK"`
-
-### Step 5 — Access dashboard
-
-Open `http://localhost:3015` and enter the `DASHBOARD_KEY` value from `.env`.
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | **Yes** | PostgreSQL connection string: `postgresql://user:pass@host:5432/dbname` |
-| `DASHBOARD_KEY` | **Yes** | Master key for dashboard authentication |
-| `CLOUDFLARE_API_TOKEN` | No | Enables automatic DNS record configuration for domains |
-| `CLOUDFLARE_ZONE_ID` | No | Cloudflare zone for DNS management |
-
-AWS credentials are read from `~/.aws/credentials` or standard environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`). Default region: `us-east-1`.
-
----
-
-## Commands
-
-| Command | Purpose | When to run |
-|---|---|---|
-| `npm run dev` | Start dev server (port 3015) | Development |
-| `npm run build` | Production build | Before deploy |
-| `npm run start` | Start production server | Production |
-| `make check` | TypeScript typecheck + Biome lint/format | Before every commit |
-| `make test` | Unit tests (Vitest) | Before every commit |
-| `make test-e2e` | E2E tests (Playwright) | Requires running dev server |
-| `make all` | `check` + `test` | CI / pre-push |
-| `npm run db:generate` | Generate Drizzle migrations from schema changes | After editing schema |
-| `npm run db:migrate` | Apply pending migrations | After pulling new migrations |
-| `npm run db:push` | Push schema directly (dev only) | Quick iteration |
-
-**Pre-commit check**: `make check && make test`
-
----
+> The `migrate` service runs database migrations automatically on first boot.
 
 ## Features
 
-- **Email sending** — REST API + TypeScript SDK via AWS SES
-- **React email templates** — SDK `react` prop with `renderToStaticMarkup()`
-- **Domain verification** — DKIM/SPF/DMARC auto-configured via Cloudflare, verified by SES
-- **API key management** — `full_access` and `sending_access` permission scopes
-- **Broadcasts** — block editor with slash commands, review panel, send
-- **Templates** — create, edit, publish with variable substitution
-- **Audience** — contacts, segments, topics, custom properties
-- **Webhooks** — register endpoints, 17 event types across 3 categories
-- **Metrics** — delivery, open, click, bounce rates with date filtering
-- **Logs** — full send/delivery/event audit trail
-- **API docs** — auto-generated at `/docs`
-- **Dashboard** — 10 pages matching Resend's UI
+- **REST API** — Send emails via a simple POST request with API key auth
+- **TypeScript SDK** — [`resend-clone`](./packages/sdk) npm package with full type safety
+- **React Email Templates** — Pass React components via the SDK's `react` prop
+- **Domain Verification** — DKIM, SPF, DMARC auto-configured via Cloudflare DNS
+- **API Key Management** — `full_access` and `sending_access` permission scopes
+- **Broadcasts** — Block editor with slash commands, audience targeting, review panel
+- **Templates** — Create, edit, publish with variable substitution (`{{name}}`)
+- **Audience** — Contacts, segments, topics, custom properties
+- **Webhooks** — Register endpoints for 17 event types (delivered, bounced, opened, etc.)
+- **Metrics** — Delivery, open, click, bounce rates with date range filtering
+- **Logs** — Full send/delivery/event audit trail
+- **API Docs** — Auto-generated interactive docs at `/docs`
+- **Dashboard** — 10-page admin UI with dark mode
 
----
-
-## API
+## API Quickstart
 
 ### Send an email
 
@@ -144,7 +79,7 @@ curl -X POST http://localhost:3015/api/emails \
   -d '{
     "from": "hello@yourdomain.com",
     "to": ["recipient@example.com"],
-    "subject": "Hello!",
+    "subject": "Hello from Namuh Send",
     "html": "<h1>It works!</h1>"
   }'
 ```
@@ -170,109 +105,162 @@ await client.emails.send({
 });
 ```
 
-Full SDK reference: [`packages/sdk/README.md`](./packages/sdk/README.md)
-API docs: `http://localhost:3015/docs`
+Full SDK docs: [`packages/sdk/README.md`](./packages/sdk/README.md)
 
----
+## Self-Hosting
+
+### Requirements
+
+- Docker & Docker Compose
+- AWS account with SES access (for sending emails)
+- *(Optional)* Cloudflare account (for automatic DNS record setup)
+
+### Docker Compose (recommended)
+
+```bash
+git clone https://github.com/namuh-eng/namuh-send.git
+cd namuh-send
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+
+```bash
+# Required
+DASHBOARD_KEY=your-secret-key          # Generate: node -e "console.log(crypto.randomUUID())"
+
+# Required for sending emails
+AWS_ACCESS_KEY_ID=your-aws-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret
+AWS_REGION=us-east-1
+
+# Optional
+POSTGRES_PASSWORD=your-db-password     # Default: namuh
+PORT=3015                              # Default: 3015
+CLOUDFLARE_API_TOKEN=your-cf-token     # For auto DNS setup
+CLOUDFLARE_ZONE_ID=your-zone-id
+S3_BUCKET_NAME=your-bucket             # For email attachments
+```
+
+Start everything:
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL, runs migrations, and launches the app. Open **http://localhost:3015**.
+
+### Manual Setup
+
+If you prefer running without Docker:
+
+```bash
+git clone https://github.com/namuh-eng/namuh-send.git
+cd namuh-send
+npm install
+cp .env.example .env
+# Edit .env — set DATABASE_URL and DASHBOARD_KEY
+npm run db:migrate
+npm run db:seed          # Optional: creates sample data
+npm run dev              # Development (port 3015)
+# or
+npm run build && npm start  # Production
+```
+
+### AWS SES Sandbox
+
+New AWS accounts start in SES **sandbox mode** — emails can only be sent to verified addresses. To send to anyone:
+
+1. Verify a sender domain in the Namuh Send dashboard
+2. Request production access in [AWS SES Console](https://console.aws.amazon.com/ses/) → Account dashboard → Request production access
+
+### Production Deployment
+
+For production, we recommend:
+
+- **Database**: Use a managed PostgreSQL (AWS RDS, Supabase, Neon, etc.) instead of the Docker Compose Postgres
+- **Reverse proxy**: Put Nginx or Caddy in front for TLS termination
+- **Secrets**: Store credentials in your cloud provider's secrets manager
+
+The included `Dockerfile` produces an optimized multi-stage build suitable for any container platform (AWS App Runner, Google Cloud Run, Fly.io, Railway, etc.):
+
+```bash
+docker build -t namuh-send .
+docker run -p 3015:8080 --env-file .env namuh-send
+```
 
 ## Architecture
 
 ```
 src/
 ├── app/          # Next.js App Router — pages and API routes
-├── components/   # React components
-├── lib/          # Utilities: db.ts, ses.ts, s3.ts, cloudflare.ts
+├── components/   # React components (dashboard UI)
+├── lib/          # Core services: db, ses, s3, cloudflare
 └── types/        # TypeScript type definitions
 packages/
 └── sdk/          # Published TypeScript SDK (resend-clone)
 tests/
 ├── *.test.ts     # Unit tests (Vitest)
 └── e2e/          # E2E tests (Playwright)
-scripts/          # Infrastructure and deployment
 drizzle/          # Database migration files
 ```
-
----
-
-## Deployment
-
-### AWS App Runner
-
-```bash
-bash scripts/deploy.sh
-```
-
-Builds a Docker image, pushes to ECR, and deploys to App Runner. Requires AWS CLI with appropriate IAM permissions.
-
-### Docker
-
-```bash
-docker build -t namuh-send .
-docker run -p 3015:3015 --env-file .env namuh-send
-```
-
----
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS + Radix UI |
-| Database | PostgreSQL via Drizzle ORM |
+| Database | PostgreSQL + Drizzle ORM |
 | Email | AWS SES |
 | Storage | AWS S3 |
 | DNS | Cloudflare API |
-| Deployment | AWS App Runner |
-| Unit tests | Vitest |
-| E2E tests | Playwright |
+| Tests | Vitest + Playwright |
 | Linting | Biome |
 
----
+## Development
+
+```bash
+# Start Postgres
+docker compose up postgres -d
+
+# Install deps + run migrations
+npm install
+npm run db:push
+npm run db:seed
+
+# Start dev server
+npm run dev
+```
+
+```bash
+make check       # Typecheck + lint
+make test        # Unit tests
+make test-e2e    # E2E tests (requires dev server)
+make all         # Everything
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide.
+
+## Roadmap
+
+- [ ] SMTP relay support (send without AWS SES)
+- [ ] Webhook signature verification
+- [ ] Email scheduling
+- [ ] Multi-user / team support
+- [ ] Built-in analytics (opens, clicks) without external dependencies
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
-
----
-
-## Support This Project
-
-If Namuh Send is useful to you, consider starring the repo:
-
-```bash
-# One-liner — star via GitHub CLI
-gh api --method PUT /user/starred/namuh-eng/namuh-send --silent
-```
-
-Or visit **[github.com/namuh-eng/namuh-send](https://github.com/namuh-eng/namuh-send)** and click **Star**.
-
-### Post-install star prompt
-
-After `npm install`, an optional prompt asks if you'd like to star the repo (requires [`gh` CLI](https://cli.github.com/) installed and authenticated). It never runs in CI, Docker, or non-interactive environments.
-
-To suppress the prompt:
-
-```bash
-# Environment variable
-SKIP_STAR_PROMPT=1 npm install
-
-# Project-specific environment variable
-NAMUH_SEND_SKIP_STAR_PROMPT=1 npm install
-
-# CLI flag
-npm install -- --skip-star-prompt
-```
-
----
+We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and guidelines.
 
 ## License
 
-[Elastic License 2.0](./LICENSE) — free to use and self-host. Cannot be offered as a competing hosted service.
+[Elastic License 2.0](./LICENSE) — free to use, modify, and self-host. The only restriction: you cannot offer Namuh Send as a hosted email service to third parties.
 
 ---
 
-**Built by [Jaeyun Ha](https://github.com/jaeyunha) and [Ashley Ha](https://github.com/ashley-ha)**
-
-Powered by [Ralph-to-Ralph](https://github.com/namuh-eng/ralph-to-ralph) — autonomous SaaS cloning pipeline.
+<p align="center">
+  Built by <a href="https://github.com/jaeyunha">Jaeyun Ha</a> and <a href="https://github.com/ashley-ha">Ashley Ha</a>
+</p>

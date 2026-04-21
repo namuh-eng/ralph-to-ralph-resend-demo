@@ -1,5 +1,7 @@
 # Contributing
 
+Thanks for your interest in contributing to Namuh Send!
+
 ## Setup
 
 **Quick start** (requires Docker + Node.js):
@@ -42,52 +44,37 @@ Without AWS credentials, emails are logged to the console instead of sent — th
 
 </details>
 
+## Development Commands
+
+| Command | Purpose |
+|---|---|
+| `make check` | TypeScript typecheck + Biome lint/format |
+| `make test` | Unit tests (Vitest) |
+| `make test-e2e` | E2E tests (Playwright, requires dev server) |
+| `make all` | Run everything |
+
+Run `make check && make test` before opening a PR.
+
 ## Ports
 
 - **3015** — dev server (`npm run dev`)
-- **8080** — production Docker image (`Dockerfile`). These are intentionally different; the Dockerfile is for deployment via App Runner, not local dev.
+- **8080** — production Docker image (internal)
 
 ## AWS SES (optional for local dev)
 
 AWS credentials are **not required** for local development — without them, emails are logged to the console and the full API flow still works. When you're ready to actually send emails, configure `~/.aws/credentials` via `aws configure`.
 
-New AWS accounts start in SES **sandbox mode** — you can only send emails to verified addresses. If sending fails with an access error:
+New AWS accounts start in SES **sandbox mode** — you can only send to verified addresses. This is an AWS limitation, not a Namuh Send bug. See [AWS SES docs](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) to request production access.
 
-1. Go to the [SES console](https://console.aws.amazon.com/ses/) and verify a recipient email under "Verified identities"
-2. For full sending, request production access via "Account dashboard" > "Request production access"
+## Code Style
 
-This is an AWS limitation, not a bug in namuh-send.
-
-## scripts/start.sh
-
-This script is for the **Ralph-to-Ralph autonomous cloning pipeline**, not for starting the app. To run the app locally, use `npm run dev`.
-
-## Development
-
-- `make check` — typecheck + lint/format (Biome)
-- `make test` — unit tests (Vitest)
-- `make test-e2e` — E2E tests (Playwright, requires dev server running)
-- `make all` — run everything
-
-Run `make check && make test` before opening a PR.
-
-## Stack
-
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript strict mode — no `any` types
-- **Styling:** Tailwind CSS + Radix UI
-- **Database:** Postgres via Drizzle ORM
-- **Email:** AWS SES
-- **Storage:** AWS S3
-
-## Code style
-
-- Biome handles formatting — run `make check` to auto-fix
-- TypeScript strict mode — no `any`, no type assertions without justification
+- **Biome** handles formatting — `make check` auto-reports issues, `npm run lint:fix` fixes them
+- **TypeScript strict mode** — no `any`, no type assertions without justification
 - Every feature needs at least one unit test (Vitest) and one E2E test (Playwright)
 
-## Pull requests
+## Pull Requests
 
 - Keep PRs focused — one feature or fix per PR
 - Include tests for any new functionality
-- Run `make check && make test` and confirm both pass before submitting
+- Run `make check && make test` before submitting
+- Describe the "why" in your PR description, not just the "what"

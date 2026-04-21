@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
+import { getServerSession, unauthorizedResponse } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
@@ -8,7 +8,8 @@ import { desc } from "drizzle-orm";
 // Internal dashboard endpoint — requires DASHBOARD_KEY auth
 
 export async function GET(request: Request): Promise<Response> {
-  if (!validateDashboardKey(request.headers.get("authorization"))) {
+  const session = await getServerSession();
+  if (!session) {
     return unauthorizedResponse();
   }
 
@@ -42,7 +43,8 @@ interface CreateApiKeyBody {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  if (!validateDashboardKey(request.headers.get("authorization"))) {
+  const session = await getServerSession();
+  if (!session) {
     return unauthorizedResponse();
   }
 

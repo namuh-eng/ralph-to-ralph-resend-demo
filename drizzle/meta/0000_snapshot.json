@@ -1,5 +1,5 @@
 {
-  "id": "a1fa7bfd-7826-429f-aa20-5c785cec2bae",
+  "id": "c4f5a0ee-34fc-44bd-b10e-069ea8bd85c0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -21,34 +21,29 @@
           "primaryKey": false,
           "notNull": true
         },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "text",
+        "hashed_key": {
+          "name": "hashed_key",
+          "type": "varchar(512)",
           "primaryKey": false,
           "notNull": true
         },
-        "token_preview": {
-          "name": "token_preview",
-          "type": "varchar(50)",
+        "key_prefix": {
+          "name": "key_prefix",
+          "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "permission": {
           "name": "permission",
-          "type": "varchar(50)",
+          "type": "permission_type",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'full_access'"
         },
-        "domain": {
-          "name": "domain",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_used_at": {
-          "name": "last_used_at",
-          "type": "timestamp with time zone",
+        "domain_id": {
+          "name": "domain_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -58,34 +53,34 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
-      "indexes": {
-        "api_keys_token_hash_idx": {
-          "name": "api_keys_token_hash_idx",
-          "columns": [
-            {
-              "expression": "token_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+      "indexes": {},
+      "foreignKeys": {
+        "api_keys_domain_id_domains_id_fk": {
+          "name": "api_keys_domain_id_domains_id_fk",
+          "tableFrom": "api_keys",
+          "tableTo": "domains",
+          "columnsFrom": [
+            "domain_id"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "api_keys_hashed_key_unique": {
+          "name": "api_keys_hashed_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "hashed_key"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -108,28 +103,15 @@
           "notNull": true,
           "default": "'Untitled'"
         },
-        "status": {
-          "name": "status",
-          "type": "varchar(50)",
+        "segment_id": {
+          "name": "segment_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
+          "notNull": false
         },
         "from": {
           "name": "from",
           "type": "varchar(512)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "subject": {
-          "name": "subject",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "html": {
-          "name": "html",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -139,15 +121,27 @@
           "primaryKey": false,
           "notNull": false
         },
+        "subject": {
+          "name": "subject",
+          "type": "varchar(998)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "preview_text": {
           "name": "preview_text",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "html": {
+          "name": "html",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "audience_id": {
-          "name": "audience_id",
-          "type": "uuid",
+        "text": {
+          "name": "text",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -157,8 +151,22 @@
           "primaryKey": false,
           "notNull": false
         },
+        "status": {
+          "name": "status",
+          "type": "broadcast_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
         "scheduled_at": {
           "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sent_at": {
+          "name": "sent_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -170,15 +178,168 @@
           "notNull": true,
           "default": "now()"
         },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "broadcasts_segment_id_segments_id_fk": {
+          "name": "broadcasts_segment_id_segments_id_fk",
+          "tableFrom": "broadcasts",
+          "tableTo": "segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "broadcasts_topic_id_topics_id_fk": {
+          "name": "broadcasts_topic_id_topics_id_fk",
+          "tableFrom": "broadcasts",
+          "tableTo": "topics",
+          "columnsFrom": [
+            "topic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contact_segments": {
+      "name": "contact_segments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_id": {
+          "name": "segment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "contact_segments_contact_id_contacts_id_fk": {
+          "name": "contact_segments_contact_id_contacts_id_fk",
+          "tableFrom": "contact_segments",
+          "tableTo": "contacts",
+          "columnsFrom": [
+            "contact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "contact_segments_segment_id_segments_id_fk": {
+          "name": "contact_segments_segment_id_segments_id_fk",
+          "tableFrom": "contact_segments",
+          "tableTo": "segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contact_topics": {
+      "name": "contact_topics",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "topic_id": {
+          "name": "topic_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscribed": {
+          "name": "subscribed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "contact_topics_contact_id_contacts_id_fk": {
+          "name": "contact_topics_contact_id_contacts_id_fk",
+          "tableFrom": "contact_topics",
+          "tableTo": "contacts",
+          "columnsFrom": [
+            "contact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "contact_topics_topic_id_topics_id_fk": {
+          "name": "contact_topics_topic_id_topics_id_fk",
+          "tableFrom": "contact_topics",
+          "tableTo": "topics",
+          "columnsFrom": [
+            "topic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -221,20 +382,8 @@
           "notNull": true,
           "default": false
         },
-        "custom_properties": {
-          "name": "custom_properties",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "segments": {
-          "name": "segments",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "topic_subscriptions": {
-          "name": "topic_subscriptions",
+        "properties": {
+          "name": "properties",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -246,60 +395,15 @@
           "notNull": true,
           "default": "now()"
         },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         }
       },
-      "indexes": {
-        "contacts_email_idx": {
-          "name": "contacts_email_idx",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "contacts_unsubscribed_idx": {
-          "name": "contacts_unsubscribed_idx",
-          "columns": [
-            {
-              "expression": "unsubscribed",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "contacts_created_at_idx": {
-          "name": "contacts_created_at_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -326,7 +430,8 @@
         },
         "status": {
           "name": "status",
-          "type": "varchar(50)",
+          "type": "domain_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'not_started'"
@@ -338,39 +443,6 @@
           "notNull": true,
           "default": "'us-east-1'"
         },
-        "dkim_tokens": {
-          "name": "dkim_tokens",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "records": {
-          "name": "records",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "track_clicks": {
-          "name": "track_clicks",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "track_opens": {
-          "name": "track_opens",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "tls": {
-          "name": "tls",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'opportunistic'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -378,8 +450,56 @@
           "notNull": true,
           "default": "now()"
         },
-        "document": {
-          "name": "document",
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "click_tracking": {
+          "name": "click_tracking",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "open_tracking": {
+          "name": "open_tracking",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "tls": {
+          "name": "tls",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "custom_return_path": {
+          "name": "custom_return_path",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sending_enabled": {
+          "name": "sending_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "receiving_enabled": {
+          "name": "receiving_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "records": {
+          "name": "records",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -387,6 +507,66 @@
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.email_events": {
+      "name": "email_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email_id": {
+          "name": "email_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "email_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "email_events_email_id_emails_id_fk": {
+          "name": "email_events_email_id_emails_id_fk",
+          "tableFrom": "email_events",
+          "tableTo": "emails",
+          "columnsFrom": [
+            "email_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -430,13 +610,13 @@
         },
         "reply_to": {
           "name": "reply_to",
-          "type": "jsonb",
+          "type": "varchar(512)",
           "primaryKey": false,
           "notNull": false
         },
         "subject": {
           "name": "subject",
-          "type": "text",
+          "type": "varchar(998)",
           "primaryKey": false,
           "notNull": true
         },
@@ -452,30 +632,19 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'queued'"
-        },
         "tags": {
           "name": "tags",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
-        "headers": {
-          "name": "headers",
-          "type": "jsonb",
+        "last_event": {
+          "name": "last_event",
+          "type": "email_status",
+          "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
-        },
-        "attachments": {
-          "name": "attachments",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'queued'"
         },
         "scheduled_at": {
           "name": "scheduled_at",
@@ -490,67 +659,54 @@
           "notNull": true,
           "default": "now()"
         },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
+        "api_key_id": {
+          "name": "api_key_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "domain_id": {
+          "name": "domain_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ses_message_id": {
+          "name": "ses_message_id",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         }
       },
-      "indexes": {
-        "emails_status_idx": {
-          "name": "emails_status_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+      "indexes": {},
+      "foreignKeys": {
+        "emails_api_key_id_api_keys_id_fk": {
+          "name": "emails_api_key_id_api_keys_id_fk",
+          "tableFrom": "emails",
+          "tableTo": "api_keys",
+          "columnsFrom": [
+            "api_key_id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
-        "emails_created_at_idx": {
-          "name": "emails_created_at_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+        "emails_domain_id_domains_id_fk": {
+          "name": "emails_domain_id_domains_id_fk",
+          "tableFrom": "emails",
+          "tableTo": "domains",
+          "columnsFrom": [
+            "domain_id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "emails_status_created_at_idx": {
-          "name": "emails_status_created_at_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+          "columnsTo": [
+            "id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -568,27 +724,27 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "method": {
           "name": "method",
           "type": "varchar(10)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
+        "path": {
+          "name": "path",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_key_id": {
+          "name": "api_key_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -604,24 +760,85 @@
           "primaryKey": false,
           "notNull": false
         },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "logs_api_key_id_api_keys_id_fk": {
+          "name": "logs_api_key_id_api_keys_id_fk",
+          "tableFrom": "logs",
+          "tableTo": "api_keys",
+          "columnsFrom": [
+            "api_key_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.properties": {
+      "name": "properties",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "properties_name_unique": {
+          "name": "properties_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -643,32 +860,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "contacts_count": {
-          "name": "contacts_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "unsubscribed_count": {
-          "name": "unsubscribed_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -703,19 +900,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "subject": {
-          "name": "subject",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "from": {
           "name": "from",
           "type": "varchar(512)",
@@ -728,9 +912,15 @@
           "primaryKey": false,
           "notNull": false
         },
+        "subject": {
+          "name": "subject",
+          "type": "varchar(998)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "preview_text": {
           "name": "preview_text",
-          "type": "text",
+          "type": "varchar(150)",
           "primaryKey": false,
           "notNull": false
         },
@@ -752,6 +942,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "published": {
+          "name": "published",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -759,11 +956,12 @@
           "notNull": true,
           "default": "now()"
         },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -793,20 +991,22 @@
         },
         "description": {
           "name": "description",
-          "type": "varchar(1024)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "default_subscription": {
           "name": "default_subscription",
-          "type": "varchar(50)",
+          "type": "topic_default_subscription",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'opt_out'"
         },
         "visibility": {
           "name": "visibility",
-          "type": "varchar(50)",
+          "type": "topic_visibility",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'public'"
@@ -817,12 +1017,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -844,24 +1038,30 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "url": {
-          "name": "url",
-          "type": "text",
+        "endpoint": {
+          "name": "endpoint",
+          "type": "varchar(2048)",
           "primaryKey": false,
           "notNull": true
         },
-        "event_types": {
-          "name": "event_types",
+        "events": {
+          "name": "events",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
-        "status": {
-          "name": "status",
-          "type": "varchar(50)",
+        "signing_secret": {
+          "name": "signing_secret",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'active'"
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -869,12 +1069,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "document": {
-          "name": "document",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -886,7 +1080,95 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.broadcast_status": {
+      "name": "broadcast_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "scheduled",
+        "queued",
+        "sent",
+        "failed"
+      ]
+    },
+    "public.domain_status": {
+      "name": "domain_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "verified",
+        "failed",
+        "temporary_failure",
+        "not_started"
+      ]
+    },
+    "public.email_status": {
+      "name": "email_status",
+      "schema": "public",
+      "values": [
+        "queued",
+        "scheduled",
+        "sent",
+        "delivered",
+        "delivery_delayed",
+        "bounced",
+        "complained",
+        "opened",
+        "clicked",
+        "failed",
+        "canceled",
+        "suppressed"
+      ]
+    },
+    "public.permission_type": {
+      "name": "permission_type",
+      "schema": "public",
+      "values": [
+        "full_access",
+        "sending_access"
+      ]
+    },
+    "public.topic_default_subscription": {
+      "name": "topic_default_subscription",
+      "schema": "public",
+      "values": [
+        "opt_in",
+        "opt_out"
+      ]
+    },
+    "public.topic_visibility": {
+      "name": "topic_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "private"
+      ]
+    },
+    "public.webhook_event": {
+      "name": "webhook_event",
+      "schema": "public",
+      "values": [
+        "email.sent",
+        "email.delivered",
+        "email.delivery_delayed",
+        "email.bounced",
+        "email.complained",
+        "email.opened",
+        "email.clicked",
+        "email.failed",
+        "email.received",
+        "email.scheduled",
+        "email.suppressed",
+        "domain.created",
+        "domain.updated",
+        "domain.deleted",
+        "contact.created",
+        "contact.updated",
+        "contact.deleted"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
