@@ -84,6 +84,7 @@ export async function POST(request: Request): Promise<Response> {
   const cc = normalizeToArray(body.cc);
   const bcc = normalizeToArray(body.bcc);
   const replyTo = normalizeToArray(body.reply_to);
+  const scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
 
   try {
     let finalHtml = body.html || "";
@@ -111,19 +112,21 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Send via SES
-    const sesResult = await sesSendEmail({
-      from: body.from,
-      to,
-      cc,
-      bcc,
-      subject: finalSubject,
-      html: finalHtml,
-      text: body.text,
-      replyTo,
-      headers: body.headers,
-      attachments: body.attachments as any,
-    });
+    // Only send immediately if not scheduled
+    if (!scheduledAt) {
+      await sesSendEmail({
+        from: body.from,
+        to,
+        cc,
+        bcc,
+        subject: finalSubject,
+        html: finalHtml,
+        text: body.text,
+        replyTo,
+        headers: body.headers,
+        attachments: body.attachments as any,
+      });
+    }
 
     // Store in DB
     const [email] = await db
@@ -140,8 +143,8 @@ export async function POST(request: Request): Promise<Response> {
         tags: body.tags ?? [],
         headers: body.headers ?? {},
         attachments: (body.attachments as any) ?? [],
-        status: "sent",
-        scheduledAt: body.scheduled_at ? new Date(body.scheduled_at) : null,
+        status: scheduledAt ? "scheduled" : "sent",
+        scheduledAt: scheduledAt,
         topicId: body.topic_id || null,
         idempotencyKey: idempotencyKey,
       })
