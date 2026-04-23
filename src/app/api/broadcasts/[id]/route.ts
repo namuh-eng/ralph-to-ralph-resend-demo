@@ -68,13 +68,17 @@ export async function PATCH(
     if (body.from !== undefined) updateData.from = body.from;
     if (body.subject !== undefined) updateData.subject = body.subject;
     if (body.html !== undefined) updateData.html = body.html;
+    if (body.text !== undefined) updateData.text = body.text;
+    if (body.reply_to !== undefined) updateData.replyTo = body.reply_to;
     if (body.replyTo !== undefined) updateData.replyTo = body.replyTo;
-    if (body.previewText !== undefined)
-      updateData.previewText = body.previewText;
+    if (body.preview_text !== undefined) updateData.previewText = body.preview_text;
+    if (body.previewText !== undefined) updateData.previewText = body.previewText;
+    if (body.audience_id !== undefined) updateData.audienceId = body.audience_id;
     if (body.audienceId !== undefined) updateData.audienceId = body.audienceId;
+    if (body.topic_id !== undefined) updateData.topicId = body.topic_id;
     if (body.topicId !== undefined) updateData.topicId = body.topicId;
-    if (body.scheduledAt !== undefined)
-      updateData.scheduledAt = body.scheduledAt;
+    if (body.scheduled_at !== undefined) updateData.scheduledAt = body.scheduled_at;
+    if (body.scheduledAt !== undefined) updateData.scheduledAt = body.scheduledAt;
 
     const [updated] = await db
       .update(broadcasts)
@@ -131,7 +135,7 @@ export async function DELETE(
       .where(eq(broadcasts.id, id))
       .limit(1);
 
-    const existing = results[0];
+    const existing = results ? results[0] : undefined;
 
     if (!existing) {
       return NextResponse.json(
@@ -150,9 +154,11 @@ export async function DELETE(
     const deleteResults = await db
       .delete(broadcasts)
       .where(eq(broadcasts.id, id))
-      .returning({ id: broadcasts.id });
+      .returning();
 
-    if (!deleteResults || deleteResults.length === 0) {
+    const deleted = deleteResults ? deleteResults[0] : undefined;
+
+    if (!deleted) {
       return NextResponse.json(
         { error: "Broadcast not found" },
         { status: 404 },
@@ -161,7 +167,7 @@ export async function DELETE(
 
     return NextResponse.json({
       object: "broadcast",
-      id: deleteResults[0].id,
+      id: deleted.id,
       deleted: true,
     });
   } catch (error) {

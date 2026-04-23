@@ -85,10 +85,35 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const name = body.name?.trim() || "Untitled";
+    const from = body.from?.trim();
+    const subject = body.subject?.trim();
+    const audienceId = body.segment_id || body.audience_id || null;
+
+    if (!from || !subject || !audienceId) {
+      return NextResponse.json(
+        { error: "from, subject, and segment_id are required" },
+        { status: 422 },
+      );
+    }
+
+    const scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
+    const shouldSend = body.send === true;
 
     const [broadcast] = await db
       .insert(broadcasts)
-      .values({ name })
+      .values({
+        name,
+        from,
+        subject,
+        audienceId,
+        html: body.html || null,
+        text: body.text || null,
+        replyTo: body.reply_to || null,
+        previewText: body.preview_text || null,
+        topicId: body.topic_id || null,
+        status: shouldSend ? (scheduledAt ? "scheduled" : "queued") : "draft",
+        scheduledAt,
+      })
       .returning();
 
     return NextResponse.json(
