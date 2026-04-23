@@ -774,6 +774,7 @@ describe("route smoke coverage", () => {
         returning: vi.fn().mockResolvedValue([{ id: "b1" }]),
       }),
     });
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
     expect(
       (
         await broadcastsRoute.DELETE(
@@ -785,6 +786,29 @@ describe("route smoke coverage", () => {
         )
       ).status,
     ).toBe(200);
+
+    // Send POST
+    const sendRoute = await import("@/app/api/broadcasts/[id]/send/route");
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "b1", status: "queued" }]),
+        }),
+      }),
+    });
+    const sendPost = await sendRoute.POST(
+      makeNextRequest("http://localhost/api/broadcasts/b1/send", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }) as never,
+      { params: Promise.resolve({ id: "b1" }) },
+    );
+    expect(sendPost.status).toBe(200);
 
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Receipt" }]));
     expect(
