@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { and, desc, lt } from "drizzle-orm";
 
 export async function GET(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
@@ -10,26 +10,43 @@ export async function GET(request: Request): Promise<Response> {
     return unauthorizedResponse();
   }
 
+  const url = new URL(request.url);
+  const limit = Math.min(
+    Math.max(Number(url.searchParams.get("limit")) || 20, 1),
+    100,
+  );
+  const after = url.searchParams.get("after") || "";
+
   try {
-    const keys = await db
+    const conditions = [];
+    if (after) {
+      conditions.push(lt(apiKeys.id, after));
+    }
+
+    const results = await db
       .select({
         id: apiKeys.id,
         name: apiKeys.name,
-        tokenPreview: apiKeys.tokenPreview,
-        permission: apiKeys.permission,
-        domain: apiKeys.domain,
         createdAt: apiKeys.createdAt,
+        lastUsedAt: apiKeys.lastUsedAt,
       })
       .from(apiKeys)
-      .orderBy(desc(apiKeys.createdAt));
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(apiKeys.id))
+      .limit(limit + 1);
+
+    const hasMore = results.length > limit;
+    const dataRows = hasMore ? results.slice(0, limit) : results;
 
     return Response.json({
       object: "list",
-      data: keys.map(k => ({
+      data: dataRows.map(k => ({
         id: k.id,
         name: k.name,
         created_at: k.createdAt,
-      }))
+        last_used_at: k.lastUsedAt,
+      })),
+      has_more: hasMore,
     });
   } catch (err) {
     const message =
@@ -60,6 +77,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!body.name || body.name.trim().length === 0) {
     return Response.json({ error: "name is required" }, { status: 422 });
   }
+  
+  if (body.name.trim().length > 50) {
+    return Response.json({ error: "name must be 50 characters or less" }, { status: 422 });
+  }
 
   try {
     const rawKey = `re_${randomUUID().replace(/-/g, "")}`;
@@ -79,7 +100,6 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json({
       id: created.id,
-      name: created.name,
       token: rawKey,
     }, { status: 201 });
   } catch (err) {

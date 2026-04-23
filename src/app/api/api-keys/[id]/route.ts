@@ -25,9 +25,11 @@ export async function GET(
     }
 
     return Response.json({
+      object: "api_key",
       id: key.id,
       name: key.name,
       created_at: key.createdAt,
+      last_used_at: key.lastUsedAt,
     });
   } catch (err) {
     const message =
@@ -56,11 +58,7 @@ export async function DELETE(
       return Response.json({ error: "API key not found" }, { status: 404 });
     }
 
-    return Response.json({
-      object: "api_key",
-      id: deleted.id,
-      deleted: true,
-    });
+    return new Response(null, { status: 200 });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to delete API key";
