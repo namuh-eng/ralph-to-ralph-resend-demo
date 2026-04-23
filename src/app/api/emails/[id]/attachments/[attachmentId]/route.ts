@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { getSignedDownloadUrl } from "@/lib/s3";
+import { getPresignedUrl } from "@/lib/s3";
 
 export async function GET(
   _request: NextRequest,
@@ -36,7 +36,7 @@ export async function GET(
 
     // Resolve S3 key - if stored as raw content, we might need a placeholder or real upload path
     const s3Key = attachment.s3Key || attachment.path || `sent-emails/${id}/${attachment.filename}`;
-    const downloadUrl = await getSignedDownloadUrl(s3Key);
+    const downloadUrl = await getPresignedUrl(s3Key);
 
     return NextResponse.json({
       object: "attachment",

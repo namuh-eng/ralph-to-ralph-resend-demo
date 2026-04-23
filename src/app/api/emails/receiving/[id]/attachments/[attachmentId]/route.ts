@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { receivedEmails } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { getSignedDownloadUrl } from "@/lib/s3";
+import { getPresignedUrl } from "@/lib/s3";
 
 export async function GET(
   _request: NextRequest,
@@ -38,7 +38,7 @@ export async function GET(
     }
 
     // Generate S3 signed URL
-    const downloadUrl = await getSignedDownloadUrl(attachment.s3Key);
+    const downloadUrl = await getPresignedUrl(attachment.s3Key);
 
     return NextResponse.json({
       object: "received_email_attachment",
