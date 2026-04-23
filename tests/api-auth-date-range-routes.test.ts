@@ -603,15 +603,12 @@ describe("route smoke coverage", () => {
           createdAt: "2026-04-23T00:00:00.000Z",
         },
       ]));
-    expect(
-      (
-        await listRoute.GET(
-          makeNextRequest("http://localhost/api/webhooks?limit=10", {
-            headers: { authorization: "Bearer token" },
-          }),
-        )
-      ).status,
-    ).toBe(200);
+    const listRes = await listRoute.GET(
+      makeNextRequest("http://localhost/api/webhooks?limit=10", {
+        headers: { authorization: "Bearer token" },
+      }),
+    );
+    expect(listRes.status).toBe(200);
 
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -626,23 +623,22 @@ describe("route smoke coverage", () => {
         ]),
       }),
     });
-    expect(
-      (
-        await listRoute.POST(
-          makeNextRequest("http://localhost/api/webhooks", {
-            method: "POST",
-            headers: {
-              authorization: "Bearer token",
-              "content-type": "application/json",
-            },
-            body: JSON.stringify({
-              url: "https://example.com/created",
-              event_types: ["email.delivered"],
-            }),
-          }),
-        )
-      ).status,
-    ).toBe(201);
+    const createRes = await listRoute.POST(
+      makeNextRequest("http://localhost/api/webhooks", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          url: "https://example.com/created",
+          event_types: ["email.delivered"],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson = await createRes.json();
+    expect(createJson.object).toBe("webhook");
 
     // Detail GET
     mockSelect.mockImplementationOnce(() => makeChain([
@@ -654,28 +650,22 @@ describe("route smoke coverage", () => {
           createdAt: "2026-04-23T00:00:00.000Z",
         },
       ]));
-    expect(
-      (
-        await detailRoute.GET(
-          makeNextRequest("http://localhost/api/webhooks/wh-1", {
-            headers: { authorization: "Bearer token" },
-          }),
-          { params: Promise.resolve({ id: "wh-1" }) },
-        )
-      ).status,
-    ).toBe(200);
+    const detailGetRes = await detailRoute.GET(
+      makeNextRequest("http://localhost/api/webhooks/wh-1", {
+        headers: { authorization: "Bearer token" },
+      }),
+      { params: Promise.resolve({ id: "wh-1" }) },
+    );
+    expect(detailGetRes.status).toBe(200);
 
     mockSelect.mockImplementationOnce(() => makeChain([]));
-    expect(
-      (
-        await detailRoute.GET(
-          makeNextRequest("http://localhost/api/webhooks/missing", {
-            headers: { authorization: "Bearer token" },
-          }),
-          { params: Promise.resolve({ id: "missing" }) },
-        )
-      ).status,
-    ).toBe(404);
+    const notFoundRes = await detailRoute.GET(
+      makeNextRequest("http://localhost/api/webhooks/missing", {
+        headers: { authorization: "Bearer token" },
+      }),
+      { params: Promise.resolve({ id: "missing" }) },
+    );
+    expect(notFoundRes.status).toBe(404);
 
     mockUpdate.mockReturnValue({
       set: vi.fn().mockReturnValue({
@@ -683,47 +673,41 @@ describe("route smoke coverage", () => {
           returning: vi.fn().mockResolvedValue([
             {
               id: "wh-1",
-              url: "https://example.com/updated",
-              eventTypes: ["email.opened"],
-              status: "inactive",
-              createdAt: "2026-04-23T00:00:00.000Z",
             },
           ]),
         }),
       }),
     });
-    expect(
-      (
-        await detailRoute.PATCH(
-          makeNextRequest("http://localhost/api/webhooks/wh-1", {
-            method: "PATCH",
-            headers: {
-              authorization: "Bearer token",
-              "content-type": "application/json",
-            },
-            body: JSON.stringify({ active: false }),
-          }),
-          { params: Promise.resolve({ id: "wh-1" }) },
-        )
-      ).status,
-    ).toBe(200);
+    const patchRes = await detailRoute.PATCH(
+      makeNextRequest("http://localhost/api/webhooks/wh-1", {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ active: false }),
+      }),
+      { params: Promise.resolve({ id: "wh-1" }) },
+    );
+    expect(patchRes.status).toBe(200);
+    const patchJson = await patchRes.json();
+    expect(patchJson.object).toBe("webhook");
 
     mockDelete.mockReturnValue({
       where: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([{ id: "wh-1" }]),
       }),
     });
-    expect(
-      (
-        await detailRoute.DELETE(
-          makeNextRequest("http://localhost/api/webhooks/wh-1", {
-            method: "DELETE",
-            headers: { authorization: "Bearer token" },
-          }),
-          { params: Promise.resolve({ id: "wh-1" }) },
-        )
-      ).status,
-    ).toBe(200);
+    const deleteRes = await detailRoute.DELETE(
+      makeNextRequest("http://localhost/api/webhooks/wh-1", {
+        method: "DELETE",
+        headers: { authorization: "Bearer token" },
+      }),
+      { params: Promise.resolve({ id: "wh-1" }) },
+    );
+    expect(deleteRes.status).toBe(200);
+    const deleteJson = await deleteRes.json();
+    expect(deleteJson.deleted).toBe(true);
   });
 
   it("covers broadcasts and templates detail routes with happy path and 404s", async () => {
@@ -783,17 +767,16 @@ describe("route smoke coverage", () => {
       }),
     });
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
-    expect(
-      (
-        await broadcastsRoute.DELETE(
-          makeNextRequest("http://localhost/api/broadcasts/b1", {
-            method: "DELETE",
-            headers: { authorization: "Bearer token" },
-          }) as never,
-          { params: Promise.resolve({ id: "b1" }) },
-        )
-      ).status,
-    ).toBe(200);
+    const broadcastDeleteRes = await broadcastsRoute.DELETE(
+      makeNextRequest("http://localhost/api/broadcasts/b1", {
+        method: "DELETE",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "b1" }) },
+    );
+    expect(broadcastDeleteRes.status).toBe(200);
+    const broadcastDeleteJson = await broadcastDeleteRes.json();
+    expect(broadcastDeleteJson.deleted).toBe(true);
 
     // Send POST
     const sendRoute = await import("@/app/api/broadcasts/[id]/send/route");

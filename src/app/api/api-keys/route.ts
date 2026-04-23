@@ -1,15 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { getServerSession, unauthorizedResponse } from "@/lib/api-auth";
+import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
 
-// ── GET /api/api-keys ────────────────────────────────────────────
-// Internal dashboard endpoint — requires DASHBOARD_KEY auth
-
 export async function GET(request: Request): Promise<Response> {
-  const session = await getServerSession();
-  if (!session) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth || auth.permission !== "full_access") {
     return unauthorizedResponse();
   }
 
@@ -26,15 +23,20 @@ export async function GET(request: Request): Promise<Response> {
       .from(apiKeys)
       .orderBy(desc(apiKeys.createdAt));
 
-    return Response.json({ data: keys });
+    return Response.json({
+      object: "list",
+      data: keys.map(k => ({
+        id: k.id,
+        name: k.name,
+        created_at: k.createdAt,
+      }))
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to list API keys";
     return Response.json({ error: message }, { status: 500 });
   }
 }
-
-// ── POST /api/api-keys ───────────────────────────────────────────
 
 interface CreateApiKeyBody {
   name: string;
@@ -43,8 +45,8 @@ interface CreateApiKeyBody {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await getServerSession();
-  if (!session) {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth || auth.permission !== "full_access") {
     return unauthorizedResponse();
   }
 
@@ -60,7 +62,6 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    // Generate API key: re_ prefix + UUID
     const rawKey = `re_${randomUUID().replace(/-/g, "")}`;
     const tokenHash = createHash("sha256").update(rawKey).digest("hex");
     const tokenPreview = `${rawKey.slice(0, 6)}...${rawKey.slice(-4)}`;
@@ -74,24 +75,13 @@ export async function POST(request: Request): Promise<Response> {
         permission: body.permission ?? "full_access",
         domain: body.domain_id ?? null,
       })
-      .returning({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        tokenPreview: apiKeys.tokenPreview,
-        permission: apiKeys.permission,
-        domain: apiKeys.domain,
-        createdAt: apiKeys.createdAt,
-      });
+      .returning();
 
     return Response.json({
       id: created.id,
       name: created.name,
       token: rawKey,
-      key_prefix: created.tokenPreview,
-      permission: created.permission,
-      domain_id: created.domain,
-      created_at: created.createdAt,
-    });
+    }, { status: 201 });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to create API key";
