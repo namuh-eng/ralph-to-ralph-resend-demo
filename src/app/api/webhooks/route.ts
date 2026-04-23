@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, lt } from "drizzle-orm";
 
 interface CreateWebhookBody {
   url: string;
@@ -29,9 +29,10 @@ export async function GET(request: Request): Promise<Response> {
     Math.max(Number(url.searchParams.get("limit")) || 20, 1),
     100,
   );
+  const after = url.searchParams.get("after") || "";
 
   try {
-    const results = await db
+    const query = db
       .select({
         id: webhooks.id,
         url: webhooks.url,
@@ -39,19 +40,29 @@ export async function GET(request: Request): Promise<Response> {
         status: webhooks.status,
         createdAt: webhooks.createdAt,
       })
-      .from(webhooks)
-      .orderBy(desc(webhooks.createdAt))
-      .limit(limit);
+      .from(webhooks);
+
+    if (after) {
+      query.where(lt(webhooks.id, after));
+    }
+
+    const results = await query
+      .orderBy(desc(webhooks.id))
+      .limit(limit + 1);
+
+    const hasMore = results.length > limit;
+    const dataRows = hasMore ? results.slice(0, limit) : results;
 
     return Response.json({
       object: "list",
-      data: results.map((w) => ({
+      data: dataRows.map((w) => ({
         id: w.id,
         endpoint: w.url,
         events: w.eventTypes,
         active: w.status === "active",
         created_at: w.createdAt,
       })),
+      has_more: hasMore,
     });
   } catch (err) {
     const message =
@@ -87,6 +98,7 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json(
       {
+        object: "webhook",
         id: webhook.id,
         endpoint: webhook.url,
         events: webhook.eventTypes,

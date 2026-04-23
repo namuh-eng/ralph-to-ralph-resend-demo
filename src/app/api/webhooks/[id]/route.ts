@@ -16,7 +16,8 @@ export async function GET(
     const [webhook] = await db
       .select()
       .from(webhooks)
-      .where(eq(webhooks.id, id));
+      .where(eq(webhooks.id, id))
+      .limit(1);
 
     if (!webhook) {
       return Response.json({ error: "Webhook not found" }, { status: 404 });
@@ -57,8 +58,13 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (body.endpoint !== undefined) updateData.url = body.endpoint;
     if (body.events !== undefined) updateData.eventTypes = body.events;
-    if (body.active !== undefined)
+    
+    // Support "active" (boolean) and "status" ("enabled"/"disabled")
+    if (body.status !== undefined) {
+      updateData.status = body.status === "enabled" ? "active" : "inactive";
+    } else if (body.active !== undefined) {
       updateData.status = body.active ? "active" : "inactive";
+    }
 
     const [updated] = await db
       .update(webhooks)
@@ -73,10 +79,6 @@ export async function PATCH(
     return Response.json({
       object: "webhook",
       id: updated.id,
-      endpoint: updated.url,
-      events: updated.eventTypes,
-      active: updated.status === "active",
-      created_at: updated.createdAt,
     });
   } catch (err) {
     const message =
@@ -104,7 +106,11 @@ export async function DELETE(
       return Response.json({ error: "Webhook not found" }, { status: 404 });
     }
 
-    return Response.json({ success: true });
+    return Response.json({
+      object: "webhook",
+      id: deleted.id,
+      deleted: true,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to delete webhook";
