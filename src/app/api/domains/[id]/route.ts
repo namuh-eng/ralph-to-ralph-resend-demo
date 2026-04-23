@@ -11,32 +11,34 @@ export async function GET(
   const auth = await validateApiKey(_req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  const { id } = await params;
-
   try {
-    const rows = await db
+    const { id } = await params;
+    const [domain] = await db
       .select()
       .from(domains)
       .where(eq(domains.id, id))
       .limit(1);
 
-    if (rows.length === 0) {
+    if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const domain = rows[0];
     return NextResponse.json({
+      object: "domain",
       id: domain.id,
       name: domain.name,
       status: domain.status,
       region: domain.region,
-      created_at: domain.createdAt.toISOString(),
-      click_tracking: domain.trackClicks,
+      records: domain.records || [],
       open_tracking: domain.trackOpens,
+      click_tracking: domain.trackClicks,
+      tracking_subdomain: domain.trackingSubdomain,
       tls: domain.tls,
-      records: domain.records,
+      capabilities: domain.capabilities,
+      created_at: domain.createdAt,
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to retrieve domain:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -51,18 +53,15 @@ export async function PATCH(
   const auth = await validateApiKey(req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  const { id } = await params;
-
   try {
+    const { id } = await params;
     const body = await req.json();
     const updates: Record<string, unknown> = {};
 
-    if (body.click_tracking !== undefined) {
-      updates.trackClicks = body.click_tracking;
-    }
-    if (body.open_tracking !== undefined) {
-      updates.trackOpens = body.open_tracking;
-    }
+    if (body.click_tracking !== undefined) updates.trackClicks = body.click_tracking;
+    if (body.open_tracking !== undefined) updates.trackOpens = body.open_tracking;
+    if (body.tracking_subdomain !== undefined) updates.trackingSubdomain = body.tracking_subdomain;
+    if (body.capabilities !== undefined) updates.capabilities = body.capabilities;
     if (body.tls !== undefined) {
       const val = body.tls;
       if (val === "opportunistic" || val === "enforced") {
@@ -74,10 +73,22 @@ export async function PATCH(
       return NextResponse.json({ error: "No valid fields" }, { status: 400 });
     }
 
-    await db.update(domains).set(updates).where(eq(domains.id, id));
+    const [updated] = await db
+      .update(domains)
+      .set(updates)
+      .where(eq(domains.id, id))
+      .returning();
 
-    return NextResponse.json({ ok: true });
-  } catch {
+    if (!updated) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      object: "domain",
+      id: updated.id,
+    });
+  } catch (error) {
+    console.error("Failed to update domain:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -92,12 +103,24 @@ export async function DELETE(
   const auth = await validateApiKey(_req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  const { id } = await params;
-
   try {
-    await db.delete(domains).where(eq(domains.id, id));
-    return NextResponse.json({ ok: true });
-  } catch {
+    const { id } = await params;
+    const [deleted] = await db
+      .delete(domains)
+      .where(eq(domains.id, id))
+      .returning({ id: domains.id });
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      object: "domain",
+      id: deleted.id,
+      deleted: true,
+    });
+  } catch (error) {
+    console.error("Failed to delete domain:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

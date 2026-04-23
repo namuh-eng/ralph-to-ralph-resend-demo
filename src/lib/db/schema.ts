@@ -86,6 +86,11 @@ export const domains = pgTable("domains", {
     .defaultNow(),
   document: jsonb("document"),
   userId: text("user_id"),
+  customReturnPath: varchar("custom_return_path", { length: 255 }),
+  trackingSubdomain: varchar("tracking_subdomain", { length: 255 }),
+  capabilities: jsonb("capabilities").$type<
+    Array<{ name: string; enabled: boolean }>
+  >(),
 });
 
 export const apiKeys = pgTable(
