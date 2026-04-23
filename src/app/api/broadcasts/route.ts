@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { broadcasts } from "@/lib/db/schema";
-import { type SQL, and, count, desc, eq, ilike } from "drizzle-orm";
+import { type SQL, and, desc, eq, ilike, lt } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
 
   try {
     const url = request.nextUrl;
-    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
     const limit = Math.min(
       120,
       Math.max(1, Number(url.searchParams.get("limit")) || 40),
@@ -18,7 +17,7 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get("search")?.trim() || "";
     const status = url.searchParams.get("status")?.trim() || "";
     const segmentId = url.searchParams.get("segmentId")?.trim() || "";
-    const offset = (page - 1) * limit;
+    const after = url.searchParams.get("after") || "";
 
     const conditions: SQL[] = [];
     if (search) {
@@ -35,33 +34,40 @@ export async function GET(request: NextRequest) {
     if (segmentId) {
       conditions.push(eq(broadcasts.audienceId, segmentId));
     }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [totalRow] = await db
-      .select({ count: count() })
-      .from(broadcasts)
-      .where(whereClause);
+    if (after) {
+      conditions.push(lt(broadcasts.id, after));
+    }
 
     const rows = await db
       .select({
         id: broadcasts.id,
         name: broadcasts.name,
         status: broadcasts.status,
-        segmentId: broadcasts.audienceId,
+        audienceId: broadcasts.audienceId,
+        topicId: broadcasts.topicId,
         createdAt: broadcasts.createdAt,
+        scheduledAt: broadcasts.scheduledAt,
       })
       .from(broadcasts)
-      .where(whereClause)
-      .orderBy(desc(broadcasts.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(broadcasts.id))
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const dataRows = hasMore ? rows.slice(0, limit) : rows;
 
     return NextResponse.json({
-      data: rows,
-      total: totalRow?.count ?? 0,
-      page,
-      limit,
+      object: "list",
+      data: dataRows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        status: r.status,
+        audience_id: r.audienceId,
+        topic_id: r.topicId,
+        created_at: r.createdAt,
+        scheduled_at: r.scheduledAt,
+      })),
+      has_more: hasMore,
     });
   } catch (error) {
     console.error("Failed to fetch broadcasts:", error);
@@ -85,7 +91,16 @@ export async function POST(request: NextRequest) {
       .values({ name })
       .returning();
 
-    return NextResponse.json(broadcast, { status: 201 });
+    return NextResponse.json(
+      {
+        object: "broadcast",
+        id: broadcast.id,
+        name: broadcast.name,
+        status: broadcast.status,
+        created_at: broadcast.createdAt,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create broadcast:", error);
     return NextResponse.json(

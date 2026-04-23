@@ -16,7 +16,8 @@ export async function GET(
     const [broadcast] = await db
       .select()
       .from(broadcasts)
-      .where(eq(broadcasts.id, id));
+      .where(eq(broadcasts.id, id))
+      .limit(1);
 
     if (!broadcast) {
       return NextResponse.json(
@@ -25,7 +26,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(broadcast);
+    return NextResponse.json({
+      object: "broadcast",
+      id: broadcast.id,
+      name: broadcast.name,
+      status: broadcast.status,
+      from: broadcast.from,
+      subject: broadcast.subject,
+      html: broadcast.html,
+      text: broadcast.text,
+      reply_to: broadcast.replyTo,
+      preview_text: broadcast.previewText,
+      audience_id: broadcast.audienceId,
+      topic_id: broadcast.topicId,
+      scheduled_at: broadcast.scheduledAt,
+      created_at: broadcast.createdAt,
+    });
   } catch (error) {
     console.error("Failed to fetch broadcast:", error);
     return NextResponse.json(
@@ -73,7 +89,22 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      object: "broadcast",
+      id: updated.id,
+      name: updated.name,
+      status: updated.status,
+      from: updated.from,
+      subject: updated.subject,
+      html: updated.html,
+      text: updated.text,
+      reply_to: updated.replyTo,
+      preview_text: updated.previewText,
+      audience_id: updated.audienceId,
+      topic_id: updated.topicId,
+      scheduled_at: updated.scheduledAt,
+      created_at: updated.createdAt,
+    });
   } catch (error) {
     console.error("Failed to update broadcast:", error);
     return NextResponse.json(
@@ -92,19 +123,47 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const [deleted] = await db
-      .delete(broadcasts)
+    
+    // Draft-guard logic
+    const results = await db
+      .select({ status: broadcasts.status })
+      .from(broadcasts)
       .where(eq(broadcasts.id, id))
-      .returning();
+      .limit(1);
 
-    if (!deleted) {
+    const existing = results[0];
+
+    if (!existing) {
       return NextResponse.json(
         { error: "Broadcast not found" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ success: true });
+    if (existing.status !== "draft" && existing.status !== "scheduled") {
+      return NextResponse.json(
+        { error: "Cannot delete a broadcast that is already sent or queued" },
+        { status: 400 },
+      );
+    }
+
+    const deleteResults = await db
+      .delete(broadcasts)
+      .where(eq(broadcasts.id, id))
+      .returning({ id: broadcasts.id });
+
+    if (!deleteResults || deleteResults.length === 0) {
+      return NextResponse.json(
+        { error: "Broadcast not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      object: "broadcast",
+      id: deleteResults[0].id,
+      deleted: true,
+    });
   } catch (error) {
     console.error("Failed to delete broadcast:", error);
     return NextResponse.json(
