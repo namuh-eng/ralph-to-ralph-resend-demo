@@ -873,5 +873,41 @@ describe("route smoke coverage", () => {
         )
       ).status,
     ).toBe(200);
+
+    // Template actions
+    const publishRoute = await import("@/app/api/templates/[id]/publish/route");
+    const duplicateRoute = await import("@/app/api/templates/[id]/duplicate/route");
+    
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", status: "draft" }]));
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "t1", status: "published" }]),
+        }),
+      }),
+    });
+    const publishPost = await publishRoute.POST(
+      makeNextRequest("http://localhost/api/templates/t1/publish", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "t1" }) },
+    );
+    expect(publishPost.status).toBe(200);
+
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Base" }]));
+    mockInsert.mockReturnValueOnce({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "t2", name: "Base (Copy)", status: "draft" }]),
+      }),
+    });
+    const duplicatePost = await duplicateRoute.POST(
+      makeNextRequest("http://localhost/api/templates/t1/duplicate", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "t1" }) },
+    );
+    expect(duplicatePost.status).toBe(200);
   });
 });
