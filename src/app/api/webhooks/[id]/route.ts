@@ -16,8 +16,7 @@ export async function GET(
     const [webhook] = await db
       .select()
       .from(webhooks)
-      .where(eq(webhooks.id, id))
-      .limit(1);
+      .where(eq(webhooks.id, id));
 
     if (!webhook) {
       return Response.json({ error: "Webhook not found" }, { status: 404 });

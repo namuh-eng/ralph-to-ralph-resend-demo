@@ -7,6 +7,7 @@ const mockInsert = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 const mockDelete = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
+const mockCountFn = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -19,6 +20,7 @@ vi.mock("@/lib/db", () => ({
     insert: mockInsert,
     update: mockUpdate,
     delete: mockDelete,
+    $count: mockCountFn,
   },
 }));
 
@@ -291,6 +293,9 @@ describe("route smoke coverage", () => {
 
   it("covers segments get/post happy path and validation", async () => {
     const route = await import("@/app/api/segments/route");
+    const detailRoute = await import("@/app/api/segments/[id]/route");
+    const contactsRoute = await import("@/app/api/segments/[id]/contacts/route");
+
     mockSelect
       .mockReturnValueOnce(makeChain([{ count: 1 }]))
       .mockReturnValueOnce(
@@ -340,6 +345,46 @@ describe("route smoke coverage", () => {
       }) as never,
     );
     expect(createResponse.status).toBe(201);
+
+    // Detail GET
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "seg-1", name: "VIP" }]));
+    const detailGet = await detailRoute.GET(
+      makeNextRequest("http://localhost/api/segments/seg-1", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "seg-1" }) },
+    );
+    expect(detailGet.status).toBe(200);
+
+    // Detail DELETE
+    mockDelete.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "seg-1" }]),
+      }),
+    });
+    const detailDelete = await detailRoute.DELETE(
+      makeNextRequest("http://localhost/api/segments/seg-1", {
+        method: "DELETE",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "seg-1" }) },
+    );
+    expect(detailDelete.status).toBe(200);
+
+    // Segment Contacts GET
+    mockSelect.mockImplementationOnce(() => makeChain([{ name: "VIP" }])); // Check segment exists
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "c1", email: "a@b.com" }])); // Contacts list
+    
+    // For $count mock in segments/[id]/contacts
+    mockCountFn.mockResolvedValueOnce(1);
+
+    const contactsGet = await contactsRoute.GET(
+      makeNextRequest("http://localhost/api/segments/seg-1/contacts", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "seg-1" }) },
+    );
+    expect(contactsGet.status).toBe(200);
   });
 
   it("covers topics get/post happy path and validation", async () => {
@@ -405,7 +450,7 @@ describe("route smoke coverage", () => {
     expect(createResponse.status).toBe(201);
 
     // Detail GET
-    mockSelect.mockReturnValueOnce(makeChain([{ id: "topic-1", name: "Marketing" }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "topic-1", name: "Marketing" }]));
     const detailGet = await detailRoute.GET(
       makeNextRequest("http://localhost/api/topics/topic-1", {
         headers: { authorization: "Bearer token" },
@@ -529,8 +574,8 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(201);
 
-    mockSelect.mockReturnValueOnce(
-      makeChain([
+    // Detail GET
+    mockSelect.mockImplementationOnce(() => makeChain([
         {
           id: "wh-1",
           url: "https://example.com/webhook",
@@ -538,8 +583,7 @@ describe("route smoke coverage", () => {
           status: "active",
           createdAt: "2026-04-23T00:00:00.000Z",
         },
-      ]),
-    );
+      ]));
     expect(
       (
         await detailRoute.GET(
@@ -551,7 +595,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockSelect.mockReturnValueOnce(makeChain([]));
+    mockSelect.mockImplementationOnce(() => makeChain([]));
     expect(
       (
         await detailRoute.GET(
@@ -616,7 +660,7 @@ describe("route smoke coverage", () => {
     const broadcastsRoute = await import("@/app/api/broadcasts/[id]/route");
     const templatesRoute = await import("@/app/api/templates/[id]/route");
 
-    mockSelect.mockReturnValueOnce(makeChain([{ id: "b1", name: "Launch" }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", name: "Launch" }]));
     expect(
       (
         await broadcastsRoute.GET(
@@ -628,7 +672,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockSelect.mockReturnValueOnce(makeChain([]));
+    mockSelect.mockImplementationOnce(() => makeChain([]));
     expect(
       (
         await broadcastsRoute.GET(
@@ -680,7 +724,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockSelect.mockReturnValueOnce(makeChain([{ id: "t1", name: "Receipt" }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Receipt" }]));
     expect(
       (
         await templatesRoute.GET(
@@ -692,7 +736,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockSelect.mockReturnValueOnce(makeChain([]));
+    mockSelect.mockImplementationOnce(() => makeChain([]));
     expect(
       (
         await templatesRoute.GET(
