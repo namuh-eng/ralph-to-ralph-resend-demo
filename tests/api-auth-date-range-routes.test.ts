@@ -13,21 +13,12 @@ const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db", () => ({
   db: {
     query: {
-      apiKeys: {
-        findFirst: mockFindFirst,
-      },
-      contacts: {
-        findFirst: mockFindFirst,
-      },
-      segments: {
-        findFirst: mockFindFirst,
-      },
-      templates: {
-        findFirst: mockFindFirst,
-      },
-      broadcasts: {
-        findFirst: mockFindFirst,
-      },
+      apiKeys: { findFirst: mockFindFirst },
+      contacts: { findFirst: mockFindFirst },
+      segments: { findFirst: mockFindFirst },
+      topics: { findFirst: mockFindFirst },
+      templates: { findFirst: mockFindFirst },
+      broadcasts: { findFirst: mockFindFirst },
     },
     select: mockSelect,
     insert: mockInsert,
@@ -285,7 +276,7 @@ describe("route smoke coverage", () => {
     expect(unauthorized.status).toBe(401);
 
     mockValidateDashboardKey.mockReturnValue(true);
-    mockCountFn.mockImplementation(() => Promise.resolve(0));
+    mockCountFn.mockResolvedValue(0);
     mockCountFn.mockResolvedValueOnce(42);
     mockCountFn.mockResolvedValueOnce(3);
     mockCountFn.mockResolvedValueOnce(120);
@@ -982,5 +973,36 @@ describe("route smoke coverage", () => {
       { params: Promise.resolve({ id: "c1", segment_id: "s1" }) },
     );
     expect(contactSegmentPost.status).toBe(200);
+
+    // Contact Topics
+    const contactTopicsRoute = await import("@/app/api/contacts/[id]/topics/route");
+    mockFindFirst.mockResolvedValueOnce({ id: "c1", topicSubscriptions: [{ topicId: "t1", subscribed: true }] }); // contact
+    mockFindFirst.mockResolvedValueOnce({ id: "t1", name: "News" }); // topic
+    const contactTopicsGet = await contactTopicsRoute.GET(
+      makeNextRequest("http://localhost/api/contacts/c1/topics", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "c1" }) },
+    );
+    expect(contactTopicsGet.status).toBe(200);
+
+    mockFindFirst.mockResolvedValueOnce({ id: "c1" }); // contact
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ id: "c1" }]),
+      }),
+    });
+    const contactTopicsPatch = await contactTopicsRoute.PATCH(
+      makeNextRequest("http://localhost/api/contacts/c1/topics", {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ topics: [{ id: "t1", subscription: "opt_in" }] }),
+      }) as never,
+      { params: Promise.resolve({ id: "c1" }) },
+    );
+    expect(contactTopicsPatch.status).toBe(200);
   });
 });
