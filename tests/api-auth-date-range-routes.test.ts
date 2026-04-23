@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFindFirst = vi.hoisted(() => vi.fn());
+const mockFindMany = vi.hoisted(() => vi.fn());
 const mockSelect = vi.hoisted(() => vi.fn());
 const mockInsert = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
@@ -10,11 +11,26 @@ const mockValidateApiKey = vi.hoisted(() => vi.fn());
 const mockCountFn = vi.hoisted(() => vi.fn());
 const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
 
+function makeChain<T>(rows: T[]) {
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    offset: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue(rows),
+    then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
+  };
+}
+
 vi.mock("@/lib/db", () => ({
   db: {
     query: {
       apiKeys: { findFirst: mockFindFirst },
-      contacts: { findFirst: mockFindFirst },
+      contacts: { findFirst: mockFindFirst, findMany: mockFindMany },
       segments: { findFirst: mockFindFirst },
       topics: { findFirst: mockFindFirst },
       templates: { findFirst: mockFindFirst },
@@ -32,19 +48,6 @@ function makeNextRequest(url: string, init?: RequestInit) {
   const request = new Request(url, init) as Request & { nextUrl: URL };
   request.nextUrl = new URL(url);
   return request;
-}
-
-function makeChain<T>(rows: T[]) {
-  return {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    offset: vi.fn().mockReturnThis(),
-    groupBy: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue(rows),
-    then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
-  };
 }
 
 describe("lib/api-auth", () => {
@@ -207,7 +210,7 @@ describe("route smoke coverage", () => {
         validateDashboardKey: mockValidateDashboardKey,
       };
     });
-    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1", permission: "full_access" });
     mockValidateDashboardKey.mockReturnValue(true);
   });
 
@@ -358,11 +361,7 @@ describe("route smoke coverage", () => {
     expect(detailGet.status).toBe(200);
 
     // Detail DELETE
-    mockDelete.mockReturnValueOnce({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "seg-1" }]),
-      }),
-    });
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "seg-1" }]));
     const detailDelete = await detailRoute.DELETE(
       makeNextRequest("http://localhost/api/segments/seg-1", {
         method: "DELETE",
@@ -401,13 +400,7 @@ describe("route smoke coverage", () => {
             createdAt: "2026-04-23T00:00:00.000Z",
           },
         ]));
-    mockInsert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([
-          { id: "t2", name: "Product", defaultSubscription: "opt_in" },
-        ]),
-      }),
-    });
+    mockInsert.mockImplementationOnce(() => makeChain([{ id: "t2", name: "Product", defaultSubscription: "opt_in" }]));
 
     const getResponse = await route.GET(
       makeNextRequest("http://localhost/api/topics?limit=20", {
@@ -460,13 +453,7 @@ describe("route smoke coverage", () => {
     expect(detailGet.status).toBe(200);
 
     // Detail PATCH
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "topic-1", name: "Updated" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "topic-1", name: "Updated" }]));
     const detailPatch = await detailRoute.PATCH(
       makeNextRequest("http://localhost/api/topics/topic-1", {
         method: "PATCH",
@@ -481,11 +468,7 @@ describe("route smoke coverage", () => {
     expect(detailPatch.status).toBe(200);
 
     // Detail DELETE
-    mockDelete.mockReturnValueOnce({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "topic-1" }]),
-      }),
-    });
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "topic-1" }]));
     const detailDelete = await detailRoute.DELETE(
       makeNextRequest("http://localhost/api/topics/topic-1", {
         method: "DELETE",
@@ -523,13 +506,9 @@ describe("route smoke coverage", () => {
     expect(getData.total).toBe(1);
     expect(getData.data[0].key).toBe("first_name");
 
-    mockInsert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([
-          { id: "prop-2", key: "age", name: "Age", type: "number", createdAt: new Date(), updatedAt: new Date() },
-        ]),
-      }),
-    });
+    mockInsert.mockImplementationOnce(() => makeChain([
+      { id: "prop-2", key: "age", name: "Age", type: "number", createdAt: new Date(), updatedAt: new Date() },
+    ]));
 
     const postResponse = await route.POST(
       makeNextRequest("http://localhost/api/properties", {
@@ -554,13 +533,7 @@ describe("route smoke coverage", () => {
     expect(detailGet.status).toBe(200);
 
     // Detail PATCH
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "prop-1", name: "New Name" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "prop-1", name: "New Name" }]));
     const detailPatch = await detailRoute.PATCH(
       makeNextRequest("http://localhost/api/properties/prop-1", {
         method: "PATCH",
@@ -575,11 +548,7 @@ describe("route smoke coverage", () => {
     expect(detailPatch.status).toBe(200);
 
     // Detail DELETE
-    mockDelete.mockReturnValueOnce({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "prop-1" }]),
-      }),
-    });
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "prop-1" }]));
     const detailDelete = await detailRoute.DELETE(
       makeNextRequest("http://localhost/api/properties/prop-1", {
         method: "DELETE",
@@ -610,19 +579,15 @@ describe("route smoke coverage", () => {
     );
     expect(listRes.status).toBe(200);
 
-    mockInsert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([
-          {
-            id: "wh-2",
-            url: "https://example.com/created",
-            eventTypes: ["email.delivered"],
-            status: "active",
-            createdAt: "2026-04-23T00:00:00.000Z",
-          },
-        ]),
-      }),
-    });
+    mockInsert.mockImplementationOnce(() => makeChain([
+      {
+        id: "wh-2",
+        url: "https://example.com/created",
+        eventTypes: ["email.delivered"],
+        status: "active",
+        createdAt: "2026-04-23T00:00:00.000Z",
+      },
+    ]));
     const createRes = await listRoute.POST(
       makeNextRequest("http://localhost/api/webhooks", {
         method: "POST",
@@ -667,17 +632,7 @@ describe("route smoke coverage", () => {
     );
     expect(notFoundRes.status).toBe(404);
 
-    mockUpdate.mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([
-            {
-              id: "wh-1",
-            },
-          ]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "wh-1" }]));
     const patchRes = await detailRoute.PATCH(
       makeNextRequest("http://localhost/api/webhooks/wh-1", {
         method: "PATCH",
@@ -693,11 +648,7 @@ describe("route smoke coverage", () => {
     const patchJson = await patchRes.json();
     expect(patchJson.object).toBe("webhook");
 
-    mockDelete.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "wh-1" }]),
-      }),
-    });
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "wh-1" }]));
     const deleteRes = await detailRoute.DELETE(
       makeNextRequest("http://localhost/api/webhooks/wh-1", {
         method: "DELETE",
@@ -738,13 +689,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(404);
 
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "b1", name: "Renamed" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "b1", name: "Renamed" }]));
     expect(
       (
         await broadcastsRoute.PATCH(
@@ -761,12 +706,8 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockDelete.mockReturnValueOnce({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "b1" }]),
-      }),
-    });
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "b1" }]));
     const broadcastDeleteRes = await broadcastsRoute.DELETE(
       makeNextRequest("http://localhost/api/broadcasts/b1", {
         method: "DELETE",
@@ -781,13 +722,7 @@ describe("route smoke coverage", () => {
     // Send POST
     const sendRoute = await import("@/app/api/broadcasts/[id]/send/route");
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "b1", status: "queued" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "b1", status: "queued" }]));
     const sendPost = await sendRoute.POST(
       makeNextRequest("http://localhost/api/broadcasts/b1/send", {
         method: "POST",
@@ -825,13 +760,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(404);
 
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "t1", name: "Updated" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Updated" }]));
     expect(
       (
         await templatesRoute.PATCH(
@@ -848,11 +777,7 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockDelete.mockReturnValueOnce({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "t1" }]),
-      }),
-    });
+    mockDelete.mockImplementationOnce(() => makeChain([{ id: "t1" }]));
     expect(
       (
         await templatesRoute.DELETE(
@@ -870,13 +795,7 @@ describe("route smoke coverage", () => {
     const duplicateRoute = await import("@/app/api/templates/[id]/duplicate/route");
     
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", status: "draft" }]));
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: "t1", status: "published" }]),
-        }),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "t1", status: "published" }]));
     const publishPost = await publishRoute.POST(
       makeNextRequest("http://localhost/api/templates/t1/publish", {
         method: "POST",
@@ -887,11 +806,7 @@ describe("route smoke coverage", () => {
     expect(publishPost.status).toBe(200);
 
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Base" }]));
-    mockInsert.mockReturnValueOnce({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "t2", name: "Base (Copy)", status: "draft" }]),
-      }),
-    });
+    mockInsert.mockImplementationOnce(() => makeChain([{ id: "t2", name: "Base (Copy)", status: "draft" }]));
     const duplicatePost = await duplicateRoute.POST(
       makeNextRequest("http://localhost/api/templates/t1/duplicate", {
         method: "POST",
@@ -943,11 +858,7 @@ describe("route smoke coverage", () => {
 
     mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: [] }); // contact
     mockFindFirst.mockResolvedValueOnce({ id: "s1", name: "VIP" }); // segment
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: "c1" }]),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "c1" }]));
     const contactSegmentPost = await contactSegmentRoute.POST(
       makeNextRequest("http://localhost/api/contacts/c1/segments/s1", {
         method: "POST",
@@ -970,22 +881,29 @@ describe("route smoke coverage", () => {
     expect(contactTopicsGet.status).toBe(200);
 
     mockFindFirst.mockResolvedValueOnce({ id: "c1" }); // contact
-    mockUpdate.mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: "c1" }]),
-      }),
-    });
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "c1" }]));
     const contactTopicsPatch = await contactTopicsRoute.PATCH(
       makeNextRequest("http://localhost/api/contacts/c1/topics", {
         method: "PATCH",
-        headers: {
-          authorization: "Bearer token",
-          "content-type": "application/json",
-        },
+        headers: { authorization: "Bearer token" },
         body: JSON.stringify({ topics: [{ id: "t1", subscription: "opt_in" }] }),
       }) as never,
       { params: Promise.resolve({ id: "c1" }) },
     );
     expect(contactTopicsPatch.status).toBe(200);
+
+    // Bulk Actions
+    const bulkRoute = await import("@/app/api/contacts/bulk/route");
+    mockFindFirst.mockResolvedValueOnce({ id: "s1", name: "VIP" }); // segment
+    mockFindMany.mockResolvedValueOnce([{ id: "c1", segments: [] }]); // contact
+    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "c1" }]));
+    const bulkRes = await bulkRoute.POST(
+      makeNextRequest("http://localhost/api/contacts/bulk", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+        body: JSON.stringify({ contact_ids: ["c1"], segment_id: "s1", action: "add_to_segment" }),
+      }) as never,
+    );
+    expect(bulkRes.status).toBe(200);
   });
 });
