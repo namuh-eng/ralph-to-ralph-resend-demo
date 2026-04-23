@@ -34,6 +34,19 @@ export async function validateApiKey(
 
   if (!found) return null;
 
+  // Background update lastUsedAt to avoid blocking the request
+  // Only update once per minute to avoid write amplification
+  const now = new Date();
+  const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
+  if (!found.lastUsedAt || found.lastUsedAt < oneMinuteAgo) {
+    db.update(apiKeys)
+      .set({ lastUsedAt: now })
+      .where(eq(apiKeys.id, found.id))
+      .execute()
+      .catch((err) => console.error("Failed to update API key last_used_at:", err));
+  }
+
   return {
     apiKeyId: found.id,
     permission: found.permission,
