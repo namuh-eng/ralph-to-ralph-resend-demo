@@ -2,6 +2,7 @@
 
 import { CopyToClipboard } from "@/components/copy-to-clipboard";
 import { DocumentsTab } from "@/components/settings-documents";
+import { TeamTab } from "@/components/settings-team";
 import { type UsageData, UsageTab } from "@/components/settings-usage";
 import { useEffect, useState } from "react";
 
@@ -31,7 +32,7 @@ const DEFAULT_USAGE: UsageData = {
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<
-    "usage" | "smtp" | "unsubscribe" | "documents"
+    "usage" | "smtp" | "team" | "unsubscribe" | "billing" | "documents"
   >("usage");
   const [usage, setUsage] = useState<UsageData>(DEFAULT_USAGE);
 
@@ -53,13 +54,15 @@ export function SettingsPage() {
       <h1 className="text-2xl font-semibold text-[#F0F0F0] mb-6">Settings</h1>
 
       {/* Tabs */}
-      <div className="border-b border-[rgba(176,199,217,0.145)] mb-6">
-        <div className="flex items-center gap-0">
+      <div className="border-b border-[rgba(176,199,217,0.145)] mb-6 overflow-x-auto">
+        <div className="flex items-center gap-0 min-w-max">
           {(
             [
               { key: "usage", label: "Usage" },
               { key: "smtp", label: "SMTP" },
+              { key: "team", label: "Team" },
               { key: "unsubscribe", label: "Unsubscribe Page" },
+              { key: "billing", label: "Billing" },
               { key: "documents", label: "Documents" },
             ] as const
           ).map((tab) => (
@@ -125,6 +128,18 @@ SMTP_USER=resend
 SMTP_PASS=re_YOUR_API_KEY`}
             </pre>
           </div>
+        </div>
+      )}
+
+      {/* Team Tab */}
+      {activeTab === "team" && <TeamTab />}
+
+      {/* Billing Tab (Stub) */}
+      {activeTab === "billing" && (
+        <div className="flex flex-col items-center justify-center min-h-[300px] border border-dashed border-[rgba(176,199,217,0.145)] rounded-lg">
+          <p className="text-[14px] text-[#A1A4A5]">
+            Billing and subscription management is out of scope for the current phase.
+          </p>
         </div>
       )}
 
