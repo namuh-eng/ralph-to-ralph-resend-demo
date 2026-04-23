@@ -1,6 +1,6 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { emails } from "@/lib/db/schema";
+import { emails, templates } from "@/lib/db/schema";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
 import { desc, eq, gt, lt } from "drizzle-orm";
 
@@ -16,9 +16,20 @@ interface SendEmailBody {
   bcc?: string | string[];
   reply_to?: string | string[];
   headers?: Record<string, string>;
-  attachments?: Array<{ filename: string; content: string }>;
+  attachments?: Array<{
+    filename: string;
+    content?: string;
+    path?: string;
+    content_type?: string;
+    content_id?: string;
+  }>;
   tags?: Array<{ name: string; value: string }>;
   scheduled_at?: string;
+  topic_id?: string;
+  template?: {
+    id: string;
+    variables?: Record<string, any>;
+  };
 }
 
 function normalizeToArray(
@@ -32,7 +43,7 @@ function validateSendBody(body: SendEmailBody): string | null {
   if (!body.from) return "from is required";
   if (!body.to) return "to is required";
   if (!body.subject) return "subject is required";
-  if (!body.html && !body.text) return "html or text body is required";
+  if (!body.html && !body.text && !body.template) return "html, text, or template is required";
   return null;
 }
 
@@ -41,6 +52,11 @@ function validateSendBody(body: SendEmailBody): string | null {
 export async function POST(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
+
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (idempotencyKey && (idempotencyKey.length < 1 || idempotencyKey.length > 255)) {
+    return Response.json({ error: "Invalid idempotency key length" }, { status: 400 });
+  }
 
   let body: SendEmailBody;
   try {
@@ -54,24 +70,59 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: validationError }, { status: 422 });
   }
 
+  // Idempotency check
+  if (idempotencyKey) {
+    const existing = await db.query.emails.findFirst({
+      where: eq(emails.idempotencyKey, idempotencyKey),
+    });
+    if (existing) {
+      return Response.json({ id: existing.id }, { status: 409 });
+    }
+  }
+
   const to = normalizeToArray(body.to) as string[];
   const cc = normalizeToArray(body.cc);
   const bcc = normalizeToArray(body.bcc);
   const replyTo = normalizeToArray(body.reply_to);
 
   try {
+    let finalHtml = body.html || "";
+    let finalSubject = body.subject;
+
+    // Handle template resolving
+    if (body.template) {
+      const template = await db.query.templates.findFirst({
+        where: eq(templates.id, body.template.id),
+      });
+      if (!template) {
+        return Response.json({ error: "Template not found" }, { status: 404 });
+      }
+      
+      finalHtml = template.html || "";
+      if (template.subject) finalSubject = template.subject;
+
+      // Simple variable replacement
+      if (body.template.variables) {
+        for (const [key, value] of Object.entries(body.template.variables)) {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+          finalHtml = finalHtml.replace(regex, String(value));
+          finalSubject = finalSubject.replace(regex, String(value));
+        }
+      }
+    }
+
     // Send via SES
     const sesResult = await sesSendEmail({
       from: body.from,
       to,
       cc,
       bcc,
-      subject: body.subject,
-      html: body.html,
+      subject: finalSubject,
+      html: finalHtml,
       text: body.text,
       replyTo,
       headers: body.headers,
-      attachments: body.attachments,
+      attachments: body.attachments as any,
     });
 
     // Store in DB
@@ -83,14 +134,16 @@ export async function POST(request: Request): Promise<Response> {
         cc: cc ?? [],
         bcc: bcc ?? [],
         replyTo: replyTo ?? [],
-        subject: body.subject,
-        html: body.html ?? "",
+        subject: finalSubject,
+        html: finalHtml,
         text: body.text ?? "",
         tags: body.tags ?? [],
         headers: body.headers ?? {},
-        attachments: body.attachments ?? [],
+        attachments: (body.attachments as any) ?? [],
         status: "sent",
         scheduledAt: body.scheduled_at ? new Date(body.scheduled_at) : null,
+        topicId: body.topic_id || null,
+        idempotencyKey: idempotencyKey,
       })
       .returning({ id: emails.id });
 

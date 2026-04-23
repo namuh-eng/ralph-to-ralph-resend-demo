@@ -126,7 +126,13 @@ export const emails = pgTable(
     headers: jsonb("headers").$type<Record<string, string>>(),
     attachments:
       jsonb("attachments").$type<
-        Array<{ filename: string; content: string }>
+        Array<{
+          filename: string;
+          content?: string;
+          path?: string;
+          content_type?: string;
+          content_id?: string;
+        }>
       >(),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -134,11 +140,14 @@ export const emails = pgTable(
       .defaultNow(),
     document: jsonb("document"),
     userId: text("user_id"),
+    topicId: uuid("topic_id"),
+    idempotencyKey: varchar("idempotency_key", { length: 255 }),
   },
   (table) => [
     index("emails_status_idx").on(table.status),
     index("emails_created_at_idx").on(table.createdAt),
     index("emails_status_created_at_idx").on(table.status, table.createdAt),
+    uniqueIndex("emails_idempotency_key_idx").on(table.idempotencyKey),
   ],
 );
 

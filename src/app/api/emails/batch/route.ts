@@ -12,7 +12,17 @@ interface BatchEmailBody {
   cc?: string | string[];
   bcc?: string | string[];
   reply_to?: string | string[];
+  headers?: Record<string, string>;
+  attachments?: Array<{
+    filename: string;
+    content?: string;
+    path?: string;
+    content_type?: string;
+    content_id?: string;
+  }>;
   tags?: Array<{ name: string; value: string }>;
+  scheduled_at?: string;
+  topic_id?: string;
 }
 
 function normalizeToArray(
@@ -85,6 +95,8 @@ export async function POST(request: Request): Promise<Response> {
             html: item.html,
             text: item.text,
             replyTo,
+            headers: item.headers,
+            attachments: item.attachments as any,
           });
 
           const [email] = await db
@@ -99,9 +111,11 @@ export async function POST(request: Request): Promise<Response> {
               html: item.html ?? "",
               text: item.text ?? "",
               tags: item.tags ?? [],
-              headers: {},
-              attachments: [],
+              headers: item.headers ?? {},
+              attachments: (item.attachments as any) ?? [],
               status: "sent",
+              scheduledAt: item.scheduled_at ? new Date(item.scheduled_at) : null,
+              topicId: item.topic_id || null,
             })
             .returning({ id: emails.id });
 
