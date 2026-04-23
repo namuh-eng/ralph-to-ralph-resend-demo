@@ -1,5 +1,3 @@
-// ABOUTME: GET /api/usage — returns quota usage data by counting DB records for emails, contacts, segments, domains
-
 import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts, domains, emails, segments } from "@/lib/db/schema";
@@ -27,35 +25,29 @@ export async function GET(request: Request) {
       segmentCount,
       domainCount,
     ] = await Promise.all([
-      db
-        .select({ count: count() })
-        .from(emails)
-        .where(gte(emails.createdAt, startOfMonth)),
-      db
-        .select({ count: count() })
-        .from(emails)
-        .where(gte(emails.createdAt, startOfDay)),
-      db.select({ count: count() }).from(contacts),
-      db.select({ count: count() }).from(segments),
-      db.select({ count: count() }).from(domains),
+      db.$count(emails, gte(emails.createdAt, startOfMonth)),
+      db.$count(emails, gte(emails.createdAt, startOfDay)),
+      db.$count(contacts),
+      db.$count(segments),
+      db.$count(domains),
     ]);
 
     return NextResponse.json({
       transactional: {
-        monthlyUsed: monthlyEmails[0]?.count ?? 0,
+        monthlyUsed: Number(monthlyEmails),
         monthlyLimit: 3000,
-        dailyUsed: dailyEmails[0]?.count ?? 0,
+        dailyUsed: Number(dailyEmails),
         dailyLimit: 100,
       },
       marketing: {
-        contactsUsed: contactCount[0]?.count ?? 0,
+        contactsUsed: Number(contactCount),
         contactsLimit: 1000,
-        segmentsUsed: segmentCount[0]?.count ?? 0,
+        segmentsUsed: Number(segmentCount),
         segmentsLimit: 3,
         broadcastsLimit: "Unlimited",
       },
       team: {
-        domainsUsed: domainCount[0]?.count ?? 0,
+        domainsUsed: Number(domainCount),
         domainsLimit: 3,
         rateLimit: 2,
       },

@@ -1,0 +1,103 @@
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import { db } from "@/lib/db";
+import { contacts, segments } from "@/lib/db/schema";
+import { eq, or, sql } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
+
+async function findContact(idOrEmail: string) {
+  return await db.query.contacts.findFirst({
+    where: or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail)),
+  });
+}
+
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; segment_id: string }> },
+) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
+  try {
+    const { id: idOrEmail, segment_id } = await params;
+
+    const [contact, segment] = await Promise.all([
+      findContact(idOrEmail),
+      db.query.segments.findFirst({ where: eq(segments.id, segment_id) }),
+    ]);
+
+    if (!contact) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+    if (!segment) {
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
+    }
+
+    const existingSegments = (contact.segments as string[]) ?? [];
+    if (!existingSegments.includes(segment.name)) {
+      const updatedSegments = [...existingSegments, segment.name];
+      await db
+        .update(contacts)
+        .set({ segments: updatedSegments })
+        .where(eq(contacts.id, contact.id));
+    }
+
+    return NextResponse.json({
+      object: "contact_segment",
+      contact_id: contact.id,
+      segment_id: segment.id,
+      added: true,
+    });
+  } catch (error) {
+    console.error("Failed to add contact to segment:", error);
+    return NextResponse.json(
+      { error: "Failed to add contact to segment" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; segment_id: string }> },
+) {
+  const auth = await validateApiKey(_request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
+  try {
+    const { id: idOrEmail, segment_id } = await params;
+
+    const [contact, segment] = await Promise.all([
+      findContact(idOrEmail),
+      db.query.segments.findFirst({ where: eq(segments.id, segment_id) }),
+    ]);
+
+    if (!contact) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+    if (!segment) {
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
+    }
+
+    const existingSegments = (contact.segments as string[]) ?? [];
+    if (existingSegments.includes(segment.name)) {
+      const updatedSegments = existingSegments.filter((s) => s !== segment.name);
+      await db
+        .update(contacts)
+        .set({ segments: updatedSegments })
+        .where(eq(contacts.id, contact.id));
+    }
+
+    return NextResponse.json({
+      object: "contact_segment",
+      contact_id: contact.id,
+      segment_id: segment.id,
+      deleted: true,
+    });
+  } catch (error) {
+    console.error("Failed to remove contact from segment:", error);
+    return NextResponse.json(
+      { error: "Failed to remove contact from segment" },
+      { status: 500 },
+    );
+  }
+}

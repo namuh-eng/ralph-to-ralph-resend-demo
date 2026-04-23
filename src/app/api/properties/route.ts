@@ -20,7 +20,15 @@ export async function GET(request: NextRequest) {
     const totalCount = await db.$count(contactProperties);
 
     const rows = await db
-      .select()
+      .select({
+        id: contactProperties.id,
+        key: contactProperties.key,
+        name: contactProperties.name,
+        type: contactProperties.type,
+        fallbackValue: contactProperties.fallbackValue,
+        createdAt: contactProperties.createdAt,
+        updatedAt: contactProperties.updatedAt,
+      })
       .from(contactProperties)
       .orderBy(asc(contactProperties.key))
       .limit(limit)

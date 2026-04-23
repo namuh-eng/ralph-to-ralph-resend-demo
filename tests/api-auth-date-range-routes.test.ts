@@ -8,11 +8,24 @@ const mockUpdate = vi.hoisted(() => vi.fn());
 const mockDelete = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
 const mockCountFn = vi.hoisted(() => vi.fn());
+const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", () => ({
   db: {
     query: {
       apiKeys: {
+        findFirst: mockFindFirst,
+      },
+      contacts: {
+        findFirst: mockFindFirst,
+      },
+      segments: {
+        findFirst: mockFindFirst,
+      },
+      templates: {
+        findFirst: mockFindFirst,
+      },
+      broadcasts: {
         findFirst: mockFindFirst,
       },
     },
@@ -200,20 +213,22 @@ describe("route smoke coverage", () => {
       return {
         ...actual,
         validateApiKey: mockValidateApiKey,
+        validateDashboardKey: mockValidateDashboardKey,
       };
     });
     mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+    mockValidateDashboardKey.mockReturnValue(true);
   });
 
   it("covers metrics auth failure and happy path", async () => {
-    mockValidateApiKey.mockResolvedValueOnce(null);
+    mockValidateDashboardKey.mockReturnValueOnce(false);
     const metricsRoute = await import("@/app/api/metrics/route");
     const unauthorized = await metricsRoute.GET(
       makeNextRequest("http://localhost/api/metrics") as never,
     );
     expect(unauthorized.status).toBe(401);
 
-    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+    mockValidateDashboardKey.mockReturnValue(true);
     mockSelect
       .mockReturnValueOnce(
         makeChain([
@@ -262,19 +277,20 @@ describe("route smoke coverage", () => {
   });
 
   it("covers usage auth failure and happy path", async () => {
-    mockValidateApiKey.mockResolvedValueOnce(null);
+    mockValidateDashboardKey.mockReturnValueOnce(false);
     const usageRoute = await import("@/app/api/usage/route");
     const unauthorized = await usageRoute.GET(
       makeNextRequest("http://localhost/api/usage"),
     );
     expect(unauthorized.status).toBe(401);
 
-    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
-    mockSelect.mockImplementationOnce(() => makeChain([{ count: 42 }]));
-    mockSelect.mockImplementationOnce(() => makeChain([{ count: 3 }]));
-    mockSelect.mockImplementationOnce(() => makeChain([{ count: 120 }]));
-    mockSelect.mockImplementationOnce(() => makeChain([{ count: 4 }]));
-    mockSelect.mockImplementationOnce(() => makeChain([{ count: 2 }]));
+    mockValidateDashboardKey.mockReturnValue(true);
+    mockCountFn.mockImplementation(() => Promise.resolve(0));
+    mockCountFn.mockResolvedValueOnce(42);
+    mockCountFn.mockResolvedValueOnce(3);
+    mockCountFn.mockResolvedValueOnce(120);
+    mockCountFn.mockResolvedValueOnce(4);
+    mockCountFn.mockResolvedValueOnce(2);
 
     const response = await usageRoute.GET(
       makeNextRequest("http://localhost/api/usage", {
@@ -384,9 +400,7 @@ describe("route smoke coverage", () => {
     const detailRoute = await import("@/app/api/topics/[id]/route");
 
     mockSelect
-      .mockReturnValueOnce(makeChain([{ count: 1 }]))
-      .mockReturnValueOnce(
-        makeChain([
+      .mockImplementationOnce(() => makeChain([
           {
             id: "topic-1",
             name: "Marketing",
@@ -395,8 +409,7 @@ describe("route smoke coverage", () => {
             visibility: "public",
             createdAt: "2026-04-23T00:00:00.000Z",
           },
-        ]),
-      );
+        ]));
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([
@@ -939,5 +952,35 @@ describe("route smoke coverage", () => {
     const metricsJson = await metricsGet.json();
     expect(metricsJson.object).toBe("broadcast_metrics");
     expect(metricsJson.total).toBe(100);
+
+    // Contact Segments
+    const contactSegmentsRoute = await import("@/app/api/contacts/[id]/segments/route");
+    const contactSegmentRoute = await import("@/app/api/contacts/[id]/segments/[segment_id]/route");
+    
+    mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: ["VIP"] }); // contact
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "s1", name: "VIP" }])); // segment detail
+    const contactSegmentsGet = await contactSegmentsRoute.GET(
+      makeNextRequest("http://localhost/api/contacts/c1/segments", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "c1" }) },
+    );
+    expect(contactSegmentsGet.status).toBe(200);
+
+    mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: [] }); // contact
+    mockFindFirst.mockResolvedValueOnce({ id: "s1", name: "VIP" }); // segment
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ id: "c1" }]),
+      }),
+    });
+    const contactSegmentPost = await contactSegmentRoute.POST(
+      makeNextRequest("http://localhost/api/contacts/c1/segments/s1", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "c1", segment_id: "s1" }) },
+    );
+    expect(contactSegmentPost.status).toBe(200);
   });
 });
