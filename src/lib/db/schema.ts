@@ -278,6 +278,7 @@ export const logs = pgTable("logs", {
     .defaultNow(),
   document: jsonb("document"),
   userId: text("user_id"),
+  apiKeyId: uuid("api_key_id"),
 });
 
 export const contactProperties = pgTable(

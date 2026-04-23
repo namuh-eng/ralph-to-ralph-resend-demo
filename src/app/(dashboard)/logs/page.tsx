@@ -9,6 +9,8 @@ export default async function LogsPage(props: {
     method?: string;
     after?: string;
     before?: string;
+    userAgent?: string;
+    apiKeyId?: string;
   }>;
 }) {
   const searchParams = await props.searchParams;
@@ -16,6 +18,8 @@ export default async function LogsPage(props: {
   const method = searchParams.method;
   const after = searchParams.after;
   const before = searchParams.before;
+  const userAgent = searchParams.userAgent;
+  const apiKeyId = searchParams.apiKeyId;
 
   const conditions: SQL[] = [];
 
@@ -43,6 +47,14 @@ export default async function LogsPage(props: {
     const beforeDate = new Date(before);
     beforeDate.setHours(23, 59, 59, 999);
     conditions.push(lte(logs.createdAt, beforeDate));
+  }
+
+  if (userAgent) {
+    conditions.push(sql`${logs.userAgent} ILIKE ${`%${userAgent}%`}`);
+  }
+
+  if (apiKeyId) {
+    conditions.push(eq(logs.apiKeyId, apiKeyId));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
