@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { contacts } from "@/lib/db/schema";
-import { type SQL, and, desc, eq, ilike, or } from "drizzle-orm";
+import { contacts, segments } from "@/lib/db/schema";
+import { type SQL, and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -53,29 +53,35 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const search = url.searchParams.get("search") || "";
-  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   const limit = Math.min(
     100,
     Math.max(1, Number(url.searchParams.get("limit")) || 40),
   );
   const status = url.searchParams.get("status") || "";
-  const offset = (page - 1) * limit;
+  const segmentId = url.searchParams.get("segment_id") || "";
+  const after = url.searchParams.get("after") || "";
 
   try {
-    let query = db
-      .select({
-        id: contacts.id,
-        email: contacts.email,
-        firstName: contacts.firstName,
-        lastName: contacts.lastName,
-        unsubscribed: contacts.unsubscribed,
-        segments: contacts.segments,
-        createdAt: contacts.createdAt,
-      })
-      .from(contacts);
+    let segmentName = "";
+    if (segmentId) {
+      const [seg] = await db
+        .select({ name: segments.name })
+        .from(segments)
+        .where(eq(segments.id, segmentId))
+        .limit(1);
+      if (seg) {
+        segmentName = seg.name;
+      } else {
+        // If segment_id provided but not found, return empty
+        return NextResponse.json({
+          object: "list",
+          data: [],
+          has_more: false,
+        });
+      }
+    }
 
-    // Apply filters
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(
@@ -83,7 +89,7 @@ export async function GET(request: Request) {
           ilike(contacts.email, `%${search}%`),
           ilike(contacts.firstName, `%${search}%`),
           ilike(contacts.lastName, `%${search}%`),
-        ),
+        ) as SQL,
       );
     }
 
@@ -93,57 +99,46 @@ export async function GET(request: Request) {
       conditions.push(eq(contacts.unsubscribed, true));
     }
 
-    if (conditions.length > 0) {
-      for (const condition of conditions) {
-        if (condition) {
-          query = query.where(condition) as typeof query;
-        }
-      }
+    if (segmentName) {
+      conditions.push(sql`${contacts.segments} ? ${segmentName}`);
     }
 
-    const rows = await query
-      .orderBy(desc(contacts.createdAt))
-      .limit(limit)
-      .offset(offset);
+    if (after) {
+      conditions.push(lt(contacts.id, after));
+    }
 
-    const data = rows.map((c) => ({
+    const rows = await db
+      .select({
+        id: contacts.id,
+        email: contacts.email,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
+        unsubscribed: contacts.unsubscribed,
+        segments: contacts.segments,
+        createdAt: contacts.createdAt,
+      })
+      .from(contacts)
+      .where(and(...conditions))
+      .orderBy(desc(contacts.id))
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const dataRows = hasMore ? rows.slice(0, limit) : rows;
+
+    const data = dataRows.map((c) => ({
       id: c.id,
       email: c.email,
       firstName: c.firstName,
       lastName: c.lastName,
-      status: c.unsubscribed
-        ? ("unsubscribed" as const)
-        : ("subscribed" as const),
+      status: c.unsubscribed ? "unsubscribed" : "subscribed",
       segments: (c.segments as string[]) ?? [],
-      createdAt: c.createdAt,
+      created_at: c.createdAt,
     }));
 
-    // Get total count — combine search + status filters
-    const countConditions: SQL[] = [];
-    if (search) {
-      const searchFilter = or(
-        ilike(contacts.email, `%${search}%`),
-        ilike(contacts.firstName, `%${search}%`),
-        ilike(contacts.lastName, `%${search}%`),
-      );
-      if (searchFilter) countConditions.push(searchFilter);
-    }
-    if (status === "subscribed") {
-      countConditions.push(eq(contacts.unsubscribed, false));
-    } else if (status === "unsubscribed") {
-      countConditions.push(eq(contacts.unsubscribed, true));
-    }
-
-    const total = await db.$count(
-      contacts,
-      countConditions.length > 0 ? and(...countConditions) : undefined,
-    );
-
     return NextResponse.json({
+      object: "list",
       data,
-      total: Number(total),
-      page,
-      limit,
+      has_more: hasMore,
     });
   } catch (error) {
     console.error("Failed to fetch contacts:", error);

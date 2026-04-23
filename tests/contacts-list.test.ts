@@ -15,7 +15,9 @@ function createChainMock(resolvedData: unknown[], count: number) {
     where: () => chain,
     orderBy: () => chain,
     limit: () => chain,
-    offset: () => Promise.resolve(resolvedData),
+    offset: () => chain,
+    then: (resolve: (v: any) => any) => Promise.resolve(resolve(resolvedData)),
+    catch: (reject: (e: any) => any) => chain,
     $count: () => Promise.resolve(count),
   };
   return { db: chain };
@@ -75,8 +77,8 @@ describe("Contacts List — API route", () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data).toHaveProperty("data");
-    expect(data).toHaveProperty("total", 2);
+    expect(data).toHaveProperty("object", "list");
+    expect(data).toHaveProperty("has_more");
     expect(Array.isArray(data.data)).toBe(true);
     expect(data.data[0]).toHaveProperty("email", "alice@example.com");
     expect(data.data[0]).toHaveProperty("status", "subscribed");
@@ -92,23 +94,21 @@ describe("Contacts List — API route", () => {
 
     expect(res.status).toBe(200);
     expect(data.data).toEqual([]);
-    expect(data.total).toBe(0);
+    expect(data.has_more).toBe(false);
   });
 
-  it("supports pagination with page and limit params", async () => {
+  it("supports pagination with after and limit params", async () => {
     vi.doMock("@/lib/db", () => createChainMock([], 100));
 
     handler = await import("@/app/api/contacts/route");
     const req = new Request(
-      "http://localhost:3015/api/contacts?page=2&limit=20",
+      "http://localhost:3015/api/contacts?after=c1&limit=20",
     );
     const res = await handler.GET(req);
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data).toHaveProperty("total", 100);
-    expect(data).toHaveProperty("page", 2);
-    expect(data).toHaveProperty("limit", 20);
+    expect(data).toHaveProperty("object", "list");
   });
 });
 
