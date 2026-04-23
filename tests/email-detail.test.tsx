@@ -14,6 +14,9 @@ const mockEmail = {
   html: "<h1>Invoice #1234</h1><p>Amount: $49.99</p>",
   text: "Invoice #1234\nAmount: $49.99",
   createdAt: "2026-03-28T16:14:00.000Z",
+  scheduledAt: null,
+  tags: [],
+  headers: {},
   events: [
     { type: "sent", timestamp: "2026-03-28T16:14:00.000Z" },
     { type: "delivered", timestamp: "2026-03-28T16:14:02.000Z" },

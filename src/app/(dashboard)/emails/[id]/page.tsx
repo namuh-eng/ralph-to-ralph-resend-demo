@@ -30,6 +30,9 @@ export default async function EmailDetailPage({
       html: emailResult.html,
       text: emailResult.text,
       createdAt: emailResult.createdAt.toISOString(),
+      scheduledAt: emailResult.scheduledAt?.toISOString() || null,
+      tags: (emailResult.tags as Array<{ name: string; value: string }>) ?? [],
+      headers: (emailResult.headers as Record<string, string>) ?? {},
       events: [] as Array<{ type: string; timestamp: string }>,
     };
 
