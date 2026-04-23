@@ -16,19 +16,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "email is required" }, { status: 422 });
     }
 
-    // Check for existing contact to enforce uniqueness manually if needed, 
-    // though the uniqueIndex will catch it at the DB level.
-    const existing = await db.query.contacts.findFirst({
-      where: eq(contacts.email, email),
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "A contact with this email already exists" },
-        { status: 409 },
-      );
-    }
-
     // Resolve segment names if provided as IDs
     let resolvedSegments: string[] = [];
     if (body.segments && Array.isArray(body.segments)) {
@@ -61,23 +48,34 @@ export async function POST(request: NextRequest) {
       ).then(results => results.filter((r): r is { topicId: string; subscribed: boolean } => r !== null));
     }
 
-    const [inserted] = await db
-      .insert(contacts)
-      .values({
-        email,
-        firstName: body.first_name || null,
-        lastName: body.last_name || null,
-        unsubscribed: body.unsubscribed ?? false,
-        customProperties: body.properties || null,
-        segments: resolvedSegments.length > 0 ? resolvedSegments : null,
-        topicSubscriptions: resolvedTopics.length > 0 ? resolvedTopics : null,
-      })
-      .returning({ id: contacts.id });
+    // Attempt insertion - the uniqueIndex on email will throw on duplicate
+    try {
+      const [inserted] = await db
+        .insert(contacts)
+        .values({
+          email,
+          firstName: body.first_name || null,
+          lastName: body.last_name || null,
+          unsubscribed: body.unsubscribed ?? false,
+          customProperties: body.properties || null,
+          segments: resolvedSegments.length > 0 ? resolvedSegments : null,
+          topicSubscriptions: resolvedTopics.length > 0 ? resolvedTopics : null,
+        })
+        .returning({ id: contacts.id });
 
-    return NextResponse.json({
-      object: "contact",
-      id: inserted.id,
-    }, { status: 201 });
+      return NextResponse.json({
+        object: "contact",
+        id: inserted.id,
+      }, { status: 201 });
+    } catch (dbError: any) {
+      if (dbError.code === "23505") { // PostgreSQL unique violation code
+        return NextResponse.json(
+          { error: "A contact with this email already exists" },
+          { status: 409 },
+        );
+      }
+      throw dbError;
+    }
   } catch (error) {
     console.error("Failed to create contact:", error);
     return NextResponse.json(
