@@ -1,7 +1,13 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+
+async function findContact(idOrEmail: string) {
+  return await db.query.contacts.findFirst({
+    where: or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail)),
+  });
+}
 
 export async function GET(
   request: Request,
@@ -13,11 +19,7 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const [contact] = await db
-      .select()
-      .from(contacts)
-      .where(eq(contacts.id, id))
-      .limit(1);
+    const contact = await findContact(id);
 
     if (!contact) {
       return Response.json({ error: "Contact not found" }, { status: 404 });
@@ -59,6 +61,11 @@ export async function PATCH(
   }
 
   try {
+    const contact = await findContact(id);
+    if (!contact) {
+      return Response.json({ error: "Contact not found" }, { status: 404 });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (body.email !== undefined) updateData.email = body.email;
     if (body.first_name !== undefined) updateData.firstName = body.first_name;
@@ -71,12 +78,8 @@ export async function PATCH(
     const [updated] = await db
       .update(contacts)
       .set(updateData)
-      .where(eq(contacts.id, id))
+      .where(eq(contacts.id, contact.id))
       .returning();
-
-    if (!updated) {
-      return Response.json({ error: "Contact not found" }, { status: 404 });
-    }
 
     return Response.json({
       object: "contact",
@@ -105,9 +108,14 @@ export async function DELETE(
   const { id } = await params;
 
   try {
+    const contact = await findContact(id);
+    if (!contact) {
+      return Response.json({ error: "Contact not found" }, { status: 404 });
+    }
+
     const [deleted] = await db
       .delete(contacts)
-      .where(eq(contacts.id, id))
+      .where(eq(contacts.id, contact.id))
       .returning({ id: contacts.id });
 
     if (!deleted) {
