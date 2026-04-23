@@ -44,3 +44,62 @@ export async function GET(
     return Response.json({ error: message }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
+  const { id } = await params;
+
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
+    const existing = await db.query.emails.findFirst({
+      where: eq(emails.id, id),
+    });
+
+    if (!existing) {
+      return Response.json({ error: "Email not found" }, { status: 404 });
+    }
+
+    if (existing.status !== "scheduled") {
+      return Response.json(
+        { error: `Cannot update a ${existing.status} email` },
+        { status: 400 },
+      );
+    }
+
+    const updates: Record<string, any> = {};
+    if (body.scheduled_at !== undefined) {
+      updates.scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
+      // If setting to null, it probably shouldn't be scheduled anymore,
+      // but docs usually imply updating the timer.
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return Response.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    const [updated] = await db
+      .update(emails)
+      .set(updates)
+      .where(eq(emails.id, id))
+      .returning();
+
+    return Response.json({
+      object: "email",
+      id: updated.id,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update email";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
