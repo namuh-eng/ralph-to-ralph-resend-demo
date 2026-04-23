@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import { deleteDomainIdentity } from "@/lib/ses";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -105,14 +106,29 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+
+    const [domain] = await db
+      .select({ name: domains.name })
+      .from(domains)
+      .where(eq(domains.id, id))
+      .limit(1);
+
+    if (!domain) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Cleanup SES identity
+    try {
+      await deleteDomainIdentity(domain.name);
+    } catch (sesErr) {
+      console.warn(`Failed to delete SES identity for ${domain.name}:`, sesErr);
+      // Continue even if SES cleanup fails
+    }
+
     const [deleted] = await db
       .delete(domains)
       .where(eq(domains.id, id))
       .returning({ id: domains.id });
-
-    if (!deleted) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
 
     return NextResponse.json({
       object: "domain",
