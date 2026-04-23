@@ -498,12 +498,41 @@ describe("route smoke coverage", () => {
 
   it("covers properties get/post responses", async () => {
     const route = await import("@/app/api/properties/route");
+    const detailRoute = await import("@/app/api/properties/[id]/route");
+
+    mockSelect
+      .mockReturnValueOnce(makeChain([{ count: 1 }]))
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            id: "prop-1",
+            key: "first_name",
+            name: "First Name",
+            type: "string",
+            fallbackValue: null,
+            createdAt: "2026-04-23T00:00:00.000Z",
+            updatedAt: "2026-04-23T00:00:00.000Z",
+          },
+        ]),
+      );
+    
     const getResponse = await route.GET(
       makeNextRequest("http://localhost/api/properties", {
         headers: { authorization: "Bearer token" },
       }) as never,
     );
     expect(getResponse.status).toBe(200);
+    const getData = await getResponse.json();
+    expect(getData.total).toBe(1);
+    expect(getData.data[0].key).toBe("first_name");
+
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          { id: "prop-2", key: "age", name: "Age", type: "number", createdAt: new Date(), updatedAt: new Date() },
+        ]),
+      }),
+    });
 
     const postResponse = await route.POST(
       makeNextRequest("http://localhost/api/properties", {
@@ -512,10 +541,56 @@ describe("route smoke coverage", () => {
           authorization: "Bearer token",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ name: "prop" }),
+        body: JSON.stringify({ key: "age", name: "Age", type: "number" }),
       }) as never,
     );
-    expect(postResponse.status).toBe(501);
+    expect(postResponse.status).toBe(201);
+
+    // Detail GET
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "prop-1", key: "first_name", name: "First Name" }]));
+    const detailGet = await detailRoute.GET(
+      makeNextRequest("http://localhost/api/properties/prop-1", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "prop-1" }) },
+    );
+    expect(detailGet.status).toBe(200);
+
+    // Detail PATCH
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "prop-1", name: "New Name" }]),
+        }),
+      }),
+    });
+    const detailPatch = await detailRoute.PATCH(
+      makeNextRequest("http://localhost/api/properties/prop-1", {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "New Name" }),
+      }) as never,
+      { params: Promise.resolve({ id: "prop-1" }) },
+    );
+    expect(detailPatch.status).toBe(200);
+
+    // Detail DELETE
+    mockDelete.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "prop-1" }]),
+      }),
+    });
+    const detailDelete = await detailRoute.DELETE(
+      makeNextRequest("http://localhost/api/properties/prop-1", {
+        method: "DELETE",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "prop-1" }) },
+    );
+    expect(detailDelete.status).toBe(200);
   });
 
   it("covers webhook routes for happy path and 404s", async () => {

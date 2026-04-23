@@ -1,25 +1,101 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import { db } from "@/lib/db";
+import { contactProperties } from "@/lib/db/schema";
+import { asc, count } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-
-// The properties table does not exist in the production database.
-// This route returns empty results for backward compatibility.
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  return NextResponse.json({
-    data: [],
-    total: 0,
-  });
+  try {
+    const url = request.nextUrl;
+    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(url.searchParams.get("limit")) || 20),
+    );
+    const offset = (page - 1) * limit;
+
+    const [totalRow] = await db
+      .select({ count: count() })
+      .from(contactProperties);
+
+    const rows = await db
+      .select()
+      .from(contactProperties)
+      .orderBy(asc(contactProperties.key))
+      .limit(limit)
+      .offset(offset);
+
+    return NextResponse.json({
+      data: rows.map((r) => ({
+        id: r.id,
+        key: r.key,
+        name: r.name,
+        type: r.type,
+        fallback_value: r.fallbackValue,
+        created_at: r.createdAt,
+        updated_at: r.updatedAt,
+      })),
+      total: totalRow?.count ?? 0,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Failed to fetch contact properties:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch contact properties" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  return NextResponse.json(
-    { error: "Properties table is not available" },
-    { status: 501 },
-  );
+  try {
+    const body = await request.json();
+    const key = body.key?.trim();
+    const name = body.name?.trim();
+    const type = body.type || "string";
+    const fallbackValue = body.fallback_value || null;
+
+    if (!key || !name) {
+      return NextResponse.json(
+        { error: "Key and name are required" },
+        { status: 400 },
+      );
+    }
+
+    const [property] = await db
+      .insert(contactProperties)
+      .values({
+        key,
+        name,
+        type,
+        fallbackValue,
+      })
+      .returning();
+
+    return NextResponse.json(
+      {
+        id: property.id,
+        key: property.key,
+        name: property.name,
+        type: property.type,
+        fallback_value: property.fallbackValue,
+        created_at: property.createdAt,
+        updated_at: property.updatedAt,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Failed to create contact property:", error);
+    return NextResponse.json(
+      { error: "Failed to create contact property" },
+      { status: 500 },
+    );
+  }
 }

@@ -261,3 +261,23 @@ export const logs = pgTable("logs", {
   document: jsonb("document"),
   userId: text("user_id"),
 });
+
+export const contactProperties = pgTable(
+  "contact_properties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: varchar("key", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: varchar("type", { length: 50 }).notNull().default("string"),
+    fallbackValue: text("fallback_value"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    document: jsonb("document"),
+    userId: text("user_id"),
+  },
+  (table) => [uniqueIndex("contact_properties_key_idx").on(table.key)],
+);
