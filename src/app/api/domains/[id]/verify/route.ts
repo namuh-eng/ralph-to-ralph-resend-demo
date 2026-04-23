@@ -25,7 +25,26 @@ export async function POST(
     // Check verification status with SES
     const identity = await getDomainIdentity(domain.name);
 
-    const verificationStatus = identity.verified ? "verified" : "pending";
+    // Identity from ses.ts (mocked or real) provides verified boolean,
+    // plus often richer data if we expand the SES wrapper.
+    // For parity, we simulate multi-state inspection of the record state.
+    
+    let verificationStatus: "pending" | "verified" | "partially_verified" | "failed" | "temporary_failure" = "pending";
+
+    if (identity.verified) {
+      verificationStatus = "verified";
+    } else {
+      // Simulate checking if some records passed but not all
+      const records = (domain.records as any[]) ?? [];
+      const verifiedCount = records.filter(r => r.status === "verified").length;
+      
+      if (verifiedCount > 0 && verifiedCount < records.length) {
+        verificationStatus = "partially_verified";
+      } else if (verifiedCount === 0 && records.length > 0) {
+        // Only mark as failed if explicitly checked and nothing found
+        verificationStatus = "pending";
+      }
+    }
 
     // Update domain status in DB
     const [updated] = await db
@@ -36,12 +55,14 @@ export async function POST(
       .where(eq(domains.id, id))
       .returning();
 
+    // Fire webhook (placeholder until delivery worker implemented)
+
     return Response.json({
       object: "domain",
       id: updated.id,
       name: updated.name,
       status: updated.status,
-      records: updated.records,
+      records: updated.records || [],
       created_at: updated.createdAt,
     });
   } catch (err) {
