@@ -1,9 +1,52 @@
 import { LogsListPage } from "@/components/logs-list-page";
 import { db } from "@/lib/db";
 import { logs } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 
-export default async function LogsPage() {
+export default async function LogsPage(props: {
+  searchParams: Promise<{
+    status?: string;
+    method?: string;
+    after?: string;
+    before?: string;
+  }>;
+}) {
+  const searchParams = await props.searchParams;
+  const status = searchParams.status;
+  const method = searchParams.method;
+  const after = searchParams.after;
+  const before = searchParams.before;
+
+  const conditions: SQL[] = [];
+
+  if (status) {
+    if (status === "2xx") {
+      conditions.push(and(gte(logs.status, 200), lte(logs.status, 299)) as SQL);
+    } else if (status === "4xx") {
+      conditions.push(and(gte(logs.status, 400), lte(logs.status, 499)) as SQL);
+    } else if (status === "5xx") {
+      conditions.push(gte(logs.status, 500) as SQL);
+    } else if (!isNaN(Number(status))) {
+      conditions.push(eq(logs.status, Number(status)));
+    }
+  }
+
+  if (method) {
+    conditions.push(eq(logs.method, method.toUpperCase()));
+  }
+
+  if (after) {
+    conditions.push(gte(logs.createdAt, new Date(after)));
+  }
+
+  if (before) {
+    const beforeDate = new Date(before);
+    beforeDate.setHours(23, 59, 59, 999);
+    conditions.push(lte(logs.createdAt, beforeDate));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
   let logRows: {
     id: string;
     method: string | null;
@@ -22,8 +65,9 @@ export default async function LogsPage() {
         createdAt: logs.createdAt,
       })
       .from(logs)
+      .where(whereClause)
       .orderBy(desc(logs.createdAt))
-      .limit(200);
+      .limit(500);
 
     logRows = rows.map((r) => ({
       id: r.id,
@@ -32,7 +76,8 @@ export default async function LogsPage() {
       statusCode: r.status,
       createdAt: r.createdAt.toISOString(),
     }));
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch logs:", error);
     logRows = [];
   }
 

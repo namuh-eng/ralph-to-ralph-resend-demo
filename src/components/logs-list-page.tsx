@@ -2,8 +2,8 @@
 
 import { DataTable } from "@/components/data-table";
 import { StatusBadge } from "@/components/status-badge";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useCallback, useMemo, useState, useEffect } from "react";
 
 interface LogRow {
   id: string;
@@ -44,18 +44,8 @@ function getStatusVariant(
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
   const month = months[d.getMonth()];
   const day = d.getDate();
@@ -69,36 +59,47 @@ function formatDate(dateStr: string): string {
 
 export function LogsListPage({ logs }: { logs: LogRow[] }) {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const filteredLogs = useMemo(() => {
-    let filtered = logs;
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
+  const [dateFrom, setDateFrom] = useState<string>(searchParams.get("after") || "");
+  const [dateTo, setDateTo] = useState<string>(searchParams.get("before") || "");
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((log) => {
-        if (statusFilter === "2xx")
-          return (log.statusCode ?? 0) >= 200 && (log.statusCode ?? 0) < 300;
-        if (statusFilter === "4xx")
-          return (log.statusCode ?? 0) >= 400 && (log.statusCode ?? 0) < 500;
-        if (statusFilter === "5xx") return (log.statusCode ?? 0) >= 500;
-        return true;
-      });
-    }
+  const updateFilters = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+    router.push(`${pathname}?${params.toString()}`);
+  }, [router, pathname, searchParams]);
 
-    if (dateFrom) {
-      const from = new Date(dateFrom);
-      filtered = filtered.filter((log) => new Date(log.createdAt) >= from);
-    }
-    if (dateTo) {
-      const to = new Date(dateTo);
-      to.setDate(to.getDate() + 1);
-      filtered = filtered.filter((log) => new Date(log.createdAt) < to);
-    }
+  const handleExport = useCallback(() => {
+    const headers = ["ID", "Method", "Endpoint", "Status", "Created At"];
+    const csvContent = [
+      headers.join(","),
+      ...logs.map(log => [
+        log.id,
+        log.method,
+        log.endpoint,
+        log.statusCode,
+        log.createdAt
+      ].join(","))
+    ].join("\n");
 
-    return filtered;
-  }, [logs, statusFilter, dateFrom, dateTo]);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `logs-export-${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [logs]);
 
   const columns = [
     {
@@ -145,13 +146,29 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-[#F0F0F0] mb-6">Logs</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-[#F0F0F0]">Logs</h1>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="h-9 px-4 text-[13px] font-medium bg-[rgba(176,199,217,0.145)] text-[#F0F0F0] border border-[rgba(176,199,217,0.145)] rounded-md hover:bg-[rgba(176,199,217,0.2)] transition-colors flex items-center gap-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4 mb-4">
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setStatusFilter(val);
+            updateFilters({ status: val === "all" ? "" : val });
+          }}
           className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] text-[#F0F0F0] text-[13px] rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[rgba(176,199,217,0.3)]"
         >
           <option value="all">All statuses</option>
@@ -168,7 +185,11 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
             id="date-from"
             type="date"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDateFrom(val);
+              updateFilters({ after: val });
+            }}
             className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] text-[#F0F0F0] text-[13px] rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[rgba(176,199,217,0.3)]"
           />
         </div>
@@ -181,7 +202,11 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
             id="date-to"
             type="date"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDateTo(val);
+              updateFilters({ before: val });
+            }}
             className="bg-[rgba(24,25,28,0.88)] border border-[rgba(176,199,217,0.145)] text-[#F0F0F0] text-[13px] rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[rgba(176,199,217,0.3)]"
           />
         </div>
@@ -193,6 +218,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
               setStatusFilter("all");
               setDateFrom("");
               setDateTo("");
+              updateFilters({ status: "", after: "", before: "" });
             }}
             className="text-[12px] text-[#A1A4A5] hover:text-[#F0F0F0] transition-colors"
           >
@@ -205,7 +231,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
       <div className="border border-[rgba(176,199,217,0.145)] rounded-lg overflow-hidden">
         <DataTable
           columns={columns}
-          rows={filteredLogs}
+          rows={logs}
           getRowId={(row) => row.id}
           onRowClick={(row) => router.push(`/logs/${row.id}`)}
           emptyMessage="No logs found"
