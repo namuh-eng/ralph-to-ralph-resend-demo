@@ -1,13 +1,14 @@
 // ABOUTME: GET /api/usage — returns quota usage data by counting DB records for emails, contacts, segments, domains
 
-import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts, domains, emails, segments } from "@/lib/db/schema";
 import { count, gte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+// Dashboard-only internal endpoint
 export async function GET(request: Request) {
-  const auth = await validateApiKey(request.headers.get("authorization"));
+  const auth = validateDashboardKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
   try {
