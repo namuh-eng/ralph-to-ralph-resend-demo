@@ -28,16 +28,23 @@ export async function POST(
     // Identity from ses.ts (mocked or real) provides verified boolean,
     // plus often richer data if we expand the SES wrapper.
     // For parity, we simulate multi-state inspection of the record state.
-    
-    let verificationStatus: "pending" | "verified" | "partially_verified" | "failed" | "temporary_failure" = "pending";
+
+    let verificationStatus:
+      | "pending"
+      | "verified"
+      | "partially_verified"
+      | "failed"
+      | "temporary_failure" = "pending";
 
     if (identity.verified) {
       verificationStatus = "verified";
     } else {
       // Simulate checking if some records passed but not all
       const records = (domain.records as any[]) ?? [];
-      const verifiedCount = records.filter(r => r.status === "verified").length;
-      
+      const verifiedCount = records.filter(
+        (r) => r.status === "verified",
+      ).length;
+
       if (verifiedCount > 0 && verifiedCount < records.length) {
         verificationStatus = "partially_verified";
       } else if (verifiedCount === 0 && records.length > 0) {

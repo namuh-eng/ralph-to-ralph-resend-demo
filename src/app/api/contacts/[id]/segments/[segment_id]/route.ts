@@ -80,7 +80,9 @@ export async function DELETE(
 
     const existingSegments = (contact.segments as string[]) ?? [];
     if (existingSegments.includes(segment.name)) {
-      const updatedSegments = existingSegments.filter((s) => s !== segment.name);
+      const updatedSegments = existingSegments.filter(
+        (s) => s !== segment.name,
+      );
       await db
         .update(contacts)
         .set({ segments: updatedSegments })

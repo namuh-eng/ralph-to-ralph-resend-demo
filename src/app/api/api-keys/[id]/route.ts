@@ -1,4 +1,4 @@
-import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";

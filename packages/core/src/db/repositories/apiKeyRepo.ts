@@ -1,4 +1,4 @@
-import { eq, and, desc, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { db } from "../client";
 import { apiKeys } from "../schema";
 
@@ -20,7 +20,10 @@ export const apiKeyRepo = {
   },
 
   async delete(id: string) {
-    return await db.delete(apiKeys).where(eq(apiKeys.id, id)).returning({ id: apiKeys.id });
+    return await db
+      .delete(apiKeys)
+      .where(eq(apiKeys.id, id))
+      .returning({ id: apiKeys.id });
   },
 
   async list(options: { limit?: number; after?: string } = {}) {
@@ -40,5 +43,5 @@ export const apiKeyRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

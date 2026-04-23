@@ -1,4 +1,4 @@
-import { eq, and, desc, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { db } from "../client";
 import { domains } from "../schema";
 
@@ -20,11 +20,18 @@ export const domainRepo = {
   },
 
   async update(id: string, data: Partial<typeof domains.$inferInsert>) {
-    return await db.update(domains).set(data).where(eq(domains.id, id)).returning();
+    return await db
+      .update(domains)
+      .set(data)
+      .where(eq(domains.id, id))
+      .returning();
   },
 
   async delete(id: string) {
-    return await db.delete(domains).where(eq(domains.id, id)).returning({ id: domains.id });
+    return await db
+      .delete(domains)
+      .where(eq(domains.id, id))
+      .returning({ id: domains.id });
   },
 
   async list(options: { limit?: number; after?: string } = {}) {
@@ -44,5 +51,5 @@ export const domainRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

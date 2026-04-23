@@ -30,7 +30,7 @@ export async function GET(
 
     return NextResponse.json({
       object: "list",
-      data: attachments.map(a => ({
+      data: attachments.map((a) => ({
         id: a.id,
         filename: a.filename,
         content_type: a.contentType,

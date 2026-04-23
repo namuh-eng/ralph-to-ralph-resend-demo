@@ -138,7 +138,8 @@ SMTP_PASS=re_YOUR_API_KEY`}
       {activeTab === "billing" && (
         <div className="flex flex-col items-center justify-center min-h-[300px] border border-dashed border-[rgba(176,199,217,0.145)] rounded-lg">
           <p className="text-[14px] text-[#A1A4A5]">
-            Billing and subscription management is out of scope for the current phase.
+            Billing and subscription management is out of scope for the current
+            phase.
           </p>
         </div>
       )}

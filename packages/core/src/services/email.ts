@@ -20,7 +20,9 @@ export class EmailService {
   }) {
     // Check idempotency if key provided
     if (params.idempotencyKey) {
-      const existing = await emailRepo.findByIdempotencyKey(params.idempotencyKey);
+      const existing = await emailRepo.findByIdempotencyKey(
+        params.idempotencyKey,
+      );
       if (existing) return { id: existing.id, duplicate: true };
     }
 
@@ -58,7 +60,7 @@ export class EmailService {
     const results = [];
     for (let i = 0; i < items.length; i += CONCURRENCY) {
       const chunk = items.slice(i, i + CONCURRENCY);
-      const chunkRes = await Promise.all(chunk.map(item => this.send(item)));
+      const chunkRes = await Promise.all(chunk.map((item) => this.send(item)));
       results.push(...chunkRes);
     }
     return results;

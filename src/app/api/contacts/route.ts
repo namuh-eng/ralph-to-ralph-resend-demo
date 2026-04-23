@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
             where: or(eq(segments.id, s), eq(segments.name, s)),
           });
           return seg ? seg.name : null;
-        })
-      ).then(results => results.filter((r): r is string => r !== null));
+        }),
+      ).then((results) => results.filter((r): r is string => r !== null));
     }
 
     // Map topics to internal shape
@@ -44,8 +44,12 @@ export async function POST(request: NextRequest) {
             topicId: found.id,
             subscribed: subscription === "opt_in",
           };
-        })
-      ).then(results => results.filter((r): r is { topicId: string; subscribed: boolean } => r !== null));
+        }),
+      ).then((results) =>
+        results.filter(
+          (r): r is { topicId: string; subscribed: boolean } => r !== null,
+        ),
+      );
     }
 
     // Attempt insertion - the uniqueIndex on email will throw on duplicate
@@ -63,12 +67,16 @@ export async function POST(request: NextRequest) {
         })
         .returning({ id: contacts.id });
 
-      return NextResponse.json({
-        object: "contact",
-        id: inserted.id,
-      }, { status: 201 });
+      return NextResponse.json(
+        {
+          object: "contact",
+          id: inserted.id,
+        },
+        { status: 201 },
+      );
     } catch (dbError: any) {
-      if (dbError.code === "23505") { // PostgreSQL unique violation code
+      if (dbError.code === "23505") {
+        // PostgreSQL unique violation code
         return NextResponse.json(
           { error: "A contact with this email already exists" },
           { status: 409 },

@@ -9,7 +9,11 @@ export class WebhookDispatcher {
       data: event.payload,
     });
 
-    const signature = signWebhookPayload(webhook.signingSecret, timestamp, body);
+    const signature = signWebhookPayload(
+      webhook.signingSecret,
+      timestamp,
+      body,
+    );
 
     const res = await fetch(webhook.url, {
       method: "POST",

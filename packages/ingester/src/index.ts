@@ -1,5 +1,5 @@
-import { Hono } from "hono";
 import { emailRepo } from "@namuh/core";
+import { Hono } from "hono";
 
 const app = new Hono();
 
@@ -21,7 +21,7 @@ app.post("/events/ses", async (c) => {
     const type = sesEvent.eventType;
 
     console.log(`Received SES event ${type} for message ${sesId}`);
-    
+
     // Normalization logic will go here
   }
 

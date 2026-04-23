@@ -14,7 +14,9 @@ export class DnsService {
     proxied?: boolean;
   }) {
     if (!this.apiToken) {
-      console.log(`[DEV] Cloudflare create record skipped: ${params.name} -> ${params.content}`);
+      console.log(
+        `[DEV] Cloudflare create record skipped: ${params.name} -> ${params.content}`,
+      );
       return { id: `dev-${Date.now()}` };
     }
     // Real implementation would fetch() to Cloudflare API

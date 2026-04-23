@@ -1,7 +1,7 @@
 import { EmailDetail } from "@/components/email-detail";
 import { db } from "@/lib/db";
-import { emails, emailEvents } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { emailEvents, emails } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 export default async function EmailDetailPage({

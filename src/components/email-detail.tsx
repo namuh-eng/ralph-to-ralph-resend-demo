@@ -342,8 +342,12 @@ export function EmailDetail({ email }: EmailDetailProps) {
           <div className="flex flex-wrap gap-2">
             {email.tags.length > 0 ? (
               email.tags.map((tag, i) => (
-                <div key={i} className="px-2 py-0.5 bg-[rgba(176,199,217,0.1)] border border-[rgba(176,199,217,0.145)] rounded text-[12px] text-[#F0F0F0]">
-                  <span className="text-[#A1A4A5]">{tag.name}:</span> {tag.value}
+                <div
+                  key={i}
+                  className="px-2 py-0.5 bg-[rgba(176,199,217,0.1)] border border-[rgba(176,199,217,0.145)] rounded text-[12px] text-[#F0F0F0]"
+                >
+                  <span className="text-[#A1A4A5]">{tag.name}:</span>{" "}
+                  {tag.value}
                 </div>
               ))
             ) : (
@@ -359,7 +363,8 @@ export function EmailDetail({ email }: EmailDetailProps) {
             {Object.keys(email.headers).length > 0 ? (
               Object.entries(email.headers).map(([key, value], i) => (
                 <div key={i} className="text-[12px] font-mono">
-                  <span className="text-[#A1A4A5]">{key}:</span> <span className="text-[#F0F0F0]">{value}</span>
+                  <span className="text-[#A1A4A5]">{key}:</span>{" "}
+                  <span className="text-[#F0F0F0]">{value}</span>
                 </div>
               ))
             ) : (

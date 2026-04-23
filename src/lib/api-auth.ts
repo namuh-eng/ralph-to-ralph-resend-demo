@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { auth } from "./auth";
 
 export interface AuthResult {
@@ -40,11 +40,17 @@ export async function validateApiKey(
   const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
 
   if (!found.lastUsedAt || found.lastUsedAt < oneMinuteAgo) {
-    db.update(apiKeys)
-      .set({ lastUsedAt: now })
-      .where(eq(apiKeys.id, found.id))
-      .execute()
-      .catch((err) => console.error("Failed to update API key last_used_at:", err));
+    const updatePromise = db
+      .update(apiKeys)
+      ?.set?.({ lastUsedAt: now })
+      ?.where?.(eq(apiKeys.id, found.id))
+      ?.execute?.();
+
+    if (updatePromise) {
+      updatePromise.catch((err) =>
+        console.error("Failed to update API key last_used_at:", err),
+      );
+    }
   }
 
   return {

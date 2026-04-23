@@ -152,9 +152,7 @@ describe("lib/date-range", () => {
     expect(parseCustomDateRange("Today")).toBeNull();
     expect(toIsoDate(new Date("2026-04-01T00:00:00Z"))).toBe("2026-04-01");
     expect(formatDateRangeLabel(serialized)).toBe("Apr 10 - Apr 12");
-    expect(formatDateRangeLabel("custom:2026-04-10:2026-04-10")).toBe(
-      "Apr 10",
-    );
+    expect(formatDateRangeLabel("custom:2026-04-10:2026-04-10")).toBe("Apr 10");
 
     const customBounds = getDateRangeBounds("custom:2026-04-01:2026-04-03");
     expect(customBounds.start.getDate()).toBe(1);
@@ -201,16 +199,20 @@ describe("route smoke coverage", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.doMock("@/lib/api-auth", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/api-auth")>(
-        "@/lib/api-auth",
-      );
+      const actual =
+        await vi.importActual<typeof import("@/lib/api-auth")>(
+          "@/lib/api-auth",
+        );
       return {
         ...actual,
         validateApiKey: mockValidateApiKey,
         validateDashboardKey: mockValidateDashboardKey,
       };
     });
-    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1", permission: "full_access" });
+    mockValidateApiKey.mockResolvedValue({
+      apiKeyId: "key-1",
+      permission: "full_access",
+    });
     mockValidateDashboardKey.mockReturnValue(true);
   });
 
@@ -304,11 +306,14 @@ describe("route smoke coverage", () => {
   it("covers segments get/post happy path and validation", async () => {
     const route = await import("@/app/api/segments/route");
     const detailRoute = await import("@/app/api/segments/[id]/route");
-    const contactsRoute = await import("@/app/api/segments/[id]/contacts/route");
+    const contactsRoute = await import(
+      "@/app/api/segments/[id]/contacts/route"
+    );
 
-    mockSelect
-      .mockImplementationOnce(() => makeChain([{ id: "seg-1", name: "VIP", createdAt: "2026-04-23" }]));
-    
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "seg-1", name: "VIP", createdAt: "2026-04-23" }]),
+    );
+
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([{ id: "seg-2", name: "New" }]),
@@ -351,7 +356,9 @@ describe("route smoke coverage", () => {
     expect(createJson.object).toBe("segment");
 
     // Detail GET
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "seg-1", name: "VIP" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "seg-1", name: "VIP" }]),
+    );
     const detailGet = await detailRoute.GET(
       makeNextRequest("http://localhost/api/segments/seg-1", {
         headers: { authorization: "Bearer token" },
@@ -373,7 +380,9 @@ describe("route smoke coverage", () => {
 
     // Segment Contacts GET
     mockSelect.mockImplementationOnce(() => makeChain([{ name: "VIP" }])); // Check segment exists
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "c1", email: "a@b.com" }])); // Contacts list
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "c1", email: "a@b.com" }]),
+    ); // Contacts list
     mockCountFn.mockResolvedValueOnce(1);
 
     const contactsGet = await contactsRoute.GET(
@@ -389,18 +398,21 @@ describe("route smoke coverage", () => {
     const route = await import("@/app/api/topics/route");
     const detailRoute = await import("@/app/api/topics/[id]/route");
 
-    mockSelect
-      .mockImplementationOnce(() => makeChain([
-          {
-            id: "topic-1",
-            name: "Marketing",
-            description: "Monthly",
-            defaultSubscription: "opt_out",
-            visibility: "public",
-            createdAt: "2026-04-23T00:00:00.000Z",
-          },
-        ]));
-    mockInsert.mockImplementationOnce(() => makeChain([{ id: "t2", name: "Product", defaultSubscription: "opt_in" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([
+        {
+          id: "topic-1",
+          name: "Marketing",
+          description: "Monthly",
+          defaultSubscription: "opt_out",
+          visibility: "public",
+          createdAt: "2026-04-23T00:00:00.000Z",
+        },
+      ]),
+    );
+    mockInsert.mockImplementationOnce(() =>
+      makeChain([{ id: "t2", name: "Product", defaultSubscription: "opt_in" }]),
+    );
 
     const getResponse = await route.GET(
       makeNextRequest("http://localhost/api/topics?limit=20", {
@@ -443,7 +455,9 @@ describe("route smoke coverage", () => {
     expect(createJson.object).toBe("topic");
 
     // Detail GET
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "topic-1", name: "Marketing" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "topic-1", name: "Marketing" }]),
+    );
     const detailGet = await detailRoute.GET(
       makeNextRequest("http://localhost/api/topics/topic-1", {
         headers: { authorization: "Bearer token" },
@@ -453,7 +467,9 @@ describe("route smoke coverage", () => {
     expect(detailGet.status).toBe(200);
 
     // Detail PATCH
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "topic-1", name: "Updated" }]));
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "topic-1", name: "Updated" }]),
+    );
     const detailPatch = await detailRoute.PATCH(
       makeNextRequest("http://localhost/api/topics/topic-1", {
         method: "PATCH",
@@ -484,18 +500,20 @@ describe("route smoke coverage", () => {
     const detailRoute = await import("@/app/api/properties/[id]/route");
 
     mockCountFn.mockResolvedValueOnce(1);
-    mockSelect.mockImplementationOnce(() => makeChain([
-          {
-            id: "prop-1",
-            key: "first_name",
-            name: "First Name",
-            type: "string",
-            fallbackValue: null,
-            createdAt: "2026-04-23T00:00:00.000Z",
-            updatedAt: "2026-04-23T00:00:00.000Z",
-          },
-        ]));
-    
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([
+        {
+          id: "prop-1",
+          key: "first_name",
+          name: "First Name",
+          type: "string",
+          fallbackValue: null,
+          createdAt: "2026-04-23T00:00:00.000Z",
+          updatedAt: "2026-04-23T00:00:00.000Z",
+        },
+      ]),
+    );
+
     const getResponse = await route.GET(
       makeNextRequest("http://localhost/api/properties", {
         headers: { authorization: "Bearer token" },
@@ -506,9 +524,18 @@ describe("route smoke coverage", () => {
     expect(getData.total).toBe(1);
     expect(getData.data[0].key).toBe("first_name");
 
-    mockInsert.mockImplementationOnce(() => makeChain([
-      { id: "prop-2", key: "age", name: "Age", type: "number", createdAt: new Date(), updatedAt: new Date() },
-    ]));
+    mockInsert.mockImplementationOnce(() =>
+      makeChain([
+        {
+          id: "prop-2",
+          key: "age",
+          name: "Age",
+          type: "number",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]),
+    );
 
     const postResponse = await route.POST(
       makeNextRequest("http://localhost/api/properties", {
@@ -523,7 +550,9 @@ describe("route smoke coverage", () => {
     expect(postResponse.status).toBe(201);
 
     // Detail GET
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "prop-1", key: "first_name", name: "First Name" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "prop-1", key: "first_name", name: "First Name" }]),
+    );
     const detailGet = await detailRoute.GET(
       makeNextRequest("http://localhost/api/properties/prop-1", {
         headers: { authorization: "Bearer token" },
@@ -533,7 +562,9 @@ describe("route smoke coverage", () => {
     expect(detailGet.status).toBe(200);
 
     // Detail PATCH
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "prop-1", name: "New Name" }]));
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "prop-1", name: "New Name" }]),
+    );
     const detailPatch = await detailRoute.PATCH(
       makeNextRequest("http://localhost/api/properties/prop-1", {
         method: "PATCH",
@@ -563,7 +594,8 @@ describe("route smoke coverage", () => {
     const listRoute = await import("@/app/api/webhooks/route");
     const detailRoute = await import("@/app/api/webhooks/[id]/route");
 
-    mockSelect.mockImplementationOnce(() => makeChain([
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([
         {
           id: "wh-1",
           url: "https://example.com/webhook",
@@ -571,7 +603,8 @@ describe("route smoke coverage", () => {
           status: "active",
           createdAt: "2026-04-23T00:00:00.000Z",
         },
-      ]));
+      ]),
+    );
     const listRes = await listRoute.GET(
       makeNextRequest("http://localhost/api/webhooks?limit=10", {
         headers: { authorization: "Bearer token" },
@@ -579,15 +612,17 @@ describe("route smoke coverage", () => {
     );
     expect(listRes.status).toBe(200);
 
-    mockInsert.mockImplementationOnce(() => makeChain([
-      {
-        id: "wh-2",
-        url: "https://example.com/created",
-        eventTypes: ["email.delivered"],
-        status: "active",
-        createdAt: "2026-04-23T00:00:00.000Z",
-      },
-    ]));
+    mockInsert.mockImplementationOnce(() =>
+      makeChain([
+        {
+          id: "wh-2",
+          url: "https://example.com/created",
+          eventTypes: ["email.delivered"],
+          status: "active",
+          createdAt: "2026-04-23T00:00:00.000Z",
+        },
+      ]),
+    );
     const createRes = await listRoute.POST(
       makeNextRequest("http://localhost/api/webhooks", {
         method: "POST",
@@ -606,7 +641,8 @@ describe("route smoke coverage", () => {
     expect(createJson.object).toBe("webhook");
 
     // Detail GET
-    mockSelect.mockImplementationOnce(() => makeChain([
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([
         {
           id: "wh-1",
           url: "https://example.com/webhook",
@@ -614,7 +650,8 @@ describe("route smoke coverage", () => {
           status: "active",
           createdAt: "2026-04-23T00:00:00.000Z",
         },
-      ]));
+      ]),
+    );
     const detailGetRes = await detailRoute.GET(
       makeNextRequest("http://localhost/api/webhooks/wh-1", {
         headers: { authorization: "Bearer token" },
@@ -665,7 +702,9 @@ describe("route smoke coverage", () => {
     const broadcastsRoute = await import("@/app/api/broadcasts/[id]/route");
     const templatesRoute = await import("@/app/api/templates/[id]/route");
 
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", name: "Launch" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "b1", name: "Launch" }]),
+    );
     expect(
       (
         await broadcastsRoute.GET(
@@ -689,7 +728,9 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(404);
 
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "b1", name: "Renamed" }]));
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "b1", name: "Renamed" }]),
+    );
     expect(
       (
         await broadcastsRoute.PATCH(
@@ -706,7 +747,9 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(200);
 
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "b1", status: "draft" }]),
+    );
     mockDelete.mockImplementationOnce(() => makeChain([{ id: "b1" }]));
     const broadcastDeleteRes = await broadcastsRoute.DELETE(
       makeNextRequest("http://localhost/api/broadcasts/b1", {
@@ -721,8 +764,12 @@ describe("route smoke coverage", () => {
 
     // Send POST
     const sendRoute = await import("@/app/api/broadcasts/[id]/send/route");
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1", status: "draft" }]));
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "b1", status: "queued" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "b1", status: "draft" }]),
+    );
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "b1", status: "queued" }]),
+    );
     const sendPost = await sendRoute.POST(
       makeNextRequest("http://localhost/api/broadcasts/b1/send", {
         method: "POST",
@@ -736,7 +783,9 @@ describe("route smoke coverage", () => {
     );
     expect(sendPost.status).toBe(200);
 
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Receipt" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "t1", name: "Receipt" }]),
+    );
     expect(
       (
         await templatesRoute.GET(
@@ -760,7 +809,9 @@ describe("route smoke coverage", () => {
       ).status,
     ).toBe(404);
 
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Updated" }]));
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "t1", name: "Updated" }]),
+    );
     expect(
       (
         await templatesRoute.PATCH(
@@ -792,10 +843,16 @@ describe("route smoke coverage", () => {
 
     // Template actions
     const publishRoute = await import("@/app/api/templates/[id]/publish/route");
-    const duplicateRoute = await import("@/app/api/templates/[id]/duplicate/route");
-    
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", status: "draft" }]));
-    mockUpdate.mockImplementationOnce(() => makeChain([{ id: "t1", status: "published" }]));
+    const duplicateRoute = await import(
+      "@/app/api/templates/[id]/duplicate/route"
+    );
+
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "t1", status: "draft" }]),
+    );
+    mockUpdate.mockImplementationOnce(() =>
+      makeChain([{ id: "t1", status: "published" }]),
+    );
     const publishPost = await publishRoute.POST(
       makeNextRequest("http://localhost/api/templates/t1/publish", {
         method: "POST",
@@ -805,8 +862,12 @@ describe("route smoke coverage", () => {
     );
     expect(publishPost.status).toBe(200);
 
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "t1", name: "Base" }]));
-    mockInsert.mockImplementationOnce(() => makeChain([{ id: "t2", name: "Base (Copy)", status: "draft" }]));
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "t1", name: "Base" }]),
+    );
+    mockInsert.mockImplementationOnce(() =>
+      makeChain([{ id: "t2", name: "Base (Copy)", status: "draft" }]),
+    );
     const duplicatePost = await duplicateRoute.POST(
       makeNextRequest("http://localhost/api/templates/t1/duplicate", {
         method: "POST",
@@ -817,7 +878,9 @@ describe("route smoke coverage", () => {
     expect(duplicatePost.status).toBe(200);
 
     // Broadcast Metrics GET
-    const metricsRoute = await import("@/app/api/broadcasts/[id]/metrics/route");
+    const metricsRoute = await import(
+      "@/app/api/broadcasts/[id]/metrics/route"
+    );
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1" }])); // Check broadcast exists
     mockSelect.mockReturnValueOnce(
       makeChain([
@@ -843,11 +906,17 @@ describe("route smoke coverage", () => {
     expect(metricsJson.total).toBe(100);
 
     // Contact Segments
-    const contactSegmentsRoute = await import("@/app/api/contacts/[id]/segments/route");
-    const contactSegmentRoute = await import("@/app/api/contacts/[id]/segments/[segment_id]/route");
-    
+    const contactSegmentsRoute = await import(
+      "@/app/api/contacts/[id]/segments/route"
+    );
+    const contactSegmentRoute = await import(
+      "@/app/api/contacts/[id]/segments/[segment_id]/route"
+    );
+
     mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: ["VIP"] }); // contact
-    mockSelect.mockImplementationOnce(() => makeChain([{ id: "s1", name: "VIP" }])); // segment detail
+    mockSelect.mockImplementationOnce(() =>
+      makeChain([{ id: "s1", name: "VIP" }]),
+    ); // segment detail
     const contactSegmentsGet = await contactSegmentsRoute.GET(
       makeNextRequest("http://localhost/api/contacts/c1/segments", {
         headers: { authorization: "Bearer token" },
@@ -869,8 +938,13 @@ describe("route smoke coverage", () => {
     expect(contactSegmentPost.status).toBe(200);
 
     // Contact Topics
-    const contactTopicsRoute = await import("@/app/api/contacts/[id]/topics/route");
-    mockFindFirst.mockResolvedValueOnce({ id: "c1", topicSubscriptions: [{ topicId: "t1", subscribed: true }] }); // contact
+    const contactTopicsRoute = await import(
+      "@/app/api/contacts/[id]/topics/route"
+    );
+    mockFindFirst.mockResolvedValueOnce({
+      id: "c1",
+      topicSubscriptions: [{ topicId: "t1", subscribed: true }],
+    }); // contact
     mockFindFirst.mockResolvedValueOnce({ id: "t1", name: "News" }); // topic
     const contactTopicsGet = await contactTopicsRoute.GET(
       makeNextRequest("http://localhost/api/contacts/c1/topics", {
@@ -886,7 +960,9 @@ describe("route smoke coverage", () => {
       makeNextRequest("http://localhost/api/contacts/c1/topics", {
         method: "PATCH",
         headers: { authorization: "Bearer token" },
-        body: JSON.stringify({ topics: [{ id: "t1", subscription: "opt_in" }] }),
+        body: JSON.stringify({
+          topics: [{ id: "t1", subscription: "opt_in" }],
+        }),
       }) as never,
       { params: Promise.resolve({ id: "c1" }) },
     );
@@ -901,7 +977,11 @@ describe("route smoke coverage", () => {
       makeNextRequest("http://localhost/api/contacts/bulk", {
         method: "POST",
         headers: { authorization: "Bearer token" },
-        body: JSON.stringify({ contact_ids: ["c1"], segment_id: "s1", action: "add_to_segment" }),
+        body: JSON.stringify({
+          contact_ids: ["c1"],
+          segment_id: "s1",
+          action: "add_to_segment",
+        }),
       }) as never,
     );
     expect(bulkRes.status).toBe(200);

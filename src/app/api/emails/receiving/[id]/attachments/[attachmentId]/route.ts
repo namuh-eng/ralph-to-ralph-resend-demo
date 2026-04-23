@@ -1,9 +1,9 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { receivedEmails } from "@/lib/db/schema";
+import { getPresignedUrl } from "@/lib/s3";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { getPresignedUrl } from "@/lib/s3";
 
 export async function GET(
   _request: NextRequest,
@@ -28,7 +28,7 @@ export async function GET(
     }
 
     const attachments = (email.attachments as any[]) ?? [];
-    const attachment = attachments.find(a => a.id === attachmentId);
+    const attachment = attachments.find((a) => a.id === attachmentId);
 
     if (!attachment) {
       return NextResponse.json(

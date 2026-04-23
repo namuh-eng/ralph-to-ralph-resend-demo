@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
+import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { and, desc, lt } from "drizzle-orm";
@@ -40,7 +40,7 @@ export async function GET(request: Request): Promise<Response> {
 
     return Response.json({
       object: "list",
-      data: dataRows.map(k => ({
+      data: dataRows.map((k) => ({
         id: k.id,
         name: k.name,
         created_at: k.createdAt,
@@ -77,9 +77,12 @@ export async function POST(request: Request): Promise<Response> {
   if (!body.name || body.name.trim().length === 0) {
     return Response.json({ error: "name is required" }, { status: 422 });
   }
-  
+
   if (body.name.trim().length > 50) {
-    return Response.json({ error: "name must be 50 characters or less" }, { status: 422 });
+    return Response.json(
+      { error: "name must be 50 characters or less" },
+      { status: 422 },
+    );
   }
 
   try {
@@ -98,10 +101,13 @@ export async function POST(request: Request): Promise<Response> {
       })
       .returning();
 
-    return Response.json({
-      id: created.id,
-      token: rawKey,
-    }, { status: 201 });
+    return Response.json(
+      {
+        id: created.id,
+        token: rawKey,
+      },
+      { status: 201 },
+    );
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to create API key";

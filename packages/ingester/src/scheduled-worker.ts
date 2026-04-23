@@ -1,20 +1,20 @@
-import { emailRepo, emailProvider } from "@namuh/core";
+import { emailProvider, emailRepo } from "@namuh/core";
 
 export class ScheduledEmailWorker {
   async process() {
     // Find emails scheduled for the past that are still in 'scheduled' status
     const now = new Date();
-    const pending = await emailRepo.list({ 
+    const pending = await emailRepo.list({
       limit: 10,
-      where: { 
+      where: {
         status: "scheduled",
-        scheduledAt: now 
-      } 
+        scheduledAt: now,
+      },
     });
 
     for (const email of pending.data) {
       console.log(`Processing scheduled email ${email.id}`);
-      
+
       try {
         await emailProvider.sendEmail({
           from: email.from!,

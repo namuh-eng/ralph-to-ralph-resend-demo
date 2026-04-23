@@ -57,7 +57,8 @@ export async function PATCH(
     const updateData: Record<string, any> = {};
     if (body.name !== undefined) updateData.name = body.name.trim();
     if (body.type !== undefined) updateData.type = body.type;
-    if (body.fallback_value !== undefined) updateData.fallbackValue = body.fallback_value;
+    if (body.fallback_value !== undefined)
+      updateData.fallbackValue = body.fallback_value;
     updateData.updatedAt = new Date();
 
     const [updated] = await db

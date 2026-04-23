@@ -11,7 +11,9 @@ export class EmailProviderService {
 
   private getClient() {
     if (this.client) return this.client;
-    this.client = new SESv2Client({ region: process.env.AWS_REGION ?? "us-east-1" });
+    this.client = new SESv2Client({
+      region: process.env.AWS_REGION ?? "us-east-1",
+    });
     return this.client;
   }
 
@@ -47,7 +49,9 @@ export class EmailProviderService {
     });
 
     if (!process.env.AWS_ACCESS_KEY_ID) {
-      console.log(`[DEV] SES send skipped: ${params.subject} to ${params.to.join(", ")}`);
+      console.log(
+        `[DEV] SES send skipped: ${params.subject} to ${params.to.join(", ")}`,
+      );
       return { id: `dev-${Date.now()}` };
     }
 
@@ -56,19 +60,30 @@ export class EmailProviderService {
   }
 
   async getDomainIdentity(domain: string) {
-    if (!process.env.AWS_ACCESS_KEY_ID) return { verified: true, dkimTokens: ["dev1", "dev2", "dev3"] };
-    const res = await this.getClient().send(new GetEmailIdentityCommand({ EmailIdentity: domain }));
-    return { verified: res.VerifiedForSendingStatus, dkimTokens: res.DkimAttributes?.Tokens };
+    if (!process.env.AWS_ACCESS_KEY_ID)
+      return { verified: true, dkimTokens: ["dev1", "dev2", "dev3"] };
+    const res = await this.getClient().send(
+      new GetEmailIdentityCommand({ EmailIdentity: domain }),
+    );
+    return {
+      verified: res.VerifiedForSendingStatus,
+      dkimTokens: res.DkimAttributes?.Tokens,
+    };
   }
 
   async deleteDomainIdentity(domain: string) {
     if (!process.env.AWS_ACCESS_KEY_ID) return;
-    await this.getClient().send(new DeleteEmailIdentityCommand({ EmailIdentity: domain }));
+    await this.getClient().send(
+      new DeleteEmailIdentityCommand({ EmailIdentity: domain }),
+    );
   }
 
   async createDomainIdentity(domain: string) {
-    if (!process.env.AWS_ACCESS_KEY_ID) return { dkimTokens: ["dev1", "dev2", "dev3"] };
-    const res = await this.getClient().send(new CreateEmailIdentityCommand({ EmailIdentity: domain }));
+    if (!process.env.AWS_ACCESS_KEY_ID)
+      return { dkimTokens: ["dev1", "dev2", "dev3"] };
+    const res = await this.getClient().send(
+      new CreateEmailIdentityCommand({ EmailIdentity: domain }),
+    );
     return { dkimTokens: res.DkimAttributes?.Tokens };
   }
 }

@@ -90,9 +90,8 @@ export const domains = pgTable("domains", {
   userId: text("user_id"),
   customReturnPath: varchar("custom_return_path", { length: 255 }),
   trackingSubdomain: varchar("tracking_subdomain", { length: 255 }),
-  capabilities: jsonb("capabilities").$type<
-    Array<{ name: string; enabled: boolean }>
-  >(),
+  capabilities:
+    jsonb("capabilities").$type<Array<{ name: string; enabled: boolean }>>(),
 });
 
 export const apiKeys = pgTable(
@@ -310,23 +309,22 @@ export const receivedEmails = pgTable(
     html: text("html"),
     text: text("text"),
     status: varchar("status", { length: 50 }).notNull().default("received"),
-    attachments: jsonb("attachments").$type<
-      Array<{
-        id: string;
-        filename: string;
-        contentType: string;
-        size: number;
-        s3Key: string;
-      }>
-    >(),
+    attachments:
+      jsonb("attachments").$type<
+        Array<{
+          id: string;
+          filename: string;
+          contentType: string;
+          size: number;
+          s3Key: string;
+        }>
+      >(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
     userId: text("user_id"),
   },
-  (table) => [
-    index("received_emails_created_at_idx").on(table.createdAt),
-  ],
+  (table) => [index("received_emails_created_at_idx").on(table.createdAt)],
 );
 
 export const emailEvents = pgTable(

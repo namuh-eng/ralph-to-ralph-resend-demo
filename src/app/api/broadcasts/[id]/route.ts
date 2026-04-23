@@ -71,14 +71,19 @@ export async function PATCH(
     if (body.text !== undefined) updateData.text = body.text;
     if (body.reply_to !== undefined) updateData.replyTo = body.reply_to;
     if (body.replyTo !== undefined) updateData.replyTo = body.replyTo;
-    if (body.preview_text !== undefined) updateData.previewText = body.preview_text;
-    if (body.previewText !== undefined) updateData.previewText = body.previewText;
-    if (body.audience_id !== undefined) updateData.audienceId = body.audience_id;
+    if (body.preview_text !== undefined)
+      updateData.previewText = body.preview_text;
+    if (body.previewText !== undefined)
+      updateData.previewText = body.previewText;
+    if (body.audience_id !== undefined)
+      updateData.audienceId = body.audience_id;
     if (body.audienceId !== undefined) updateData.audienceId = body.audienceId;
     if (body.topic_id !== undefined) updateData.topicId = body.topic_id;
     if (body.topicId !== undefined) updateData.topicId = body.topicId;
-    if (body.scheduled_at !== undefined) updateData.scheduledAt = body.scheduled_at;
-    if (body.scheduledAt !== undefined) updateData.scheduledAt = body.scheduledAt;
+    if (body.scheduled_at !== undefined)
+      updateData.scheduledAt = body.scheduled_at;
+    if (body.scheduledAt !== undefined)
+      updateData.scheduledAt = body.scheduledAt;
 
     const [updated] = await db
       .update(broadcasts)
@@ -127,7 +132,7 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    
+
     // Draft-guard logic
     const results = await db
       .select({ status: broadcasts.status })

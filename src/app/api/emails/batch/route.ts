@@ -85,7 +85,9 @@ export async function POST(request: Request): Promise<Response> {
           const cc = normalizeToArray(item.cc);
           const bcc = normalizeToArray(item.bcc);
           const replyTo = normalizeToArray(item.reply_to);
-          const scheduledAt = item.scheduled_at ? new Date(item.scheduled_at) : null;
+          const scheduledAt = item.scheduled_at
+            ? new Date(item.scheduled_at)
+            : null;
 
           if (!scheduledAt) {
             await sesSendEmail({

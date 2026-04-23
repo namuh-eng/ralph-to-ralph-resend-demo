@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     const { id } = await params;
-    
+
     // Check if segment exists
     const [segment] = await db
       .select({ name: segments.name })
@@ -21,10 +21,7 @@ export async function GET(
       .where(eq(segments.id, id));
 
     if (!segment) {
-      return NextResponse.json(
-        { error: "Segment not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
     const url = request.nextUrl;

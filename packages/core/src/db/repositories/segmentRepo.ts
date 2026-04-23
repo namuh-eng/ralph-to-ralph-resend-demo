@@ -1,4 +1,4 @@
-import { eq, and, desc, ilike, lt } from "drizzle-orm";
+import { and, desc, eq, ilike, lt } from "drizzle-orm";
 import { db } from "../client";
 import { segments } from "../schema";
 
@@ -23,7 +23,9 @@ export const segmentRepo = {
     return await db.delete(segments).where(eq(segments.id, id)).returning();
   },
 
-  async list(options: { limit?: number; after?: string; search?: string } = {}) {
+  async list(
+    options: { limit?: number; after?: string; search?: string } = {},
+  ) {
     const { limit = 20, after, search } = options;
     const conditions = [];
 
@@ -41,5 +43,5 @@ export const segmentRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

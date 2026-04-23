@@ -1,6 +1,6 @@
 import { domainRepo } from "../db/repositories/domainRepo";
-import { emailProvider } from "./emailProvider";
 import { dnsService } from "./dns";
+import { emailProvider } from "./emailProvider";
 
 export class DomainService {
   async create(params: { name: string; region?: string }) {
@@ -18,9 +18,11 @@ export class DomainService {
     if (!domain) throw new Error("Domain not found");
 
     const identity = await emailProvider.getDomainIdentity(domain.name);
-    
-    let status: "pending" | "verified" | "failed" = identity.verified ? "verified" : "pending";
-    
+
+    const status: "pending" | "verified" | "failed" = identity.verified
+      ? "verified"
+      : "pending";
+
     return await domainRepo.update(id, { status });
   }
 

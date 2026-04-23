@@ -58,7 +58,7 @@ export async function GET(
     };
 
     const total = stats.total;
-    
+
     return NextResponse.json({
       object: "broadcast_metrics",
       broadcast_id: id,

@@ -22,7 +22,7 @@ export async function GET(
 
     return NextResponse.json({
       object: "list",
-      data: results.map(e => ({
+      data: results.map((e) => ({
         object: "email_event",
         id: e.id,
         type: e.type,

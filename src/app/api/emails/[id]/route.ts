@@ -78,7 +78,9 @@ export async function PATCH(
 
     const updates: Record<string, any> = {};
     if (body.scheduled_at !== undefined) {
-      updates.scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
+      updates.scheduledAt = body.scheduled_at
+        ? new Date(body.scheduled_at)
+        : null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -96,7 +98,8 @@ export async function PATCH(
       id: updated.id,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to update email";
+    const message =
+      err instanceof Error ? err.message : "Failed to update email";
     return Response.json({ error: message }, { status: 500 });
   }
 }

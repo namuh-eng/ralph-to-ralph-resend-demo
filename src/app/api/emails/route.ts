@@ -43,7 +43,8 @@ function validateSendBody(body: SendEmailBody): string | null {
   if (!body.from) return "from is required";
   if (!body.to) return "to is required";
   if (!body.subject) return "subject is required";
-  if (!body.html && !body.text && !body.template) return "html, text, or template is required";
+  if (!body.html && !body.text && !body.template)
+    return "html, text, or template is required";
   return null;
 }
 
@@ -54,8 +55,14 @@ export async function POST(request: Request): Promise<Response> {
   if (!auth) return unauthorizedResponse();
 
   const idempotencyKey = request.headers.get("idempotency-key");
-  if (idempotencyKey && (idempotencyKey.length < 1 || idempotencyKey.length > 255)) {
-    return Response.json({ error: "Invalid idempotency key length" }, { status: 400 });
+  if (
+    idempotencyKey &&
+    (idempotencyKey.length < 1 || idempotencyKey.length > 255)
+  ) {
+    return Response.json(
+      { error: "Invalid idempotency key length" },
+      { status: 400 },
+    );
   }
 
   let body: SendEmailBody;
@@ -98,7 +105,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!template) {
         return Response.json({ error: "Template not found" }, { status: 404 });
       }
-      
+
       finalHtml = template.html || "";
       if (template.subject) finalSubject = template.subject;
 

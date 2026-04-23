@@ -59,10 +59,14 @@ export async function PATCH(
     const body = await req.json();
     const updates: Record<string, unknown> = {};
 
-    if (body.click_tracking !== undefined) updates.trackClicks = body.click_tracking;
-    if (body.open_tracking !== undefined) updates.trackOpens = body.open_tracking;
-    if (body.tracking_subdomain !== undefined) updates.trackingSubdomain = body.tracking_subdomain;
-    if (body.capabilities !== undefined) updates.capabilities = body.capabilities;
+    if (body.click_tracking !== undefined)
+      updates.trackClicks = body.click_tracking;
+    if (body.open_tracking !== undefined)
+      updates.trackOpens = body.open_tracking;
+    if (body.tracking_subdomain !== undefined)
+      updates.trackingSubdomain = body.tracking_subdomain;
+    if (body.capabilities !== undefined)
+      updates.capabilities = body.capabilities;
     if (body.tls !== undefined) {
       const val = body.tls;
       if (val === "opportunistic" || val === "enforced") {

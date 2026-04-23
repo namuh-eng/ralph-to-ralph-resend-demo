@@ -4,12 +4,7 @@ import { domains } from "@/lib/db/schema";
 import { and, desc, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-const VALID_REGIONS = [
-  "us-east-1",
-  "eu-west-1",
-  "sa-east-1",
-  "ap-northeast-1",
-];
+const VALID_REGIONS = ["us-east-1", "eu-west-1", "sa-east-1", "ap-northeast-1"];
 
 export async function POST(request: Request) {
   const auth = await validateApiKey(request.headers.get("authorization"));
@@ -28,7 +23,9 @@ export async function POST(request: Request) {
 
     if (!VALID_REGIONS.includes(region)) {
       return NextResponse.json(
-        { error: `Invalid region. Must be one of: ${VALID_REGIONS.join(", ")}` },
+        {
+          error: `Invalid region. Must be one of: ${VALID_REGIONS.join(", ")}`,
+        },
         { status: 400 },
       );
     }

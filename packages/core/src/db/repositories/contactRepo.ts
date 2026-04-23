@@ -1,4 +1,4 @@
-import { eq, or, and, desc, lt, gt } from "drizzle-orm";
+import { and, desc, eq, gt, lt, or } from "drizzle-orm";
 import { db } from "../client";
 import { contacts } from "../schema";
 
@@ -26,11 +26,18 @@ export const contactRepo = {
   },
 
   async update(id: string, data: Partial<typeof contacts.$inferInsert>) {
-    return await db.update(contacts).set(data).where(eq(contacts.id, id)).returning();
+    return await db
+      .update(contacts)
+      .set(data)
+      .where(eq(contacts.id, id))
+      .returning();
   },
 
   async delete(id: string) {
-    return await db.delete(contacts).where(eq(contacts.id, id)).returning({ id: contacts.id });
+    return await db
+      .delete(contacts)
+      .where(eq(contacts.id, id))
+      .returning({ id: contacts.id });
   },
 
   async list(options: { limit?: number; after?: string; where?: any } = {}) {
@@ -50,5 +57,5 @@ export const contactRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

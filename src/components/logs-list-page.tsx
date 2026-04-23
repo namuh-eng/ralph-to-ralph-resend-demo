@@ -2,8 +2,8 @@
 
 import { DataTable } from "@/components/data-table";
 import { StatusBadge } from "@/components/status-badge";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface LogRow {
   id: string;
@@ -44,8 +44,18 @@ function getStatusVariant(
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
   const month = months[d.getMonth()];
   const day = d.getDate();
@@ -62,40 +72,50 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
-  const [dateFrom, setDateFrom] = useState<string>(searchParams.get("after") || "");
-  const [dateTo, setDateTo] = useState<string>(searchParams.get("before") || "");
+  const [statusFilter, setStatusFilter] = useState<string>(
+    searchParams.get("status") || "all",
+  );
+  const [dateFrom, setDateFrom] = useState<string>(
+    searchParams.get("after") || "",
+  );
+  const [dateTo, setDateTo] = useState<string>(
+    searchParams.get("before") || "",
+  );
 
-  const updateFilters = useCallback((updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-    router.push(`${pathname}?${params.toString()}`);
-  }, [router, pathname, searchParams]);
+  const updateFilters = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams],
+  );
 
   const handleExport = useCallback(() => {
     const headers = ["ID", "Method", "Endpoint", "Status", "Created At"];
     const csvContent = [
       headers.join(","),
-      ...logs.map(log => [
-        log.id,
-        log.method,
-        log.endpoint,
-        log.statusCode,
-        log.createdAt
-      ].join(","))
+      ...logs.map((log) =>
+        [log.id, log.method, log.endpoint, log.statusCode, log.createdAt].join(
+          ",",
+        ),
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `logs-export-${new Date().toISOString()}.csv`);
+    link.setAttribute(
+      "download",
+      `logs-export-${new Date().toISOString()}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -153,8 +173,15 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
           onClick={handleExport}
           className="h-9 px-4 text-[13px] font-medium bg-[rgba(176,199,217,0.145)] text-[#F0F0F0] border border-[rgba(176,199,217,0.145)] rounded-md hover:bg-[rgba(176,199,217,0.2)] transition-colors flex items-center gap-2"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
           </svg>
           Export CSV
         </button>

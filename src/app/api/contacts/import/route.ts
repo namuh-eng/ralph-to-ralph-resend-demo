@@ -22,12 +22,14 @@ export async function POST(request: NextRequest) {
     const text = await file.text();
     const lines = text.split(/\r?\n/);
     const header = lines[0].split(",");
-    const rows = lines.slice(1).filter(l => l.trim() !== "");
+    const rows = lines.slice(1).filter((l) => l.trim() !== "");
 
     // Resolve segment if provided
     let segmentName = "";
     if (segmentId) {
-      const seg = await db.query.segments.findFirst({ where: eq(segments.id, segmentId) });
+      const seg = await db.query.segments.findFirst({
+        where: eq(segments.id, segmentId),
+      });
       if (seg) segmentName = seg.name;
     }
 
@@ -41,9 +43,12 @@ export async function POST(request: NextRequest) {
       header.forEach((colName, index) => {
         const mappedKey = mapping[colName];
         if (mappedKey) {
-          if (mappedKey === "email") data.email = values[index]?.trim().toLowerCase();
-          else if (mappedKey === "first_name") data.firstName = values[index]?.trim();
-          else if (mappedKey === "last_name") data.lastName = values[index]?.trim();
+          if (mappedKey === "email")
+            data.email = values[index]?.trim().toLowerCase();
+          else if (mappedKey === "first_name")
+            data.firstName = values[index]?.trim();
+          else if (mappedKey === "last_name")
+            data.lastName = values[index]?.trim();
           else customProps[mappedKey] = values[index]?.trim();
         }
       });
@@ -57,21 +62,27 @@ export async function POST(request: NextRequest) {
 
       if (existing) {
         const currentSegments = (existing.segments as string[]) ?? [];
-        const updatedSegments = segmentName && !currentSegments.includes(segmentName) 
-          ? [...currentSegments, segmentName] 
-          : currentSegments;
+        const updatedSegments =
+          segmentName && !currentSegments.includes(segmentName)
+            ? [...currentSegments, segmentName]
+            : currentSegments;
 
-        await db.update(contacts)
+        await db
+          .update(contacts)
           .set({
             firstName: data.firstName || existing.firstName,
             lastName: data.lastName || existing.lastName,
             segments: updatedSegments,
-            customProperties: { ...(existing.customProperties as any || {}), ...customProps },
+            customProperties: {
+              ...((existing.customProperties as any) || {}),
+              ...customProps,
+            },
           })
           .where(eq(contacts.id, existing.id));
         createdIds.push(existing.id);
       } else {
-        const [inserted] = await db.insert(contacts)
+        const [inserted] = await db
+          .insert(contacts)
           .values({
             email: data.email,
             firstName: data.firstName || null,
@@ -91,6 +102,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed contact import:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

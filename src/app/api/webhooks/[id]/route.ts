@@ -58,10 +58,11 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (body.endpoint !== undefined) updateData.url = body.endpoint;
     if (body.url !== undefined) updateData.url = body.url;
-    
+
     if (body.events !== undefined) updateData.eventTypes = body.events;
-    if (body.event_types !== undefined) updateData.eventTypes = body.event_types;
-    
+    if (body.event_types !== undefined)
+      updateData.eventTypes = body.event_types;
+
     // Support "active" (boolean) and "status" ("enabled"/"disabled")
     if (body.status !== undefined) {
       updateData.status = body.status === "enabled" ? "active" : "inactive";

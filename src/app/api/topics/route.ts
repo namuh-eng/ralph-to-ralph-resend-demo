@@ -84,7 +84,9 @@ export async function POST(request: NextRequest) {
     }
 
     const defaultSubscription =
-      (body.default_subscription || body.defaultSubscription) === "opt_in" ? "opt_in" : "opt_out";
+      (body.default_subscription || body.defaultSubscription) === "opt_in"
+        ? "opt_in"
+        : "opt_out";
     const visibility = body.visibility === "private" ? "private" : "public";
 
     const [topic] = await db
@@ -102,6 +104,10 @@ export async function POST(request: NextRequest) {
         object: "topic",
         id: topic.id,
         name: topic.name,
+        description: topic.description,
+        defaultSubscription: topic.defaultSubscription,
+        visibility: topic.visibility,
+        createdAt: topic.createdAt,
       },
       { status: 201 },
     );

@@ -6,13 +6,21 @@ export interface RateLimitResult {
 }
 
 export interface RateLimiter {
-  isAllowed(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult>;
+  isAllowed(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<RateLimitResult>;
 }
 
 export class InMemoryRateLimiter implements RateLimiter {
   private cache = new Map<string, { count: number; reset: number }>();
 
-  async isAllowed(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+  async isAllowed(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<RateLimitResult> {
     const now = Math.floor(Date.now() / 1000);
     const item = this.cache.get(key);
 
@@ -27,15 +35,26 @@ export class InMemoryRateLimiter implements RateLimiter {
     }
 
     item.count += 1;
-    return { success: true, limit, remaining: limit - item.count, reset: item.reset };
+    return {
+      success: true,
+      limit,
+      remaining: limit - item.count,
+      reset: item.reset,
+    };
   }
 }
 
 export class RedisRateLimiter implements RateLimiter {
   // Skeleton for now, as Redis dependency might not be in core yet
-  async isAllowed(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+  async isAllowed(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<RateLimitResult> {
     // Falls back to in-memory for this slice unless user provides Redis client
-    console.warn("RedisRateLimiter: Redis not implemented, falling back to memory");
+    console.warn(
+      "RedisRateLimiter: Redis not implemented, falling back to memory",
+    );
     const fallback = new InMemoryRateLimiter();
     return fallback.isAllowed(key, limit, windowSeconds);
   }

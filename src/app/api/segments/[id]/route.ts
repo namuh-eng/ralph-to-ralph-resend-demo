@@ -19,10 +19,7 @@ export async function GET(
       .where(eq(segments.id, id));
 
     if (!segment) {
-      return NextResponse.json(
-        { error: "Segment not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
     return NextResponse.json(segment);
@@ -50,10 +47,7 @@ export async function DELETE(
       .returning();
 
     if (!deleted) {
-      return NextResponse.json(
-        { error: "Segment not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });

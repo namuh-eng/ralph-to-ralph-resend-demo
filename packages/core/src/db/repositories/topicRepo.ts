@@ -1,4 +1,4 @@
-import { eq, and, desc, ilike, lt } from "drizzle-orm";
+import { and, desc, eq, ilike, lt } from "drizzle-orm";
 import { db } from "../client";
 import { topics } from "../schema";
 
@@ -14,14 +14,20 @@ export const topicRepo = {
   },
 
   async update(id: string, data: Partial<typeof topics.$inferInsert>) {
-    return await db.update(topics).set(data).where(eq(topics.id, id)).returning();
+    return await db
+      .update(topics)
+      .set(data)
+      .where(eq(topics.id, id))
+      .returning();
   },
 
   async delete(id: string) {
     return await db.delete(topics).where(eq(topics.id, id)).returning();
   },
 
-  async list(options: { limit?: number; after?: string; search?: string } = {}) {
+  async list(
+    options: { limit?: number; after?: string; search?: string } = {},
+  ) {
     const { limit = 20, after, search } = options;
     const conditions = [];
 
@@ -39,5 +45,5 @@ export const topicRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

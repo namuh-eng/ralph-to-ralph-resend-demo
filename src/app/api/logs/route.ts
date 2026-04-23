@@ -12,7 +12,7 @@ export async function GET(request: Request): Promise<Response> {
     Math.max(Number(url.searchParams.get("limit")) || 20, 1),
     100,
   );
-  
+
   const status = url.searchParams.get("status");
   const method = url.searchParams.get("method");
   const after = url.searchParams.get("after") || "";

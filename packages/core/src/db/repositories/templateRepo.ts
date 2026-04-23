@@ -1,4 +1,4 @@
-import { eq, and, desc, ilike, lt } from "drizzle-orm";
+import { and, desc, eq, ilike, lt } from "drizzle-orm";
 import { db } from "../client";
 import { templates } from "../schema";
 
@@ -20,14 +20,25 @@ export const templateRepo = {
   },
 
   async update(id: string, data: Partial<typeof templates.$inferInsert>) {
-    return await db.update(templates).set(data).where(eq(templates.id, id)).returning();
+    return await db
+      .update(templates)
+      .set(data)
+      .where(eq(templates.id, id))
+      .returning();
   },
 
   async delete(id: string) {
     return await db.delete(templates).where(eq(templates.id, id)).returning();
   },
 
-  async list(options: { limit?: number; after?: string; search?: string; status?: string } = {}) {
+  async list(
+    options: {
+      limit?: number;
+      after?: string;
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
     const { limit = 20, after, search, status } = options;
     const conditions = [];
 
@@ -46,5 +57,5 @@ export const templateRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

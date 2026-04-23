@@ -31,13 +31,19 @@ export async function GET(
     const data = await Promise.all(
       contactSegments.map(async (name) => {
         const [seg] = await db
-          .select({ id: segments.id, name: segments.name, createdAt: segments.createdAt })
+          .select({
+            id: segments.id,
+            name: segments.name,
+            createdAt: segments.createdAt,
+          })
           .from(segments)
           .where(eq(segments.name, name))
           .limit(1);
-        return seg ? { id: seg.id, name: seg.name, created_at: seg.createdAt } : null;
-      })
-    ).then(results => results.filter(r => r !== null));
+        return seg
+          ? { id: seg.id, name: seg.name, created_at: seg.createdAt }
+          : null;
+      }),
+    ).then((results) => results.filter((r) => r !== null));
 
     return NextResponse.json({
       object: "list",

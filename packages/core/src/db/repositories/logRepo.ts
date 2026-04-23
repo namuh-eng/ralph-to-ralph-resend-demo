@@ -1,4 +1,4 @@
-import { eq, and, desc, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { db } from "../client";
 import { logs } from "../schema";
 
@@ -13,7 +13,14 @@ export const logRepo = {
     return await db.insert(logs).values(data).returning();
   },
 
-  async list(options: { limit?: number; after?: string; status?: number; method?: string } = {}) {
+  async list(
+    options: {
+      limit?: number;
+      after?: string;
+      status?: number;
+      method?: string;
+    } = {},
+  ) {
     const { limit = 20, after, status, method } = options;
     const conditions = [];
 
@@ -32,5 +39,5 @@ export const logRepo = {
     const data = hasMore ? results.slice(0, limit) : results;
 
     return { data, hasMore };
-  }
+  },
 };

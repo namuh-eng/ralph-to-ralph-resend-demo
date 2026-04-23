@@ -324,6 +324,7 @@ describe("Topics API route", () => {
             },
             orderBy: () => chain,
             limit: () => chain,
+            then: (resolve: any) => resolve([]),
             offset: () => Promise.resolve([]),
           };
           return chain;

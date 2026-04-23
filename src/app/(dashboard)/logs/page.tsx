@@ -1,7 +1,7 @@
 import { LogsListPage } from "@/components/logs-list-page";
 import { db } from "@/lib/db";
 import { logs } from "@/lib/db/schema";
-import { desc, eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
+import { type SQL, and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 export default async function LogsPage(props: {
   searchParams: Promise<{

@@ -16,7 +16,9 @@ export class StorageService {
 
   private getClient() {
     if (this.client) return this.client;
-    this.client = new S3Client({ region: process.env.AWS_REGION ?? "us-east-1" });
+    this.client = new S3Client({
+      region: process.env.AWS_REGION ?? "us-east-1",
+    });
     return this.client;
   }
 
@@ -28,19 +30,23 @@ export class StorageService {
 
   async uploadFile(key: string, body: Buffer, contentType: string) {
     if (!this.bucket) return { url: `https://localhost/dev/${key}`, key };
-    await this.getClient().send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-    }));
+    await this.getClient().send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    );
     const url = await this.getPresignedUrl(key);
     return { url, key };
   }
 
   async deleteFile(key: string) {
     if (!this.bucket) return;
-    await this.getClient().send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    await this.getClient().send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
   }
 }
 

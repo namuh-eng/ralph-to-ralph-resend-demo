@@ -10,11 +10,15 @@ async function findContact(idOrEmail: string) {
   });
 }
 
-function mapInternalToPublicSubscription(subscribed: boolean): "opt_in" | "opt_out" {
+function mapInternalToPublicSubscription(
+  subscribed: boolean,
+): "opt_in" | "opt_out" {
   return subscribed ? "opt_in" : "opt_out";
 }
 
-function mapPublicToInternalSubscription(subscription: "opt_in" | "opt_out"): boolean {
+function mapPublicToInternalSubscription(
+  subscription: "opt_in" | "opt_out",
+): boolean {
   return subscription === "opt_in";
 }
 
@@ -46,7 +50,7 @@ export async function GET(
           name: topic.name,
           subscription: mapInternalToPublicSubscription(sub.subscribed),
         };
-      })
+      }),
     ).then((results) => results.filter((r) => r !== null));
 
     return NextResponse.json({
@@ -78,10 +82,16 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const newTopics = body.topics as Array<{ id: string; subscription: "opt_in" | "opt_out" }>;
+    const newTopics = body.topics as Array<{
+      id: string;
+      subscription: "opt_in" | "opt_out";
+    }>;
 
     if (!Array.isArray(newTopics)) {
-      return NextResponse.json({ error: "topics must be an array" }, { status: 422 });
+      return NextResponse.json(
+        { error: "topics must be an array" },
+        { status: 422 },
+      );
     }
 
     // Replace current subscriptions with new ones mapped to internal boolean

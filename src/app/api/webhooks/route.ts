@@ -11,11 +11,7 @@ interface CreateWebhookBody {
 
 function validateCreateBody(body: CreateWebhookBody): string | null {
   if (!body.endpoint) return "endpoint is required";
-  if (
-    !body.events ||
-    !Array.isArray(body.events) ||
-    body.events.length === 0
-  ) {
+  if (!body.events || !Array.isArray(body.events) || body.events.length === 0) {
     return "events array is required";
   }
   return null;
@@ -47,9 +43,7 @@ export async function GET(request: Request): Promise<Response> {
       query.where(lt(webhooks.id, after));
     }
 
-    const results = await query
-      .orderBy(desc(webhooks.id))
-      .limit(limit + 1);
+    const results = await query.orderBy(desc(webhooks.id)).limit(limit + 1);
 
     const hasMore = results.length > limit;
     const dataRows = hasMore ? results.slice(0, limit) : results;
@@ -94,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const signingSecret = `whsec_${randomBytes(24).toString("base64url")}`;
-    
+
     const [webhook] = await db
       .insert(webhooks)
       .values({

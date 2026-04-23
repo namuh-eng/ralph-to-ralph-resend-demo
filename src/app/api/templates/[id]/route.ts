@@ -38,14 +38,15 @@ export async function GET(
       preview_text: template.previewText,
       html: template.html,
       text: template.text,
-      variables: (template.variables as any[])?.map((v, index) => ({
-        id: `var-${index}`,
-        key: v.name,
-        type: "string",
-        fallback_value: null,
-        created_at: template.createdAt,
-        updated_at: template.createdAt,
-      })) || [],
+      variables:
+        (template.variables as any[])?.map((v, index) => ({
+          id: `var-${index}`,
+          key: v.name,
+          type: "string",
+          fallback_value: null,
+          created_at: template.createdAt,
+          updated_at: template.createdAt,
+        })) || [],
       created_at: template.createdAt,
       updated_at: template.createdAt,
     });
@@ -112,14 +113,15 @@ export async function PATCH(
       preview_text: updated.previewText,
       html: updated.html,
       text: updated.text,
-      variables: (updated.variables as any[])?.map((v, index) => ({
-        id: `var-${index}`,
-        key: v.name,
-        type: "string",
-        fallback_value: null,
-        created_at: updated.createdAt,
-        updated_at: updated.createdAt,
-      })) || [],
+      variables:
+        (updated.variables as any[])?.map((v, index) => ({
+          id: `var-${index}`,
+          key: v.name,
+          type: "string",
+          fallback_value: null,
+          created_at: updated.createdAt,
+          updated_at: updated.createdAt,
+        })) || [],
       created_at: updated.createdAt,
       updated_at: updated.createdAt,
     });
