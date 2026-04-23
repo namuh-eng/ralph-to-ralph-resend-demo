@@ -328,3 +328,19 @@ export const receivedEmails = pgTable(
     index("received_emails_created_at_idx").on(table.createdAt),
   ],
 );
+
+export const emailEvents = pgTable(
+  "email_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    emailId: uuid("email_id")
+      .notNull()
+      .references(() => emails.id),
+    type: varchar("type", { length: 50 }).notNull(),
+    payload: jsonb("payload").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("email_events_email_id_idx").on(t.emailId)],
+);
