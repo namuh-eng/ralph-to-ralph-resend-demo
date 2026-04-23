@@ -9,6 +9,8 @@ export * from "./repositories/logRepo";
 export * from "./repositories/segmentRepo";
 export * from "./repositories/templateRepo";
 export * from "./repositories/topicRepo";
+export * from "./auth/api-auth";
+export * from "./auth/rate-limiter";
 export * from "./webhook-signing";
 export * from "./services/dns";
 export * from "./services/domain";
