@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { segments } from "@/lib/db/schema";
-import { asc, count, ilike } from "drizzle-orm";
+import { and, asc, count, desc, ilike, lt } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -10,42 +10,43 @@ export async function GET(request: NextRequest) {
 
   try {
     const url = request.nextUrl;
-    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
     const limit = Math.min(
       100,
       Math.max(1, Number(url.searchParams.get("limit")) || 20),
     );
     const search = url.searchParams.get("search")?.trim() || "";
-    const offset = (page - 1) * limit;
+    const after = url.searchParams.get("after") || "";
 
-    const conditions = search ? ilike(segments.name, `%${search}%`) : undefined;
+    const conditions = [];
+    if (search) {
+      conditions.push(ilike(segments.name, `%${search}%`));
+    }
+    if (after) {
+      conditions.push(lt(segments.id, after));
+    }
 
-    // Get total count
-    const [totalRow] = await db
-      .select({ count: count() })
-      .from(segments)
-      .where(conditions);
-
-    // Get segments with counts from the table columns
     const rows = await db
       .select({
         id: segments.id,
         name: segments.name,
         createdAt: segments.createdAt,
-        contactsCount: segments.contactsCount,
-        unsubscribedCount: segments.unsubscribedCount,
       })
       .from(segments)
-      .where(conditions)
-      .orderBy(asc(segments.name))
-      .limit(limit)
-      .offset(offset);
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(segments.id))
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const dataRows = hasMore ? rows.slice(0, limit) : rows;
 
     return NextResponse.json({
-      data: rows,
-      total: totalRow?.count ?? 0,
-      page,
-      limit,
+      object: "list",
+      data: dataRows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        created_at: r.createdAt,
+      })),
+      has_more: hasMore,
     });
   } catch (error) {
     console.error("Failed to fetch segments:", error);
@@ -68,9 +69,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const [segment] = await db.insert(segments).values({ name }).returning();
+    const [segment] = await db
+      .insert(segments)
+      .values({ name })
+      .returning({ id: segments.id, name: segments.name });
 
-    return NextResponse.json(segment, { status: 201 });
+    return NextResponse.json(
+      {
+        object: "segment",
+        id: segment.id,
+        name: segment.name,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create segment:", error);
     return NextResponse.json(
