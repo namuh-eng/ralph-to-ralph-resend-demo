@@ -296,3 +296,32 @@ export const contactProperties = pgTable(
   },
   (table) => [uniqueIndex("contact_properties_key_idx").on(table.key)],
 );
+
+export const receivedEmails = pgTable(
+  "received_emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    from: varchar("from", { length: 512 }).notNull(),
+    to: jsonb("to").notNull().$type<string[]>(),
+    subject: text("subject").notNull(),
+    html: text("html"),
+    text: text("text"),
+    status: varchar("status", { length: 50 }).notNull().default("received"),
+    attachments: jsonb("attachments").$type<
+      Array<{
+        id: string;
+        filename: string;
+        contentType: string;
+        size: number;
+        s3Key: string;
+      }>
+    >(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    userId: text("user_id"),
+  },
+  (table) => [
+    index("received_emails_created_at_idx").on(table.createdAt),
+  ],
+);
