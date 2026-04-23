@@ -400,7 +400,7 @@ describe("route smoke coverage", () => {
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([
-          { id: "topic-2", name: "Product", defaultSubscription: "opt_in" },
+          { id: "t2", name: "Product", defaultSubscription: "opt_in" },
         ]),
       }),
     });

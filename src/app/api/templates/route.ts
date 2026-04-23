@@ -13,6 +13,12 @@ function generateAlias(name: string): string {
   );
 }
 
+const RESERVED_VARIABLE_NAMES = [
+  "UNSUBSCRIBE_URL",
+  "RESEND_UNSUBSCRIBE_URL",
+  "INTERNAL_ID",
+];
+
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
@@ -45,7 +51,6 @@ export async function GET(request: NextRequest) {
         name: templates.name,
         alias: templates.alias,
         status: templates.status,
-        html: templates.html,
         createdAt: templates.createdAt,
       })
       .from(templates)
@@ -54,9 +59,13 @@ export async function GET(request: NextRequest) {
       .limit(200);
 
     return NextResponse.json({
+      object: "list",
       data: rows.map((r) => ({
-        ...r,
-        published: r.status === "published",
+        id: r.id,
+        name: r.name,
+        alias: r.alias,
+        status: r.status,
+        created_at: r.createdAt,
       })),
       total: totalRow?.count ?? 0,
     });
@@ -75,16 +84,70 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const name = body.name?.trim() || "Untitled Template";
-    const alias = generateAlias(name);
+    const name = body.name?.trim();
+    const html = body.html?.trim();
+
+    if (!name || !html) {
+      return NextResponse.json(
+        { error: "name and html are required" },
+        { status: 422 },
+      );
+    }
+
+    const alias = body.alias?.trim() || generateAlias(name);
+
+    // Validate variables
+    const variablesArr = body.variables || [];
+    if (!Array.isArray(variablesArr)) {
+      return NextResponse.json(
+        { error: "variables must be an array" },
+        { status: 422 },
+      );
+    }
+
+    if (variablesArr.length > 50) {
+      return NextResponse.json(
+        { error: "Too many variables. Max allowed is 50." },
+        { status: 422 },
+      );
+    }
+
+    for (const v of variablesArr) {
+      if (!v.name) continue;
+      if (RESERVED_VARIABLE_NAMES.includes(v.name.toUpperCase())) {
+        return NextResponse.json(
+          { error: `Variable name ${v.name} is reserved.` },
+          { status: 422 },
+        );
+      }
+    }
 
     const [template] = await db
       .insert(templates)
-      .values({ name, alias })
+      .values({
+        name,
+        alias,
+        html,
+        subject: body.subject || null,
+        from: body.from || null,
+        replyTo: body.reply_to || null,
+        previewText: body.preview_text || null,
+        text: body.text || null,
+        variables: variablesArr.map((v: any) => ({
+          name: v.name,
+          required: v.required ?? false,
+        })),
+        status: "draft",
+      })
       .returning();
 
     return NextResponse.json(
-      { ...template, published: template.status === "published" },
+      {
+        object: "template",
+        id: template.id,
+        name: template.name,
+        alias: template.alias,
+      },
       { status: 201 },
     );
   } catch (error) {

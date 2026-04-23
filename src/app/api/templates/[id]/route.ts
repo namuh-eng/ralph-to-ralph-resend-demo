@@ -16,7 +16,8 @@ export async function GET(
     const [template] = await db
       .select()
       .from(templates)
-      .where(eq(templates.id, id));
+      .where(eq(templates.id, id))
+      .limit(1);
 
     if (!template) {
       return NextResponse.json(
@@ -25,7 +26,29 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(template);
+    return NextResponse.json({
+      object: "template",
+      id: template.id,
+      name: template.name,
+      alias: template.alias,
+      status: template.status,
+      subject: template.subject,
+      from: template.from,
+      reply_to: template.replyTo,
+      preview_text: template.previewText,
+      html: template.html,
+      text: template.text,
+      variables: (template.variables as any[])?.map((v, index) => ({
+        id: `var-${index}`,
+        key: v.name,
+        type: "string",
+        fallback_value: null,
+        created_at: template.createdAt,
+        updated_at: template.createdAt,
+      })) || [],
+      created_at: template.createdAt,
+      updated_at: template.createdAt,
+    });
   } catch (error) {
     console.error("Failed to fetch template:", error);
     return NextResponse.json(
@@ -57,7 +80,12 @@ export async function PATCH(
       updateData.previewText = body.previewText;
     if (body.html !== undefined) updateData.html = body.html;
     if (body.text !== undefined) updateData.text = body.text;
-    if (body.variables !== undefined) updateData.variables = body.variables;
+    if (body.variables !== undefined) {
+      updateData.variables = body.variables.map((v: any) => ({
+        name: v.name,
+        required: v.required ?? false,
+      }));
+    }
 
     const [updated] = await db
       .update(templates)
@@ -72,7 +100,29 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      object: "template",
+      id: updated.id,
+      name: updated.name,
+      alias: updated.alias,
+      status: updated.status,
+      subject: updated.subject,
+      from: updated.from,
+      reply_to: updated.replyTo,
+      preview_text: updated.previewText,
+      html: updated.html,
+      text: updated.text,
+      variables: (updated.variables as any[])?.map((v, index) => ({
+        id: `var-${index}`,
+        key: v.name,
+        type: "string",
+        fallback_value: null,
+        created_at: updated.createdAt,
+        updated_at: updated.createdAt,
+      })) || [],
+      created_at: updated.createdAt,
+      updated_at: updated.createdAt,
+    });
   } catch (error) {
     console.error("Failed to update template:", error);
     return NextResponse.json(
