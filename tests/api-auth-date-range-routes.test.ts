@@ -909,5 +909,31 @@ describe("route smoke coverage", () => {
       { params: Promise.resolve({ id: "t1" }) },
     );
     expect(duplicatePost.status).toBe(200);
+
+    // Broadcast Metrics GET
+    const metricsRoute = await import("@/app/api/broadcasts/[id]/metrics/route");
+    mockSelect.mockImplementationOnce(() => makeChain([{ id: "b1" }])); // Check broadcast exists
+    mockSelect.mockReturnValueOnce(
+      makeChain([
+        {
+          total: 100,
+          delivered: 95,
+          bounced: 2,
+          complained: 0,
+          opened: 40,
+          clicked: 10,
+        },
+      ]),
+    );
+    const metricsGet = await metricsRoute.GET(
+      makeNextRequest("http://localhost/api/broadcasts/b1/metrics", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "b1" }) },
+    );
+    expect(metricsGet.status).toBe(200);
+    const metricsJson = await metricsGet.json();
+    expect(metricsJson.object).toBe("broadcast_metrics");
+    expect(metricsJson.total).toBe(100);
   });
 });
