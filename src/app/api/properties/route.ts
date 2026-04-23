@@ -17,9 +17,7 @@ export async function GET(request: NextRequest) {
     );
     const offset = (page - 1) * limit;
 
-    const [totalRow] = await db
-      .select({ count: count() })
-      .from(contactProperties);
+    const totalCount = await db.$count(contactProperties);
 
     const rows = await db
       .select()
@@ -38,7 +36,7 @@ export async function GET(request: NextRequest) {
         created_at: r.createdAt,
         updated_at: r.updatedAt,
       })),
-      total: totalRow?.count ?? 0,
+      total: Number(totalCount),
       page,
       limit,
     });

@@ -297,18 +297,8 @@ describe("route smoke coverage", () => {
     const contactsRoute = await import("@/app/api/segments/[id]/contacts/route");
 
     mockSelect
-      .mockReturnValueOnce(makeChain([{ count: 1 }]))
-      .mockReturnValueOnce(
-        makeChain([
-          {
-            id: "seg-1",
-            name: "VIP",
-            createdAt: "2026-04-23T00:00:00.000Z",
-            contactsCount: 3,
-            unsubscribedCount: 1,
-          },
-        ]),
-      );
+      .mockImplementationOnce(() => makeChain([{ id: "seg-1", name: "VIP", createdAt: "2026-04-23" }]));
+    
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([{ id: "seg-2", name: "New" }]),
@@ -316,11 +306,13 @@ describe("route smoke coverage", () => {
     });
 
     const getResponse = await route.GET(
-      makeNextRequest("http://localhost/api/segments?page=1&limit=20", {
+      makeNextRequest("http://localhost/api/segments?limit=20", {
         headers: { authorization: "Bearer token" },
       }) as never,
     );
     expect(getResponse.status).toBe(200);
+    const getJson = await getResponse.json();
+    expect(getJson.object).toBe("list");
 
     const invalidPost = await route.POST(
       makeNextRequest("http://localhost/api/segments", {
@@ -345,6 +337,8 @@ describe("route smoke coverage", () => {
       }) as never,
     );
     expect(createResponse.status).toBe(201);
+    const createJson = await createResponse.json();
+    expect(createJson.object).toBe("segment");
 
     // Detail GET
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "seg-1", name: "VIP" }]));
@@ -374,8 +368,6 @@ describe("route smoke coverage", () => {
     // Segment Contacts GET
     mockSelect.mockImplementationOnce(() => makeChain([{ name: "VIP" }])); // Check segment exists
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "c1", email: "a@b.com" }])); // Contacts list
-    
-    // For $count mock in segments/[id]/contacts
     mockCountFn.mockResolvedValueOnce(1);
 
     const contactsGet = await contactsRoute.GET(
@@ -500,10 +492,8 @@ describe("route smoke coverage", () => {
     const route = await import("@/app/api/properties/route");
     const detailRoute = await import("@/app/api/properties/[id]/route");
 
-    mockSelect
-      .mockReturnValueOnce(makeChain([{ count: 1 }]))
-      .mockReturnValueOnce(
-        makeChain([
+    mockCountFn.mockResolvedValueOnce(1);
+    mockSelect.mockImplementationOnce(() => makeChain([
           {
             id: "prop-1",
             key: "first_name",
@@ -513,8 +503,7 @@ describe("route smoke coverage", () => {
             createdAt: "2026-04-23T00:00:00.000Z",
             updatedAt: "2026-04-23T00:00:00.000Z",
           },
-        ]),
-      );
+        ]));
     
     const getResponse = await route.GET(
       makeNextRequest("http://localhost/api/properties", {
@@ -597,8 +586,7 @@ describe("route smoke coverage", () => {
     const listRoute = await import("@/app/api/webhooks/route");
     const detailRoute = await import("@/app/api/webhooks/[id]/route");
 
-    mockSelect.mockReturnValueOnce(
-      makeChain([
+    mockSelect.mockImplementationOnce(() => makeChain([
         {
           id: "wh-1",
           url: "https://example.com/webhook",
@@ -606,8 +594,7 @@ describe("route smoke coverage", () => {
           status: "active",
           createdAt: "2026-04-23T00:00:00.000Z",
         },
-      ]),
-    );
+      ]));
     expect(
       (
         await listRoute.GET(
