@@ -190,7 +190,7 @@ export const contacts = pgTable(
     userId: text("user_id"),
   },
   (table) => [
-    index("contacts_email_idx").on(table.email),
+    uniqueIndex("contacts_email_idx").on(table.email),
     index("contacts_unsubscribed_idx").on(table.unsubscribed),
     index("contacts_created_at_idx").on(table.createdAt),
   ],

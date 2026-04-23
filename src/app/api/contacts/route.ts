@@ -1,6 +1,6 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { contacts, segments } from "@/lib/db/schema";
+import { contacts, segments, topics } from "@/lib/db/schema";
 import { type SQL, and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -10,38 +10,78 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { emails } = body as {
-      emails: string[];
-    };
+    const email = body.email?.trim().toLowerCase();
 
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+    if (!email) {
+      return NextResponse.json({ error: "email is required" }, { status: 422 });
+    }
+
+    // Check for existing contact to enforce uniqueness manually if needed, 
+    // though the uniqueIndex will catch it at the DB level.
+    const existing = await db.query.contacts.findFirst({
+      where: eq(contacts.email, email),
+    });
+
+    if (existing) {
       return NextResponse.json(
-        { error: "emails array is required" },
-        { status: 400 },
+        { error: "A contact with this email already exists" },
+        { status: 409 },
       );
     }
 
-    const created: string[] = [];
-
-    for (const email of emails) {
-      const trimmed = email.trim().toLowerCase();
-      if (!trimmed) continue;
-
-      const [inserted] = await db
-        .insert(contacts)
-        .values({ email: trimmed })
-        .returning({ id: contacts.id });
-
-      if (inserted) {
-        created.push(inserted.id);
-      }
+    // Resolve segment names if provided as IDs
+    let resolvedSegments: string[] = [];
+    if (body.segments && Array.isArray(body.segments)) {
+      resolvedSegments = await Promise.all(
+        body.segments.map(async (s: string) => {
+          const seg = await db.query.segments.findFirst({
+            where: or(eq(segments.id, s), eq(segments.name, s)),
+          });
+          return seg ? seg.name : null;
+        })
+      ).then(results => results.filter((r): r is string => r !== null));
     }
 
-    return NextResponse.json({ created: created.length, ids: created });
+    // Map topics to internal shape
+    let resolvedTopics: Array<{ topicId: string; subscribed: boolean }> = [];
+    if (body.topics && Array.isArray(body.topics)) {
+      resolvedTopics = await Promise.all(
+        body.topics.map(async (t: any) => {
+          const topicId = typeof t === "string" ? t : t.id;
+          const subscription = t.subscription || "opt_in";
+          const found = await db.query.topics.findFirst({
+            where: eq(topics.id, topicId),
+          });
+          if (!found) return null;
+          return {
+            topicId: found.id,
+            subscribed: subscription === "opt_in",
+          };
+        })
+      ).then(results => results.filter((r): r is { topicId: string; subscribed: boolean } => r !== null));
+    }
+
+    const [inserted] = await db
+      .insert(contacts)
+      .values({
+        email,
+        firstName: body.first_name || null,
+        lastName: body.last_name || null,
+        unsubscribed: body.unsubscribed ?? false,
+        customProperties: body.properties || null,
+        segments: resolvedSegments.length > 0 ? resolvedSegments : null,
+        topicSubscriptions: resolvedTopics.length > 0 ? resolvedTopics : null,
+      })
+      .returning({ id: contacts.id });
+
+    return NextResponse.json({
+      object: "contact",
+      id: inserted.id,
+    }, { status: 201 });
   } catch (error) {
-    console.error("Failed to create contacts:", error);
+    console.error("Failed to create contact:", error);
     return NextResponse.json(
-      { error: "Failed to create contacts" },
+      { error: "Failed to create contact" },
       { status: 500 },
     );
   }
@@ -72,7 +112,6 @@ export async function GET(request: Request) {
       if (seg) {
         segmentName = seg.name;
       } else {
-        // If segment_id provided but not found, return empty
         return NextResponse.json({
           object: "list",
           data: [],
