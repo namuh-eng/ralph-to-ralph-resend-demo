@@ -406,11 +406,13 @@ describe("route smoke coverage", () => {
     });
 
     const getResponse = await route.GET(
-      makeNextRequest("http://localhost/api/topics?default=opt_in", {
+      makeNextRequest("http://localhost/api/topics?limit=20", {
         headers: { authorization: "Bearer token" },
       }) as never,
     );
     expect(getResponse.status).toBe(200);
+    const getJson = await getResponse.json();
+    expect(getJson.object).toBe("list");
 
     const invalidPost = await route.POST(
       makeNextRequest("http://localhost/api/topics", {
@@ -434,12 +436,14 @@ describe("route smoke coverage", () => {
         body: JSON.stringify({
           name: " Product ",
           description: " docs ",
-          defaultSubscription: "opt_in",
+          default_subscription: "opt_in",
           visibility: "private",
         }),
       }) as never,
     );
     expect(createResponse.status).toBe(201);
+    const createJson = await createResponse.json();
+    expect(createJson.object).toBe("topic");
 
     // Detail GET
     mockSelect.mockImplementationOnce(() => makeChain([{ id: "topic-1", name: "Marketing" }]));
