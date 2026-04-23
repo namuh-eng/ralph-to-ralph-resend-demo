@@ -344,3 +344,29 @@ export const emailEvents = pgTable(
   },
   (t) => [index("email_events_email_id_idx").on(t.emailId)],
 );
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    webhookId: uuid("webhook_id")
+      .notNull()
+      .references(() => webhooks.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => emailEvents.id),
+    attempt: integer("attempt").notNull().default(1),
+    statusCode: integer("status_code"),
+    responseBody: text("response_body"),
+    status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, success, failed, dead_letter
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }),
+    nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("webhook_deliveries_webhook_id_idx").on(t.webhookId),
+    index("webhook_deliveries_status_idx").on(t.status),
+  ],
+);
