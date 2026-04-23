@@ -1,0 +1,699 @@
+import { createHash } from "node:crypto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockFindFirst = vi.hoisted(() => vi.fn());
+const mockSelect = vi.hoisted(() => vi.fn());
+const mockInsert = vi.hoisted(() => vi.fn());
+const mockUpdate = vi.hoisted(() => vi.fn());
+const mockDelete = vi.hoisted(() => vi.fn());
+const mockValidateApiKey = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    query: {
+      apiKeys: {
+        findFirst: mockFindFirst,
+      },
+    },
+    select: mockSelect,
+    insert: mockInsert,
+    update: mockUpdate,
+    delete: mockDelete,
+  },
+}));
+
+function makeNextRequest(url: string, init?: RequestInit) {
+  const request = new Request(url, init) as Request & { nextUrl: URL };
+  request.nextUrl = new URL(url);
+  return request;
+}
+
+function makeChain<T>(rows: T[]) {
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    offset: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue(rows),
+    then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
+  };
+}
+
+describe("lib/api-auth", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.doUnmock("@/lib/api-auth");
+    delete process.env.DASHBOARD_KEY;
+  });
+
+  it("validates a bearer API key by sha256 token hash", async () => {
+    const rawKey = "re_test_123";
+    const tokenHash = createHash("sha256").update(rawKey).digest("hex");
+    mockFindFirst.mockResolvedValue({
+      id: "key-1",
+      permission: "full_access",
+      domain: "example.com",
+    });
+
+    const { validateApiKey } = await import("@/lib/api-auth");
+    const result = await validateApiKey(`Bearer ${rawKey}`);
+
+    expect(mockFindFirst).toHaveBeenCalledOnce();
+    expect(result).toEqual({
+      apiKeyId: "key-1",
+      permission: "full_access",
+      domain: "example.com",
+    });
+    expect(tokenHash).toHaveLength(64);
+  });
+
+  it("returns null for missing, malformed, and unknown API keys", async () => {
+    mockFindFirst.mockResolvedValue(null);
+    const { validateApiKey } = await import("@/lib/api-auth");
+
+    expect(await validateApiKey(null)).toBeNull();
+    expect(await validateApiKey("Basic abc")).toBeNull();
+    expect(await validateApiKey("Bearer ")).toBeNull();
+    expect(await validateApiKey("Bearer wrong")).toBeNull();
+  });
+
+  it("validates the dashboard key from env", async () => {
+    process.env.DASHBOARD_KEY = "dashboard-secret";
+    const { validateDashboardKey } = await import("@/lib/api-auth");
+
+    expect(validateDashboardKey("Bearer dashboard-secret")).toBe(true);
+    expect(validateDashboardKey("Bearer wrong")).toBe(false);
+    expect(validateDashboardKey(null)).toBe(false);
+  });
+
+  it("fails dashboard validation when env is missing", async () => {
+    const { validateDashboardKey } = await import("@/lib/api-auth");
+    expect(validateDashboardKey("Bearer dashboard-secret")).toBe(false);
+  });
+
+  it("builds the standard unauthorized response", async () => {
+    const { unauthorizedResponse } = await import("@/lib/api-auth");
+    const response = unauthorizedResponse();
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: "Missing or invalid API key",
+    });
+  });
+});
+
+describe("lib/date-range", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("covers all presets and custom serialization/parsing", async () => {
+    const {
+      DATE_RANGE_PRESETS,
+      formatDateRangeLabel,
+      getDateRangeBounds,
+      parseCustomDateRange,
+      serializeCustomDateRange,
+      toIsoDate,
+      isCustomDateRange,
+    } = await import("@/lib/date-range");
+
+    expect(DATE_RANGE_PRESETS).toEqual([
+      "Today",
+      "Yesterday",
+      "Last 3 days",
+      "Last 7 days",
+      "Last 15 days",
+      "Last 30 days",
+    ]);
+
+    const start = new Date("2026-04-10T12:00:00Z");
+    const end = new Date("2026-04-12T12:00:00Z");
+    const serialized = serializeCustomDateRange(start, end);
+    expect(serialized).toBe("custom:2026-04-10:2026-04-12");
+    expect(isCustomDateRange(serialized)).toBe(true);
+    expect(parseCustomDateRange(serialized)).toEqual({
+      startDate: "2026-04-10",
+      endDate: "2026-04-12",
+    });
+    expect(parseCustomDateRange("custom:2026-04-10")).toBeNull();
+    expect(parseCustomDateRange("Today")).toBeNull();
+    expect(toIsoDate(new Date("2026-04-01T00:00:00Z"))).toBe("2026-04-01");
+    expect(formatDateRangeLabel(serialized)).toBe("Apr 10 - Apr 12");
+    expect(formatDateRangeLabel("custom:2026-04-10:2026-04-10")).toBe(
+      "Apr 10",
+    );
+
+    const customBounds = getDateRangeBounds("custom:2026-04-01:2026-04-03");
+    expect(customBounds.start.getDate()).toBe(1);
+    expect(customBounds.end.getDate()).toBe(3);
+  });
+
+  it("computes preset date bounds", async () => {
+    const { getDateRangeBounds } = await import("@/lib/date-range");
+    const now = new Date(2026, 3, 23, 15, 45, 30);
+
+    const today = getDateRangeBounds("Today", now);
+    expect(today.start.getFullYear()).toBe(2026);
+    expect(today.start.getMonth()).toBe(3);
+    expect(today.start.getDate()).toBe(23);
+    expect(today.start.getHours()).toBe(0);
+    expect(today.end.getHours()).toBe(23);
+    expect(today.end.getMinutes()).toBe(59);
+
+    const yesterday = getDateRangeBounds("Yesterday", now);
+    expect(yesterday.start.getDate()).toBe(22);
+    expect(yesterday.end.getDate()).toBe(22);
+
+    const last3 = getDateRangeBounds("Last 3 days", now);
+    expect(last3.start.getDate()).toBe(21);
+    expect(last3.end.getDate()).toBe(23);
+
+    const last7 = getDateRangeBounds("Last 7 days", now);
+    expect(last7.start.getDate()).toBe(17);
+
+    const last15 = getDateRangeBounds("Last 15 days", now);
+    expect(last15.start.getDate()).toBe(9);
+
+    const last30 = getDateRangeBounds("Last 30 days", now);
+    expect(last30.start.getMonth()).toBe(2);
+    expect(last30.start.getDate()).toBe(25);
+
+    const fallback = getDateRangeBounds("weird", now);
+    expect(fallback.start.getDate()).toBe(9);
+  });
+});
+
+describe("route smoke coverage", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.doMock("@/lib/api-auth", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/api-auth")>(
+        "@/lib/api-auth",
+      );
+      return {
+        ...actual,
+        validateApiKey: mockValidateApiKey,
+      };
+    });
+    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+  });
+
+  it("covers metrics auth failure and happy path", async () => {
+    mockValidateApiKey.mockResolvedValueOnce(null);
+    const metricsRoute = await import("@/app/api/metrics/route");
+    const unauthorized = await metricsRoute.GET(
+      makeNextRequest("http://localhost/api/metrics") as never,
+    );
+    expect(unauthorized.status).toBe(401);
+
+    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+    mockSelect
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            total: 10,
+            delivered: 7,
+            bounced: 2,
+            hard_bounced: 1,
+            soft_bounced: 1,
+            undetermined_bounced: 0,
+            complained: 1,
+          },
+        ]),
+      )
+      .mockReturnValueOnce(makeChain([{ date: "2026-04-23", count: 7 }]))
+      .mockReturnValueOnce(
+        makeChain([{ date: "2026-04-23", total: 10, bounced: 2 }]),
+      )
+      .mockReturnValueOnce(
+        makeChain([{ date: "2026-04-23", total: 10, complained: 1 }]),
+      )
+      .mockReturnValueOnce(
+        makeChain([
+          { domain: "example.com", total: 10, delivered: 7 },
+          { domain: null, total: 1, delivered: 1 },
+        ]),
+      );
+
+    const response = await metricsRoute.GET(
+      makeNextRequest(
+        "http://localhost/api/metrics?range=last_7_days&domain=example.com&event_type=delivered",
+        { headers: { authorization: "Bearer token" } },
+      ) as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.totalEmails).toBe(10);
+    expect(json.deliverabilityRate).toBe(70);
+    expect(json.bounceRate).toBe(20);
+    expect(json.complainRate).toBe(10);
+    expect(json.domains).toEqual(["example.com"]);
+    expect(json.domainBreakdown).toEqual([
+      { domain: "example.com", count: 10, rate: 70 },
+    ]);
+  });
+
+  it("covers usage auth failure and happy path", async () => {
+    mockValidateApiKey.mockResolvedValueOnce(null);
+    const usageRoute = await import("@/app/api/usage/route");
+    const unauthorized = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage"),
+    );
+    expect(unauthorized.status).toBe(401);
+
+    mockValidateApiKey.mockResolvedValue({ apiKeyId: "key-1" });
+    mockSelect.mockImplementationOnce(() => makeChain([{ count: 42 }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ count: 3 }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ count: 120 }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ count: 4 }]));
+    mockSelect.mockImplementationOnce(() => makeChain([{ count: 2 }]));
+
+    const response = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage", {
+        headers: { authorization: "Bearer token" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.transactional.monthlyUsed).toBe(42);
+    expect(json.transactional.dailyUsed).toBe(3);
+    expect(json.marketing.contactsUsed).toBe(120);
+    expect(json.marketing.segmentsUsed).toBe(4);
+    expect(json.team.domainsUsed).toBe(2);
+  });
+
+  it("covers segments get/post happy path and validation", async () => {
+    const route = await import("@/app/api/segments/route");
+    mockSelect
+      .mockReturnValueOnce(makeChain([{ count: 1 }]))
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            id: "seg-1",
+            name: "VIP",
+            createdAt: "2026-04-23T00:00:00.000Z",
+            contactsCount: 3,
+            unsubscribedCount: 1,
+          },
+        ]),
+      );
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "seg-2", name: "New" }]),
+      }),
+    });
+
+    const getResponse = await route.GET(
+      makeNextRequest("http://localhost/api/segments?page=1&limit=20", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+    );
+    expect(getResponse.status).toBe(200);
+
+    const invalidPost = await route.POST(
+      makeNextRequest("http://localhost/api/segments", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }) as never,
+    );
+    expect(invalidPost.status).toBe(400);
+
+    const createResponse = await route.POST(
+      makeNextRequest("http://localhost/api/segments", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: " New " }),
+      }) as never,
+    );
+    expect(createResponse.status).toBe(201);
+  });
+
+  it("covers topics get/post happy path and validation", async () => {
+    const route = await import("@/app/api/topics/route");
+    mockSelect
+      .mockReturnValueOnce(makeChain([{ count: 1 }]))
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            id: "topic-1",
+            name: "Marketing",
+            description: "Monthly",
+            defaultSubscription: "opt_out",
+            visibility: "public",
+            createdAt: "2026-04-23T00:00:00.000Z",
+          },
+        ]),
+      );
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          { id: "topic-2", name: "Product", defaultSubscription: "opt_in" },
+        ]),
+      }),
+    });
+
+    const getResponse = await route.GET(
+      makeNextRequest("http://localhost/api/topics?default=opt_in", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+    );
+    expect(getResponse.status).toBe(200);
+
+    const invalidPost = await route.POST(
+      makeNextRequest("http://localhost/api/topics", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }) as never,
+    );
+    expect(invalidPost.status).toBe(400);
+
+    const createResponse = await route.POST(
+      makeNextRequest("http://localhost/api/topics", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: " Product ",
+          description: " docs ",
+          defaultSubscription: "opt_in",
+          visibility: "private",
+        }),
+      }) as never,
+    );
+    expect(createResponse.status).toBe(201);
+  });
+
+  it("covers properties get/post responses", async () => {
+    const route = await import("@/app/api/properties/route");
+    const getResponse = await route.GET(
+      makeNextRequest("http://localhost/api/properties", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+    );
+    expect(getResponse.status).toBe(200);
+
+    const postResponse = await route.POST(
+      makeNextRequest("http://localhost/api/properties", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "prop" }),
+      }) as never,
+    );
+    expect(postResponse.status).toBe(501);
+  });
+
+  it("covers webhook routes for happy path and 404s", async () => {
+    const listRoute = await import("@/app/api/webhooks/route");
+    const detailRoute = await import("@/app/api/webhooks/[id]/route");
+
+    mockSelect.mockReturnValueOnce(
+      makeChain([
+        {
+          id: "wh-1",
+          url: "https://example.com/webhook",
+          eventTypes: ["email.sent"],
+          status: "active",
+          createdAt: "2026-04-23T00:00:00.000Z",
+        },
+      ]),
+    );
+    expect(
+      (
+        await listRoute.GET(
+          makeNextRequest("http://localhost/api/webhooks?limit=10", {
+            headers: { authorization: "Bearer token" },
+          }),
+        )
+      ).status,
+    ).toBe(200);
+
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: "wh-2",
+            url: "https://example.com/created",
+            eventTypes: ["email.delivered"],
+            status: "active",
+            createdAt: "2026-04-23T00:00:00.000Z",
+          },
+        ]),
+      }),
+    });
+    expect(
+      (
+        await listRoute.POST(
+          makeNextRequest("http://localhost/api/webhooks", {
+            method: "POST",
+            headers: {
+              authorization: "Bearer token",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              url: "https://example.com/created",
+              event_types: ["email.delivered"],
+            }),
+          }),
+        )
+      ).status,
+    ).toBe(201);
+
+    mockSelect.mockReturnValueOnce(
+      makeChain([
+        {
+          id: "wh-1",
+          url: "https://example.com/webhook",
+          eventTypes: ["email.sent"],
+          status: "active",
+          createdAt: "2026-04-23T00:00:00.000Z",
+        },
+      ]),
+    );
+    expect(
+      (
+        await detailRoute.GET(
+          makeNextRequest("http://localhost/api/webhooks/wh-1", {
+            headers: { authorization: "Bearer token" },
+          }),
+          { params: Promise.resolve({ id: "wh-1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockSelect.mockReturnValueOnce(makeChain([]));
+    expect(
+      (
+        await detailRoute.GET(
+          makeNextRequest("http://localhost/api/webhooks/missing", {
+            headers: { authorization: "Bearer token" },
+          }),
+          { params: Promise.resolve({ id: "missing" }) },
+        )
+      ).status,
+    ).toBe(404);
+
+    mockUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: "wh-1",
+              url: "https://example.com/updated",
+              eventTypes: ["email.opened"],
+              status: "inactive",
+              createdAt: "2026-04-23T00:00:00.000Z",
+            },
+          ]),
+        }),
+      }),
+    });
+    expect(
+      (
+        await detailRoute.PATCH(
+          makeNextRequest("http://localhost/api/webhooks/wh-1", {
+            method: "PATCH",
+            headers: {
+              authorization: "Bearer token",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ active: false }),
+          }),
+          { params: Promise.resolve({ id: "wh-1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockDelete.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "wh-1" }]),
+      }),
+    });
+    expect(
+      (
+        await detailRoute.DELETE(
+          makeNextRequest("http://localhost/api/webhooks/wh-1", {
+            method: "DELETE",
+            headers: { authorization: "Bearer token" },
+          }),
+          { params: Promise.resolve({ id: "wh-1" }) },
+        )
+      ).status,
+    ).toBe(200);
+  });
+
+  it("covers broadcasts and templates detail routes with happy path and 404s", async () => {
+    const broadcastsRoute = await import("@/app/api/broadcasts/[id]/route");
+    const templatesRoute = await import("@/app/api/templates/[id]/route");
+
+    mockSelect.mockReturnValueOnce(makeChain([{ id: "b1", name: "Launch" }]));
+    expect(
+      (
+        await broadcastsRoute.GET(
+          makeNextRequest("http://localhost/api/broadcasts/b1", {
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "b1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockSelect.mockReturnValueOnce(makeChain([]));
+    expect(
+      (
+        await broadcastsRoute.GET(
+          makeNextRequest("http://localhost/api/broadcasts/missing", {
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "missing" }) },
+        )
+      ).status,
+    ).toBe(404);
+
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "b1", name: "Renamed" }]),
+        }),
+      }),
+    });
+    expect(
+      (
+        await broadcastsRoute.PATCH(
+          makeNextRequest("http://localhost/api/broadcasts/b1", {
+            method: "PATCH",
+            headers: {
+              authorization: "Bearer token",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ name: "Renamed" }),
+          }) as never,
+          { params: Promise.resolve({ id: "b1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockDelete.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "b1" }]),
+      }),
+    });
+    expect(
+      (
+        await broadcastsRoute.DELETE(
+          makeNextRequest("http://localhost/api/broadcasts/b1", {
+            method: "DELETE",
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "b1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockSelect.mockReturnValueOnce(makeChain([{ id: "t1", name: "Receipt" }]));
+    expect(
+      (
+        await templatesRoute.GET(
+          makeNextRequest("http://localhost/api/templates/t1", {
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "t1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockSelect.mockReturnValueOnce(makeChain([]));
+    expect(
+      (
+        await templatesRoute.GET(
+          makeNextRequest("http://localhost/api/templates/missing", {
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "missing" }) },
+        )
+      ).status,
+    ).toBe(404);
+
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "t1", name: "Updated" }]),
+        }),
+      }),
+    });
+    expect(
+      (
+        await templatesRoute.PATCH(
+          makeNextRequest("http://localhost/api/templates/t1", {
+            method: "PATCH",
+            headers: {
+              authorization: "Bearer token",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ name: "Updated" }),
+          }) as never,
+          { params: Promise.resolve({ id: "t1" }) },
+        )
+      ).status,
+    ).toBe(200);
+
+    mockDelete.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "t1" }]),
+      }),
+    });
+    expect(
+      (
+        await templatesRoute.DELETE(
+          makeNextRequest("http://localhost/api/templates/t1", {
+            method: "DELETE",
+            headers: { authorization: "Bearer token" },
+          }) as never,
+          { params: Promise.resolve({ id: "t1" }) },
+        )
+      ).status,
+    ).toBe(200);
+  });
+});
