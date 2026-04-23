@@ -1,21 +1,22 @@
+import { randomBytes } from "node:crypto";
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
 import { desc, lt } from "drizzle-orm";
 
 interface CreateWebhookBody {
-  url: string;
-  event_types: string[];
+  endpoint: string;
+  events: string[];
 }
 
 function validateCreateBody(body: CreateWebhookBody): string | null {
-  if (!body.url) return "url is required";
+  if (!body.endpoint) return "endpoint is required";
   if (
-    !body.event_types ||
-    !Array.isArray(body.event_types) ||
-    body.event_types.length === 0
+    !body.events ||
+    !Array.isArray(body.events) ||
+    body.events.length === 0
   ) {
-    return "event_types array is required";
+    return "events array is required";
   }
   return null;
 }
@@ -59,7 +60,7 @@ export async function GET(request: Request): Promise<Response> {
         id: w.id,
         endpoint: w.url,
         events: w.eventTypes,
-        active: w.status === "active",
+        status: w.status === "active" ? "enabled" : "disabled",
         created_at: w.createdAt,
       })),
       has_more: hasMore,
@@ -75,24 +76,31 @@ export async function POST(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  let body: CreateWebhookBody;
+  let body: any;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const validationError = validateCreateBody(body);
+  // Support both legacy (url/event_types) and documented (endpoint/events)
+  const endpoint = body.endpoint || body.url;
+  const events = body.events || body.event_types;
+
+  const validationError = validateCreateBody({ endpoint, events });
   if (validationError) {
     return Response.json({ error: validationError }, { status: 422 });
   }
 
   try {
+    const signingSecret = `whsec_${randomBytes(24).toString("base64url")}`;
+    
     const [webhook] = await db
       .insert(webhooks)
       .values({
-        url: body.url,
-        eventTypes: body.event_types,
+        url: endpoint,
+        eventTypes: events,
+        signingSecret,
       })
       .returning();
 
@@ -102,7 +110,8 @@ export async function POST(request: Request): Promise<Response> {
         id: webhook.id,
         endpoint: webhook.url,
         events: webhook.eventTypes,
-        active: webhook.status === "active",
+        status: webhook.status === "active" ? "enabled" : "disabled",
+        signing_secret: webhook.signingSecret,
         created_at: webhook.createdAt,
       },
       { status: 201 },

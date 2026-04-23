@@ -28,7 +28,7 @@ export async function GET(
       id: webhook.id,
       endpoint: webhook.url,
       events: webhook.eventTypes,
-      active: webhook.status === "active",
+      status: webhook.status === "active" ? "enabled" : "disabled",
       created_at: webhook.createdAt,
     });
   } catch (err) {
@@ -47,7 +47,7 @@ export async function PATCH(
 
   const { id } = await params;
 
-  let body: Record<string, unknown>;
+  let body: any;
   try {
     body = await request.json();
   } catch {
@@ -57,7 +57,10 @@ export async function PATCH(
   try {
     const updateData: Record<string, unknown> = {};
     if (body.endpoint !== undefined) updateData.url = body.endpoint;
+    if (body.url !== undefined) updateData.url = body.url;
+    
     if (body.events !== undefined) updateData.eventTypes = body.events;
+    if (body.event_types !== undefined) updateData.eventTypes = body.event_types;
     
     // Support "active" (boolean) and "status" ("enabled"/"disabled")
     if (body.status !== undefined) {
