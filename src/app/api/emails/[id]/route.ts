@@ -36,7 +36,6 @@ export async function GET(
       scheduled_at: email.scheduledAt,
       tags: email.tags,
       created_at: email.createdAt,
-      status: email.status,
     });
   } catch (err) {
     const message =
@@ -80,8 +79,6 @@ export async function PATCH(
     const updates: Record<string, any> = {};
     if (body.scheduled_at !== undefined) {
       updates.scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
-      // If setting to null, it probably shouldn't be scheduled anymore,
-      // but docs usually imply updating the timer.
     }
 
     if (Object.keys(updates).length === 0) {

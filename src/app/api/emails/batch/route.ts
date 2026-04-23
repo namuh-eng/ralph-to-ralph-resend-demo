@@ -85,19 +85,22 @@ export async function POST(request: Request): Promise<Response> {
           const cc = normalizeToArray(item.cc);
           const bcc = normalizeToArray(item.bcc);
           const replyTo = normalizeToArray(item.reply_to);
+          const scheduledAt = item.scheduled_at ? new Date(item.scheduled_at) : null;
 
-          await sesSendEmail({
-            from: item.from,
-            to,
-            cc,
-            bcc,
-            subject: item.subject,
-            html: item.html,
-            text: item.text,
-            replyTo,
-            headers: item.headers,
-            attachments: item.attachments as any,
-          });
+          if (!scheduledAt) {
+            await sesSendEmail({
+              from: item.from,
+              to,
+              cc,
+              bcc,
+              subject: item.subject,
+              html: item.html,
+              text: item.text,
+              replyTo,
+              headers: item.headers,
+              attachments: item.attachments as any,
+            });
+          }
 
           const [email] = await db
             .insert(emails)
@@ -113,8 +116,8 @@ export async function POST(request: Request): Promise<Response> {
               tags: item.tags ?? [],
               headers: item.headers ?? {},
               attachments: (item.attachments as any) ?? [],
-              status: "sent",
-              scheduledAt: item.scheduled_at ? new Date(item.scheduled_at) : null,
+              status: scheduledAt ? "scheduled" : "sent",
+              scheduledAt: scheduledAt,
               topicId: item.topic_id || null,
             })
             .returning({ id: emails.id });
