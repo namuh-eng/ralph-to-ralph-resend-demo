@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { logs } from "@/lib/db/schema";
-import { type SQL, and, desc, eq, gte, lte } from "drizzle-orm";
+import { type SQL, and, desc, eq, lt } from "drizzle-orm";
 
 export async function GET(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
@@ -12,12 +12,10 @@ export async function GET(request: Request): Promise<Response> {
     Math.max(Number(url.searchParams.get("limit")) || 20, 1),
     100,
   );
-  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
-  const offset = (page - 1) * limit;
+  
   const status = url.searchParams.get("status");
   const method = url.searchParams.get("method");
-  const after = url.searchParams.get("after");
-  const before = url.searchParams.get("before");
+  const after = url.searchParams.get("after") || "";
 
   try {
     const conditions: SQL[] = [];
@@ -29,10 +27,7 @@ export async function GET(request: Request): Promise<Response> {
       conditions.push(eq(logs.method, method.toUpperCase()));
     }
     if (after) {
-      conditions.push(gte(logs.createdAt, new Date(after)));
-    }
-    if (before) {
-      conditions.push(lte(logs.createdAt, new Date(before)));
+      conditions.push(lt(logs.id, after));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -48,20 +43,23 @@ export async function GET(request: Request): Promise<Response> {
       })
       .from(logs)
       .where(whereClause)
-      .orderBy(desc(logs.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .orderBy(desc(logs.id))
+      .limit(limit + 1);
+
+    const hasMore = results.length > limit;
+    const dataRows = hasMore ? results.slice(0, limit) : results;
 
     return Response.json({
       object: "list",
-      data: results.map((l) => ({
+      data: dataRows.map((l) => ({
         id: l.id,
         method: l.method,
         endpoint: l.endpoint,
-        status: l.status,
+        response_status: l.status,
         user_agent: l.userAgent,
         created_at: l.createdAt,
       })),
+      has_more: hasMore,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to list logs";
