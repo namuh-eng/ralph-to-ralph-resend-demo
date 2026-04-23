@@ -258,6 +258,11 @@ export const templates = pgTable("templates", {
   text: text("text"),
   variables:
     jsonb("variables").$type<Array<{ name: string; required: boolean }>>(),
+  currentVersionId: uuid("current_version_id"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  hasUnpublishedVersions: boolean("has_unpublished_versions")
+    .notNull()
+    .default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
