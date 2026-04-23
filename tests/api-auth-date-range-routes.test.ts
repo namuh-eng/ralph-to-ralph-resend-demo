@@ -344,6 +344,8 @@ describe("route smoke coverage", () => {
 
   it("covers topics get/post happy path and validation", async () => {
     const route = await import("@/app/api/topics/route");
+    const detailRoute = await import("@/app/api/topics/[id]/route");
+
     mockSelect
       .mockReturnValueOnce(makeChain([{ count: 1 }]))
       .mockReturnValueOnce(
@@ -401,6 +403,52 @@ describe("route smoke coverage", () => {
       }) as never,
     );
     expect(createResponse.status).toBe(201);
+
+    // Detail GET
+    mockSelect.mockReturnValueOnce(makeChain([{ id: "topic-1", name: "Marketing" }]));
+    const detailGet = await detailRoute.GET(
+      makeNextRequest("http://localhost/api/topics/topic-1", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "topic-1" }) },
+    );
+    expect(detailGet.status).toBe(200);
+
+    // Detail PATCH
+    mockUpdate.mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: "topic-1", name: "Updated" }]),
+        }),
+      }),
+    });
+    const detailPatch = await detailRoute.PATCH(
+      makeNextRequest("http://localhost/api/topics/topic-1", {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "Updated" }),
+      }) as never,
+      { params: Promise.resolve({ id: "topic-1" }) },
+    );
+    expect(detailPatch.status).toBe(200);
+
+    // Detail DELETE
+    mockDelete.mockReturnValueOnce({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "topic-1" }]),
+      }),
+    });
+    const detailDelete = await detailRoute.DELETE(
+      makeNextRequest("http://localhost/api/topics/topic-1", {
+        method: "DELETE",
+        headers: { authorization: "Bearer token" },
+      }) as never,
+      { params: Promise.resolve({ id: "topic-1" }) },
+    );
+    expect(detailDelete.status).toBe(200);
   });
 
   it("covers properties get/post responses", async () => {
