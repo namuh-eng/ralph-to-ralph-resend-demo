@@ -1,7 +1,7 @@
 import { EmailDetail } from "@/components/email-detail";
 import { db } from "@/lib/db";
-import { emails } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { emails, emailEvents } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 export default async function EmailDetailPage({
@@ -22,6 +22,12 @@ export default async function EmailDetailPage({
       notFound();
     }
 
+    const events = await db
+      .select()
+      .from(emailEvents)
+      .where(eq(emailEvents.emailId, id))
+      .orderBy(desc(emailEvents.receivedAt));
+
     const emailData = {
       id: emailResult.id,
       from: emailResult.from,
@@ -33,7 +39,10 @@ export default async function EmailDetailPage({
       scheduledAt: emailResult.scheduledAt?.toISOString() || null,
       tags: (emailResult.tags as Array<{ name: string; value: string }>) ?? [],
       headers: (emailResult.headers as Record<string, string>) ?? {},
-      events: [] as Array<{ type: string; timestamp: string }>,
+      events: events.map((e) => ({
+        type: e.type,
+        timestamp: e.receivedAt.toISOString(),
+      })),
     };
 
     return <EmailDetail email={emailData} />;
