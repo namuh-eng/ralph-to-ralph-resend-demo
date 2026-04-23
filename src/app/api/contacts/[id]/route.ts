@@ -114,7 +114,11 @@ export async function DELETE(
       return Response.json({ error: "Contact not found" }, { status: 404 });
     }
 
-    return Response.json({ success: true });
+    return Response.json({
+      object: "contact",
+      id: deleted.id,
+      deleted: true,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to delete contact";
