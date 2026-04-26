@@ -2,20 +2,8 @@ import { randomBytes } from "node:crypto";
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { webhooks } from "@/lib/db/schema";
+import { createWebhookSchema } from "@/lib/validation/webhooks";
 import { desc, lt } from "drizzle-orm";
-
-interface CreateWebhookBody {
-  endpoint: string;
-  events: string[];
-}
-
-function validateCreateBody(body: CreateWebhookBody): string | null {
-  if (!body.endpoint) return "endpoint is required";
-  if (!body.events || !Array.isArray(body.events) || body.events.length === 0) {
-    return "events array is required";
-  }
-  return null;
-}
 
 export async function GET(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
@@ -70,21 +58,24 @@ export async function POST(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  let body: any;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // Support both legacy (url/event_types) and documented (endpoint/events)
-  const endpoint = body.endpoint || body.url;
-  const events = body.events || body.event_types;
-
-  const validationError = validateCreateBody({ endpoint, events });
-  if (validationError) {
-    return Response.json({ error: validationError }, { status: 422 });
+  const result = createWebhookSchema.safeParse(body);
+  if (!result.success) {
+    return Response.json(
+      { error: "Validation failed", details: result.error.flatten() },
+      { status: 422 },
+    );
   }
+
+  const validated = result.data;
+  const endpoint = validated.endpoint || validated.url!;
+  const events = validated.events || validated.event_types!;
 
   try {
     const signingSecret = `whsec_${randomBytes(24).toString("base64url")}`;
