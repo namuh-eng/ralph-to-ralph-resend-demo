@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { contacts, segments } from "@/lib/db/schema";
-import { eq, or, sql } from "drizzle-orm";
+import { contacts, contactsToSegments, segments } from "@/lib/db/schema";
+import { and, eq, or } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 async function findContact(idOrEmail: string) {
@@ -39,6 +39,16 @@ export async function POST(
       return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
+    // Update join table
+    await db
+      .insert(contactsToSegments)
+      .values({
+        contactId: contact.id,
+        segmentId: segment.id,
+      })
+      .onConflictDoNothing();
+
+    // Legacy sync (to be removed after migration)
     const existingSegments = (contact.segments as string[]) ?? [];
     if (!existingSegments.includes(segment.name)) {
       const updatedSegments = [...existingSegments, segment.name];
@@ -85,6 +95,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
+    // Update join table
+    await db
+      .delete(contactsToSegments)
+      .where(
+        and(
+          eq(contactsToSegments.contactId, contact.id),
+          eq(contactsToSegments.segmentId, segment.id),
+        ),
+      );
+
+    // Legacy sync (to be removed after migration)
     const existingSegments = (contact.segments as string[]) ?? [];
     if (existingSegments.includes(segment.name)) {
       const updatedSegments = existingSegments.filter(
