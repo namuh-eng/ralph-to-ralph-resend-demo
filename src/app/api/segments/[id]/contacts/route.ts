@@ -1,6 +1,6 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { contacts, segments } from "@/lib/db/schema";
+import { contacts, contactsToSegments, segments } from "@/lib/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -12,30 +12,27 @@ export async function GET(
   if (!auth) return unauthorizedResponse();
 
   try {
-    const { id } = await params;
+    const { id: segmentId } = await params;
 
     // Check if segment exists
     const [segment] = await db
-      .select({ name: segments.name })
+      .select({ id: segments.id, name: segments.name })
       .from(segments)
-      .where(eq(segments.id, id));
+      .where(eq(segments.id, segmentId));
 
     if (!segment) {
       return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
     const url = request.nextUrl;
-    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
     const limit = Math.min(
       100,
       Math.max(1, Number(url.searchParams.get("limit")) || 20),
     );
-    const offset = (page - 1) * limit;
+    const after = url.searchParams.get("after") || "";
 
-    // Filter contacts by segment name in segments JSONB array
-    const condition = sql`${contacts.segments} ? ${segment.name}`;
-
-    const rows = await db
+    // Join with join table
+    const query = db
       .select({
         id: contacts.id,
         email: contacts.email,
@@ -45,27 +42,32 @@ export async function GET(
         createdAt: contacts.createdAt,
       })
       .from(contacts)
-      .where(condition)
-      .orderBy(desc(contacts.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .innerJoin(
+        contactsToSegments,
+        eq(contacts.id, contactsToSegments.contactId),
+      )
+      .where(eq(contactsToSegments.segmentId, segmentId));
 
-    const total = await db.$count(contacts, condition);
+    const rows = await query
+      .orderBy(desc(contacts.id))
+      .limit(limit + 1);
 
-    const data = rows.map((c) => ({
+    const hasMore = rows.length > limit;
+    const dataRows = hasMore ? rows.slice(0, limit) : rows;
+
+    const data = dataRows.map((c) => ({
       id: c.id,
       email: c.email,
       firstName: c.firstName,
       lastName: c.lastName,
       status: c.unsubscribed ? "unsubscribed" : "subscribed",
-      createdAt: c.createdAt,
+      created_at: c.createdAt,
     }));
 
     return NextResponse.json({
+      object: "list",
       data,
-      total: Number(total),
-      page,
-      limit,
+      has_more: hasMore,
     });
   } catch (error) {
     console.error("Failed to fetch segment contacts:", error);
