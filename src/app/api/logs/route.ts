@@ -15,6 +15,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const status = url.searchParams.get("status");
   const method = url.searchParams.get("method");
+  const apiKeyId = url.searchParams.get("api_key_id") || url.searchParams.get("apiKeyId");
   const after = url.searchParams.get("after") || "";
 
   try {
@@ -25,6 +26,9 @@ export async function GET(request: Request): Promise<Response> {
     }
     if (method) {
       conditions.push(eq(logs.method, method.toUpperCase()));
+    }
+    if (apiKeyId) {
+      conditions.push(eq(logs.apiKeyId, apiKeyId));
     }
     if (after) {
       conditions.push(lt(logs.id, after));
