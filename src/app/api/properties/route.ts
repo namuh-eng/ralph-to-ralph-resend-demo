@@ -66,19 +66,18 @@ export async function POST(request: NextRequest) {
     const key = body.key?.trim();
     const name = body.name?.trim();
     const type = body.type || "string";
-    const fallbackValue = body.fallback_value || null;
+    const fallbackValue = body.fallback_value || body.fallbackValue || null;
 
-    if (!key || !name) {
-      return NextResponse.json(
-        { error: "Key and name are required" },
-        { status: 400 },
-      );
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+
+    const finalKey = key || name.toLowerCase().replace(/[^a-z0-9_]/g, "_");
 
     const [property] = await db
       .insert(contactProperties)
       .values({
-        key,
+        key: finalKey,
         name,
         type,
         fallbackValue,
@@ -87,6 +86,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        object: "contact_property",
         id: property.id,
         key: property.key,
         name: property.name,
