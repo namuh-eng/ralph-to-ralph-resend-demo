@@ -36,7 +36,11 @@ export async function POST(
 
     const [updated] = await db
       .update(templates)
-      .set({ status: "published" })
+      .set({
+        status: "published",
+        publishedAt: new Date(),
+        hasUnpublishedVersions: false,
+      })
       .where(eq(templates.id, id))
       .returning();
 
@@ -44,6 +48,8 @@ export async function POST(
       object: "template",
       id: updated.id,
       status: updated.status,
+      published_at: updated.publishedAt,
+      has_unpublished_versions: updated.hasUnpublishedVersions,
     });
   } catch (error) {
     console.error("Failed to publish template:", error);
