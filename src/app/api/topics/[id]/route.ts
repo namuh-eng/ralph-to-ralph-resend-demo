@@ -23,7 +23,15 @@ export async function GET(
       return NextResponse.json({ error: "Topic not found" }, { status: 404 });
     }
 
-    return NextResponse.json(topic);
+    return NextResponse.json({
+      object: "topic",
+      id: topic.id,
+      name: topic.name,
+      description: topic.description,
+      default_subscription: topic.defaultSubscription,
+      visibility: topic.visibility,
+      created_at: topic.createdAt,
+    });
   } catch (error) {
     console.error("Failed to fetch topic:", error);
     return NextResponse.json(
