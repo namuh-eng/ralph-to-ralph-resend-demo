@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
+import { getCached, setCache } from "@/lib/cache/redis";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "./auth";
@@ -9,6 +10,7 @@ export interface AuthResult {
   apiKeyId: string;
   permission: string;
   domain: string | null;
+  userId: string | null;
 }
 
 /**
@@ -27,12 +29,28 @@ export async function validateApiKey(
   if (!rawKey) return null;
 
   const hashedKey = createHash("sha256").update(rawKey).digest("hex");
+  const cacheKey = `auth:apikey:${hashedKey}`;
 
+  // 1. Try Cache
+  const cached = await getCached<AuthResult>(cacheKey);
+  if (cached) return cached;
+
+  // 2. Try DB
   const found = await db.query.apiKeys.findFirst({
     where: eq(apiKeys.tokenHash, hashedKey),
   });
 
   if (!found) return null;
+
+  const result: AuthResult = {
+    apiKeyId: found.id,
+    permission: found.permission,
+    domain: found.domain,
+    userId: found.userId,
+  };
+
+  // 3. Set Cache (5 min TTL)
+  await setCache(cacheKey, result, 300);
 
   // Background update lastUsedAt to avoid blocking the request
   // Only update once per minute to avoid write amplification
@@ -53,11 +71,7 @@ export async function validateApiKey(
     }
   }
 
-  return {
-    apiKeyId: found.id,
-    permission: found.permission,
-    domain: found.domain,
-  };
+  return result;
 }
 
 /**
