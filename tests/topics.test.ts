@@ -312,25 +312,19 @@ describe("Topics API route", () => {
 
   it("GET /api/topics returns paginated list", async () => {
     vi.doMock("@/lib/db", () => {
-      let callCount = 0;
-      const mockDb = {
-        select: () => {
-          callCount++;
-          const chain = {
-            from: () => chain,
-            where: () => {
-              if (callCount === 1) return Promise.resolve([{ count: 0 }]);
-              return chain;
-            },
-            orderBy: () => chain,
-            limit: () => chain,
-            then: (resolve: any) => resolve([]),
-            offset: () => Promise.resolve([]),
-          };
-          return chain;
+      const chain = {
+        from: () => chain,
+        where: () => chain,
+        orderBy: () => chain,
+        limit: () => chain,
+        then: (resolve: any) => resolve([]),
+        catch: (reject: any) => reject(new Error("Mock error")),
+      };
+      return {
+        db: {
+          select: () => chain,
         },
       };
-      return { db: mockDb };
     });
 
     const { GET } = await import("@/app/api/topics/route");
@@ -344,9 +338,7 @@ describe("Topics API route", () => {
 
     expect(response.status).toBe(200);
     expect(data).toHaveProperty("data");
-    expect(data).toHaveProperty("total");
-    expect(data).toHaveProperty("page");
-    expect(data).toHaveProperty("limit");
+    expect(data).toHaveProperty("has_more");
     expect(Array.isArray(data.data)).toBe(true);
   });
 
