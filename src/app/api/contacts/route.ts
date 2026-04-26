@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts, segments, topics } from "@/lib/db/schema";
+import { createContactSchema } from "@/lib/validation/contacts";
 import { type SQL, and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -10,17 +11,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const email = body.email?.trim().toLowerCase();
-
-    if (!email) {
-      return NextResponse.json({ error: "email is required" }, { status: 422 });
+    const result = createContactSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: result.error.flatten() },
+        { status: 422 },
+      );
     }
+
+    const validated = result.data;
+    const email = validated.email.toLowerCase();
 
     // Resolve segment names if provided as IDs
     let resolvedSegments: string[] = [];
-    if (body.segments && Array.isArray(body.segments)) {
+    if (validated.segments) {
       resolvedSegments = await Promise.all(
-        body.segments.map(async (s: string) => {
+        validated.segments.map(async (s: string) => {
           const seg = await db.query.segments.findFirst({
             where: or(eq(segments.id, s), eq(segments.name, s)),
           });
@@ -31,11 +37,11 @@ export async function POST(request: NextRequest) {
 
     // Map topics to internal shape
     let resolvedTopics: Array<{ topicId: string; subscribed: boolean }> = [];
-    if (body.topics && Array.isArray(body.topics)) {
+    if (validated.topics) {
       resolvedTopics = await Promise.all(
-        body.topics.map(async (t: any) => {
+        validated.topics.map(async (t: any) => {
           const topicId = typeof t === "string" ? t : t.id;
-          const subscription = t.subscription || "opt_in";
+          const subscription = typeof t === "string" ? "opt_in" : (t.subscription || "opt_in");
           const found = await db.query.topics.findFirst({
             where: eq(topics.id, topicId),
           });
@@ -58,10 +64,10 @@ export async function POST(request: NextRequest) {
         .insert(contacts)
         .values({
           email,
-          firstName: body.first_name || null,
-          lastName: body.last_name || null,
-          unsubscribed: body.unsubscribed ?? false,
-          customProperties: body.properties || null,
+          firstName: validated.first_name || null,
+          lastName: validated.last_name || null,
+          unsubscribed: validated.unsubscribed ?? false,
+          customProperties: validated.properties || null,
           segments: resolvedSegments.length > 0 ? resolvedSegments : null,
           topicSubscriptions: resolvedTopics.length > 0 ? resolvedTopics : null,
         })
