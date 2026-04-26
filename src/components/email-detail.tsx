@@ -379,6 +379,38 @@ export function EmailDetail({ email }: EmailDetailProps) {
         <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-4">
           EMAIL EVENTS
         </p>
+        <div className="space-y-3">
+          {email.events.length > 0 ? (
+            email.events.map((event, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 text-[13px] group"
+              >
+                <div
+                  className={clsx(
+                    "w-2 h-2 rounded-full",
+                    event.type === "delivered" || event.type === "sent"
+                      ? "bg-emerald-500"
+                      : event.type === "bounced" || event.type === "failed"
+                        ? "bg-red-500"
+                        : "bg-blue-500",
+                  )}
+                />
+                <span className="text-[#F0F0F0] min-w-[100px]">
+                  {formatStatusLabel(event.type)}
+                </span>
+                <span className="text-[#666]">
+                  {formatEventTimestamp(event.timestamp)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="py-4 px-4 rounded-lg bg-[rgba(24,25,28,0.5)] border border-dashed border-[rgba(176,199,217,0.145)] text-center text-[13px] text-[#666]">
+              No events recorded yet
+            </div>
+          )}
+        </div>
+      </div>
         <div data-testid="event-timeline" className="flex items-center gap-6">
           {email.events.map((event, i) => (
             <div key={event.timestamp} className="flex items-center gap-6">
