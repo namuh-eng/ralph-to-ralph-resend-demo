@@ -374,3 +374,22 @@ export const webhookDeliveries = pgTable(
     index("webhook_deliveries_status_idx").on(t.status),
   ],
 );
+
+export const contactsToSegments = pgTable(
+  "contacts_to_segments",
+  {
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    segmentId: uuid("segment_id")
+      .notNull()
+      .references(() => segments.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("contacts_to_segments_idx").on(t.contactId, t.segmentId),
+    index("contacts_to_segments_segment_id_idx").on(t.segmentId),
+  ],
+);
