@@ -65,8 +65,42 @@ export async function PATCH(
       updates.trackOpens = body.open_tracking;
     if (body.tracking_subdomain !== undefined)
       updates.trackingSubdomain = body.tracking_subdomain;
-    if (body.capabilities !== undefined)
+
+    // Support both 'capabilities' array and individual boolean toggles
+    if (body.capabilities !== undefined) {
       updates.capabilities = body.capabilities;
+    } else if (
+      body.sending_enabled !== undefined ||
+      body.receiving_enabled !== undefined
+    ) {
+      // Fetch current capabilities to merge
+      const [existing] = await db
+        .select({ capabilities: domains.capabilities })
+        .from(domains)
+        .where(eq(domains.id, id))
+        .limit(1);
+
+      if (existing) {
+        const currentCaps = existing.capabilities || [
+          { name: "sending", enabled: true },
+          { name: "receiving", enabled: false },
+        ];
+        const newCaps = currentCaps.map((cap) => {
+          if (cap.name === "sending" && body.sending_enabled !== undefined) {
+            return { ...cap, enabled: body.sending_enabled };
+          }
+          if (
+            cap.name === "receiving" &&
+            body.receiving_enabled !== undefined
+          ) {
+            return { ...cap, enabled: body.receiving_enabled };
+          }
+          return cap;
+        });
+        updates.capabilities = newCaps;
+      }
+    }
+
     if (body.tls !== undefined) {
       const val = body.tls;
       if (val === "opportunistic" || val === "enforced") {
