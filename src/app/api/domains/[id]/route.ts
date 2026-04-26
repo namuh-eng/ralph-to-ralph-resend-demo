@@ -1,4 +1,5 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import { deleteDNSRecord, listDNSRecords } from "@/lib/cloudflare";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
 import { deleteDomainIdentity } from "@/lib/ses";
@@ -161,6 +162,24 @@ export async function DELETE(
     } catch (sesErr) {
       console.warn(`Failed to delete SES identity for ${domain.name}:`, sesErr);
       // Continue even if SES cleanup fails
+    }
+
+    // Cleanup Cloudflare DNS records (if configured)
+    try {
+      const records = await listDNSRecords({ name: domain.name });
+      const sesRecords = records.filter(
+        (r) =>
+          r.content.includes("amazonses.com") ||
+          r.name.includes("_domainkey") ||
+          r.content.startsWith("v=spf1"),
+      );
+
+      await Promise.all(sesRecords.map((r) => deleteDNSRecord(r.id)));
+    } catch (cfErr) {
+      console.warn(
+        `Failed to cleanup Cloudflare records for ${domain.name}:`,
+        cfErr,
+      );
     }
 
     const [deleted] = await db
