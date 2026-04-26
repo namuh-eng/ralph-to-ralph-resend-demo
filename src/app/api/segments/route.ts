@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
     const hasMore = rows.length > limit;
     const dataRows = hasMore ? rows.slice(0, limit) : rows;
 
+    const totalCount = await db.$count(segments, conditions.length > 0 ? and(...conditions) : undefined);
+
     return NextResponse.json({
       object: "list",
       data: dataRows.map((r) => ({
@@ -47,6 +49,7 @@ export async function GET(request: NextRequest) {
         created_at: r.createdAt,
       })),
       has_more: hasMore,
+      total: Number(totalCount),
     });
   } catch (error) {
     console.error("Failed to fetch segments:", error);
