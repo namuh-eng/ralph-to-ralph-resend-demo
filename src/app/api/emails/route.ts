@@ -2,50 +2,17 @@ import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
+import { sendEmailSchema } from "@/lib/validation/emails";
 import { desc, eq, gt, lt } from "drizzle-orm";
+import { ZodError } from "zod";
 
-// ── Validation ────────────────────────────────────────────────────
-
-interface SendEmailBody {
-  from: string;
-  to: string | string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  reply_to?: string | string[];
-  headers?: Record<string, string>;
-  attachments?: Array<{
-    filename: string;
-    content?: string;
-    path?: string;
-    content_type?: string;
-    content_id?: string;
-  }>;
-  tags?: Array<{ name: string; value: string }>;
-  scheduled_at?: string;
-  topic_id?: string;
-  template?: {
-    id: string;
-    variables?: Record<string, any>;
-  };
-}
+// ── Helpers ───────────────────────────────────────────────────────
 
 function normalizeToArray(
   value: string | string[] | undefined,
 ): string[] | undefined {
   if (!value) return undefined;
   return Array.isArray(value) ? value : [value];
-}
-
-function validateSendBody(body: SendEmailBody): string | null {
-  if (!body.from) return "from is required";
-  if (!body.to) return "to is required";
-  if (!body.subject) return "subject is required";
-  if (!body.html && !body.text && !body.template)
-    return "html, text, or template is required";
-  return null;
 }
 
 // ── POST /api/emails ──────────────────────────────────────────────
@@ -65,17 +32,22 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  let body: SendEmailBody;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const validationError = validateSendBody(body);
-  if (validationError) {
-    return Response.json({ error: validationError }, { status: 422 });
+  const result = sendEmailSchema.safeParse(body);
+  if (!result.success) {
+    return Response.json(
+      { error: "Validation failed", details: result.error.flatten() },
+      { status: 422 },
+    );
   }
+
+  const validated = result.data;
 
   // Idempotency check
   if (idempotencyKey) {
@@ -87,20 +59,20 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  const to = normalizeToArray(body.to) as string[];
-  const cc = normalizeToArray(body.cc);
-  const bcc = normalizeToArray(body.bcc);
-  const replyTo = normalizeToArray(body.reply_to);
-  const scheduledAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
+  const to = normalizeToArray(validated.to) as string[];
+  const cc = normalizeToArray(validated.cc);
+  const bcc = normalizeToArray(validated.bcc);
+  const replyTo = normalizeToArray(validated.reply_to);
+  const scheduledAt = validated.scheduled_at ? new Date(validated.scheduled_at) : null;
 
   try {
-    let finalHtml = body.html || "";
-    let finalSubject = body.subject;
+    let finalHtml = validated.html || "";
+    let finalSubject = validated.subject;
 
     // Handle template resolving
-    if (body.template) {
+    if (validated.template) {
       const template = await db.query.templates.findFirst({
-        where: eq(templates.id, body.template.id),
+        where: eq(templates.id, validated.template.id),
       });
       if (!template) {
         return Response.json({ error: "Template not found" }, { status: 404 });
@@ -110,8 +82,8 @@ export async function POST(request: Request): Promise<Response> {
       if (template.subject) finalSubject = template.subject;
 
       // Simple variable replacement
-      if (body.template.variables) {
-        for (const [key, value] of Object.entries(body.template.variables)) {
+      if (validated.template.variables) {
+        for (const [key, value] of Object.entries(validated.template.variables)) {
           const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
           finalHtml = finalHtml.replace(regex, String(value));
           finalSubject = finalSubject.replace(regex, String(value));
@@ -122,16 +94,16 @@ export async function POST(request: Request): Promise<Response> {
     // Only send immediately if not scheduled
     if (!scheduledAt) {
       await sesSendEmail({
-        from: body.from,
+        from: validated.from,
         to,
         cc,
         bcc,
         subject: finalSubject,
         html: finalHtml,
-        text: body.text,
+        text: validated.text,
         replyTo,
-        headers: body.headers,
-        attachments: body.attachments as any,
+        headers: validated.headers,
+        attachments: validated.attachments as any,
       });
     }
 
@@ -139,20 +111,20 @@ export async function POST(request: Request): Promise<Response> {
     const [email] = await db
       .insert(emails)
       .values({
-        from: body.from,
+        from: validated.from,
         to,
         cc: cc ?? [],
         bcc: bcc ?? [],
         replyTo: replyTo ?? [],
         subject: finalSubject,
         html: finalHtml,
-        text: body.text ?? "",
-        tags: body.tags ?? [],
-        headers: body.headers ?? {},
-        attachments: (body.attachments as any) ?? [],
+        text: validated.text ?? "",
+        tags: validated.tags ?? [],
+        headers: validated.headers ?? {},
+        attachments: (validated.attachments as any) ?? [],
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,
-        topicId: body.topic_id || null,
+        topicId: validated.topic_id || null,
         idempotencyKey: idempotencyKey,
       })
       .returning({ id: emails.id });
