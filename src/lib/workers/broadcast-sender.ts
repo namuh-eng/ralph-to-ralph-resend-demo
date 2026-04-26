@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { broadcasts, emails } from "@/lib/db/schema";
+import { broadcasts, contacts, emails, segments, topics } from "@/lib/db/schema";
 import { and, eq, lte, sql } from "drizzle-orm";
 
 /**
@@ -29,28 +29,76 @@ export async function processScheduledBroadcasts() {
 
   for (const broadcast of pending) {
     try {
-      // 2. Simple fanout simulation: find audience and create emails
-      // In a real implementation, this would look up contacts in segments or topics.
-      // For now, we perform a partial "send all to audience" or similar.
-      
-      // Mark as 'sending' to prevent double-processing
+      // 2. Mark as 'sending' to prevent double-processing
       await db
         .update(broadcasts)
         .set({ status: "sending" })
         .where(eq(broadcasts.id, broadcast.id));
 
-      // TODO: Implement real audience resolution logic here.
-      // For now, we update status to 'sent' once enqueued.
+      // 3. Resolve audience contacts
+      let targetContacts: { email: string; firstName: string | null; lastName: string | null }[] = [];
+
+      if (broadcast.audienceId) {
+        // Resolve segment contacts (naive JSON check for now)
+        const [segment] = await db.select({ name: segments.name }).from(segments).where(eq(segments.id, broadcast.audienceId)).limit(1);
+        if (segment) {
+          targetContacts = await db
+            .select({ email: contacts.email, firstName: contacts.firstName, lastName: contacts.lastName })
+            .from(contacts)
+            .where(and(eq(contacts.unsubscribed, false), sql`${contacts.segments} ? ${segment.name}`));
+        }
+      } else {
+        // Fallback: send to all subscribed contacts if no segment specified
+        targetContacts = await db
+          .select({ email: contacts.email, firstName: contacts.firstName, lastName: contacts.lastName })
+          .from(contacts)
+          .where(eq(contacts.unsubscribed, false));
+      }
+
+      // 4. Perform fanout (create individual email records)
+      if (targetContacts.length > 0) {
+        for (const contact of targetContacts) {
+          let html = broadcast.html || "";
+          let subject = broadcast.subject || "";
+
+          // Simple variable replacement
+          const vars = {
+            FIRST_NAME: contact.firstName || "",
+            LAST_NAME: contact.lastName || "",
+            EMAIL: contact.email,
+          };
+
+          for (const [key, value] of Object.entries(vars)) {
+            const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+            html = html.replace(regex, value);
+            subject = subject.replace(regex, value);
+          }
+
+          await db.insert(emails).values({
+            from: broadcast.from || "system@namuh.com",
+            to: [contact.email],
+            subject,
+            html,
+            text: broadcast.text || "",
+            status: "queued", // Worker will pick these up
+            userId: broadcast.userId,
+            topicId: broadcast.topicId,
+            tags: [{ name: "broadcast_id", value: broadcast.id }],
+          });
+          
+          totalEmailsCreated++;
+        }
+      }
       
+      // 5. Mark broadcast as finished
       await db
         .update(broadcasts)
         .set({ status: "sent" })
         .where(eq(broadcasts.id, broadcast.id));
 
-      totalEmailsCreated++;
     } catch (err) {
       console.error(`Failed to process broadcast ${broadcast.id}:`, err);
-      // Revert status to queued for retry?
+      // Revert status to queued for retry
       await db
         .update(broadcasts)
         .set({ status: "queued" })
@@ -60,6 +108,6 @@ export async function processScheduledBroadcasts() {
 
   return {
     processed: pending.length,
-    broadcastsSent: totalEmailsCreated
+    emailsCreated: totalEmailsCreated
   };
 }
