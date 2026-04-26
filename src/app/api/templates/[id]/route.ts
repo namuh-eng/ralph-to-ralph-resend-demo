@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { templates } from "@/lib/db/schema";
+import { extractTemplateVariables } from "@/lib/templates/parser";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -43,6 +44,7 @@ export async function GET(
           id: `var-${index}`,
           key: v.name,
           type: "string",
+          required: v.required ?? false,
           fallback_value: null,
           created_at: template.createdAt,
           updated_at: template.createdAt,
@@ -81,6 +83,29 @@ export async function PATCH(
       updateData.previewText = body.previewText;
     if (body.html !== undefined) updateData.html = body.html;
     if (body.text !== undefined) updateData.text = body.text;
+
+    // Automatic variable extraction if html or subject is updated
+    if (body.html !== undefined || body.subject !== undefined) {
+      const existing = await db.query.templates.findFirst({
+        where: eq(templates.id, id),
+      });
+
+      if (existing) {
+        const fullContent = `${body.subject ?? existing.subject ?? ""} ${body.html ?? existing.html ?? ""}`;
+        const extracted = extractTemplateVariables(fullContent);
+
+        // Merge with existing manual variable requirements if they exist
+        const currentVars = (existing.variables as any[]) ?? [];
+        const varMap = new Map(currentVars.map((v) => [v.name, v]));
+
+        updateData.variables = extracted.map((name) => ({
+          name,
+          required: varMap.get(name)?.required ?? false,
+        }));
+      }
+    }
+
+    // Manual variable override
     if (body.variables !== undefined) {
       updateData.variables = body.variables.map((v: any) => ({
         name: v.name,
@@ -118,6 +143,7 @@ export async function PATCH(
           id: `var-${index}`,
           key: v.name,
           type: "string",
+          required: v.required ?? false,
           fallback_value: null,
           created_at: updated.createdAt,
           updated_at: updated.createdAt,
