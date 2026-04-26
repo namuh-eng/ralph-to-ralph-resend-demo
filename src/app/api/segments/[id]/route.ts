@@ -22,7 +22,12 @@ export async function GET(
       return NextResponse.json({ error: "Segment not found" }, { status: 404 });
     }
 
-    return NextResponse.json(segment);
+    return NextResponse.json({
+      object: "segment",
+      id: segment.id,
+      name: segment.name,
+      created_at: segment.createdAt,
+    });
   } catch (error) {
     console.error("Failed to fetch segment:", error);
     return NextResponse.json(
