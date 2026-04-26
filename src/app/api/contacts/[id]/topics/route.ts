@@ -5,8 +5,15 @@ import { eq, or } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 async function findContact(idOrEmail: string) {
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      idOrEmail,
+    );
+
   return await db.query.contacts.findFirst({
-    where: or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail)),
+    where: isUuid
+      ? or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail))
+      : eq(contacts.email, idOrEmail),
   });
 }
 
