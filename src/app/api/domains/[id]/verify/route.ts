@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import { queueEvent } from "@/lib/events";
 import { getDomainIdentity } from "@/lib/ses";
 import { eq } from "drizzle-orm";
 
@@ -53,6 +54,8 @@ export async function POST(
       }
     }
 
+    const previousStatus = domain.status;
+
     // Update domain status in DB
     const [updated] = await db
       .update(domains)
@@ -62,7 +65,18 @@ export async function POST(
       .where(eq(domains.id, id))
       .returning();
 
-    // Fire webhook (placeholder until delivery worker implemented)
+    // Fire webhook if status changed
+    if (updated.status !== previousStatus) {
+      await queueEvent({
+        type: "domain.updated",
+        payload: {
+          id: updated.id,
+          name: updated.name,
+          status: updated.status,
+          previous_status: previousStatus,
+        },
+      });
+    }
 
     return Response.json({
       object: "domain",
