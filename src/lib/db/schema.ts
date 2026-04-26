@@ -133,11 +133,13 @@ export const emails = pgTable(
     attachments:
       jsonb("attachments").$type<
         Array<{
+          id: string;
           filename: string;
           content?: string;
           path?: string;
           content_type?: string;
           content_id?: string;
+          s3Key?: string;
         }>
       >(),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
