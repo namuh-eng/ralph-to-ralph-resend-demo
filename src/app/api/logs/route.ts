@@ -16,7 +16,8 @@ export async function GET(request: Request): Promise<Response> {
   const status = url.searchParams.get("status");
   const method = url.searchParams.get("method");
   const apiKeyId = url.searchParams.get("api_key_id") || url.searchParams.get("apiKeyId");
-  const after = url.searchParams.get("after") || "";
+  const after = url.searchParams.get("after");
+  const before = url.searchParams.get("before");
 
   try {
     const conditions: SQL[] = [];
@@ -33,10 +34,13 @@ export async function GET(request: Request): Promise<Response> {
     if (after) {
       conditions.push(lt(logs.id, after));
     }
+    if (before) {
+      conditions.push(gt(logs.id, before));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const results = await db
+    const query = db
       .select({
         id: logs.id,
         method: logs.method,
@@ -46,12 +50,17 @@ export async function GET(request: Request): Promise<Response> {
         createdAt: logs.createdAt,
       })
       .from(logs)
-      .where(whereClause)
-      .orderBy(desc(logs.id))
-      .limit(limit + 1);
+      .where(whereClause);
 
+    const results = await (before
+      ? query.orderBy(logs.id).limit(limit + 1)
+      : query.orderBy(desc(logs.id)).limit(limit + 1));
+
+    let dataRows = results.slice(0, limit);
+    if (before) {
+      dataRows = dataRows.reverse();
+    }
     const hasMore = results.length > limit;
-    const dataRows = hasMore ? results.slice(0, limit) : results;
 
     return Response.json({
       object: "list",
