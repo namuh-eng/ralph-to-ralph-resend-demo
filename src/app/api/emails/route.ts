@@ -126,6 +126,7 @@ export async function POST(request: Request): Promise<Response> {
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,
         idempotencyKey: idempotencyKey,
+        userId: auth.userId, // Link to the user who owns the API key
       })
       .returning({ id: emails.id });
 
