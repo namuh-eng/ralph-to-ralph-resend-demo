@@ -2,28 +2,9 @@ import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
+import { batchSendEmailSchema } from "@/lib/validation/emails";
 
-interface BatchEmailBody {
-  from: string;
-  to: string | string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  reply_to?: string | string[];
-  headers?: Record<string, string>;
-  attachments?: Array<{
-    filename: string;
-    content?: string;
-    path?: string;
-    content_type?: string;
-    content_id?: string;
-  }>;
-  tags?: Array<{ name: string; value: string }>;
-  scheduled_at?: string;
-  topic_id?: string;
-}
+// ── Helpers ───────────────────────────────────────────────────────
 
 function normalizeToArray(
   value: string | string[] | undefined,
@@ -32,53 +13,36 @@ function normalizeToArray(
   return Array.isArray(value) ? value : [value];
 }
 
+// ── POST /api/emails/batch ────────────────────────────────────────
+
 export async function POST(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  let body: BatchEmailBody[];
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!Array.isArray(body)) {
+  const result = batchSendEmailSchema.safeParse(body);
+  if (!result.success) {
     return Response.json(
-      { error: "Body must be an array of emails" },
-      { status: 400 },
+      { error: "Validation failed", details: result.error.flatten() },
+      { status: 422 },
     );
   }
 
-  if (body.length > 100) {
-    return Response.json(
-      { error: "Maximum 100 emails per batch request" },
-      { status: 400 },
-    );
-  }
+  const validatedItems = result.data;
 
   try {
-    // Validate all items first
-    for (const item of body) {
-      if (
-        !item.from ||
-        !item.to ||
-        !item.subject ||
-        (!item.html && !item.text)
-      ) {
-        return Response.json(
-          { error: "Each email must have from, to, subject, and html or text" },
-          { status: 422 },
-        );
-      }
-    }
-
     // Send emails with controlled concurrency (5 at a time)
     const CONCURRENCY = 5;
     const results: Array<{ id: string }> = [];
 
-    for (let i = 0; i < body.length; i += CONCURRENCY) {
-      const chunk = body.slice(i, i + CONCURRENCY);
+    for (let i = 0; i < validatedItems.length; i += CONCURRENCY) {
+      const chunk = validatedItems.slice(i, i + CONCURRENCY);
       const chunkResults = await Promise.all(
         chunk.map(async (item) => {
           const to = normalizeToArray(item.to) as string[];
