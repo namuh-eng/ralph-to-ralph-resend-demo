@@ -1,10 +1,11 @@
+import { processScheduledBroadcasts } from "@/lib/workers/broadcast-sender";
 import { processScheduledEmails } from "@/lib/workers/scheduled-emails";
 import { NextResponse } from "next/server";
 
 /**
  * GET /api/internal/cron/process-scheduled
  * 
- * Internal cron trigger for processing scheduled emails.
+ * Internal cron trigger for processing scheduled emails and broadcasts.
  * Should be called by a task scheduler (e.g. AWS EventBridge, Vercel Cron).
  */
 export async function GET(request: Request) {
@@ -17,10 +18,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await processScheduledEmails();
-    return NextResponse.json({ ok: true, ...result });
+    const [emailResult, broadcastResult] = await Promise.all([
+      processScheduledEmails(),
+      processScheduledBroadcasts()
+    ]);
+    
+    return NextResponse.json({ 
+      ok: true, 
+      emails: emailResult,
+      broadcasts: broadcastResult
+    });
   } catch (error) {
-    console.error("Cron: Scheduled email processing failed:", error);
+    console.error("Cron: Scheduled processing failed:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
