@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import { createDomainIdentity } from "@/lib/ses";
 import { and, desc, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const domainName = name.trim().toLowerCase();
+
     if (!VALID_REGIONS.includes(region)) {
       return NextResponse.json(
         {
@@ -30,12 +33,46 @@ export async function POST(request: Request) {
       );
     }
 
+    // 1. Initialize Domain Identity in SES to get DKIM tokens
+    const identity = await createDomainIdentity(domainName);
+
+    // 2. Build DNS records for the response
+    const dkimRecords = identity.dkimTokens.map((token) => ({
+      type: "CNAME",
+      name: `${token}._domainkey.${domainName}`,
+      value: `${token}.dkim.amazonses.com`,
+      status: "pending",
+      ttl: "Auto",
+    }));
+
+    const spfRecord = {
+      type: "TXT",
+      name: domainName,
+      value: "v=spf1 include:amazonses.com ~all",
+      status: "pending",
+      ttl: "Auto",
+    };
+
+    const mxRecord = {
+      type: "MX",
+      name: domainName,
+      value: `feedback-smtp.${region}.amazonses.com`,
+      status: "pending",
+      ttl: "Auto",
+      priority: 10,
+    };
+
+    const allRecords = [...dkimRecords, spfRecord, mxRecord];
+
+    // 3. Store in DB
     const [row] = await db
       .insert(domains)
       .values({
-        name: name.trim(),
+        name: domainName,
         region,
         status: "not_started",
+        dkimTokens: identity.dkimTokens,
+        records: allRecords,
         customReturnPath: body.custom_return_path || null,
         trackOpens: body.open_tracking ?? false,
         trackClicks: body.click_tracking ?? false,
