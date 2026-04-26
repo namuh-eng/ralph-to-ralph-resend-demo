@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { receivedEmails } from "@/lib/db/schema";
-import { and, desc, lt } from "drizzle-orm";
+import { and, desc, lt, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -14,11 +14,15 @@ export async function GET(request: NextRequest) {
     100,
   );
   const after = url.searchParams.get("after") || "";
+  const toFilter = url.searchParams.get("to")?.trim().toLowerCase();
 
   try {
     const conditions = [];
     if (after) {
       conditions.push(lt(receivedEmails.id, after));
+    }
+    if (toFilter) {
+      conditions.push(sql`${receivedEmails.to} ? ${toFilter}`);
     }
 
     const rows = await db
