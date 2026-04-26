@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { contacts, segments, topics } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import Papa from "papaparse";
 
 export async function POST(request: NextRequest) {
   const auth = await validateApiKey(request.headers.get("authorization"));
@@ -20,9 +21,8 @@ export async function POST(request: NextRequest) {
 
     const mapping = JSON.parse(mappingStr || "{}") as Record<string, string>;
     const text = await file.text();
-    const lines = text.split(/\r?\n/);
-    const header = lines[0].split(",");
-    const rows = lines.slice(1).filter((l) => l.trim() !== "");
+    const parseResult = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const rows = parseResult.data as Record<string, string>[];
 
     // Resolve segment if provided
     let segmentName = "";
@@ -35,21 +35,18 @@ export async function POST(request: NextRequest) {
 
     const createdIds: string[] = [];
 
-    for (const rowText of rows) {
-      const values = rowText.split(",");
+    for (const row of rows) {
       const data: Record<string, any> = {};
       const customProps: Record<string, string> = {};
 
-      header.forEach((colName, index) => {
+      Object.entries(row).forEach(([colName, colValue]) => {
         const mappedKey = mapping[colName];
         if (mappedKey) {
-          if (mappedKey === "email")
-            data.email = values[index]?.trim().toLowerCase();
-          else if (mappedKey === "first_name")
-            data.firstName = values[index]?.trim();
-          else if (mappedKey === "last_name")
-            data.lastName = values[index]?.trim();
-          else customProps[mappedKey] = values[index]?.trim();
+          const value = colValue?.trim();
+          if (mappedKey === "email") data.email = value?.toLowerCase();
+          else if (mappedKey === "first_name") data.firstName = value;
+          else if (mappedKey === "last_name") data.lastName = value;
+          else customProps[mappedKey] = value;
         }
       });
 
