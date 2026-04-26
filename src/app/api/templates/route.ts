@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
         name: templates.name,
         alias: templates.alias,
         status: templates.status,
+        currentVersionId: templates.currentVersionId,
+        publishedAt: templates.publishedAt,
+        hasUnpublishedVersions: templates.hasUnpublishedVersions,
         createdAt: templates.createdAt,
       })
       .from(templates)
@@ -65,6 +68,9 @@ export async function GET(request: NextRequest) {
         name: r.name,
         alias: r.alias,
         status: r.status,
+        current_version_id: r.currentVersionId,
+        published_at: r.publishedAt,
+        has_unpublished_versions: r.hasUnpublishedVersions,
         created_at: r.createdAt,
       })),
       total: totalRow?.count ?? 0,
