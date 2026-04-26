@@ -78,12 +78,33 @@ export async function POST(request: Request): Promise<Response> {
         return Response.json({ error: "Template not found" }, { status: 404 });
       }
 
+      // Validate required variables
+      const templateVars = (template.variables as any[]) ?? [];
+      const requiredVars = templateVars
+        .filter((v) => v.required)
+        .map((v) => v.name);
+      const providedVars = validated.template.variables ?? {};
+
+      for (const requiredVar of requiredVars) {
+        if (providedVars[requiredVar] === undefined) {
+          return Response.json(
+            {
+              error: "Validation failed",
+              message: `Missing required template variable: ${requiredVar}`,
+            },
+            { status: 422 },
+          );
+        }
+      }
+
       finalHtml = template.html || "";
       if (template.subject) finalSubject = template.subject;
 
       // Simple variable replacement
       if (validated.template.variables) {
-        for (const [key, value] of Object.entries(validated.template.variables)) {
+        for (const [key, value] of Object.entries(
+          validated.template.variables,
+        )) {
           const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
           finalHtml = finalHtml.replace(regex, String(value));
           finalSubject = finalSubject.replace(regex, String(value));
