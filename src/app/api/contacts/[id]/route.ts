@@ -4,8 +4,15 @@ import { contacts } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
 
 async function findContact(idOrEmail: string) {
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      idOrEmail,
+    );
+
   return await db.query.contacts.findFirst({
-    where: or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail)),
+    where: isUuid
+      ? or(eq(contacts.id, idOrEmail), eq(contacts.email, idOrEmail))
+      : eq(contacts.email, idOrEmail),
   });
 }
 
@@ -25,6 +32,12 @@ export async function GET(
       return Response.json({ error: "Contact not found" }, { status: 404 });
     }
 
+    // Map internal topic shape to documented opt_in/opt_out shape
+    const topics = (contact.topicSubscriptions as any[])?.map((t) => ({
+      id: t.topicId,
+      subscription: t.subscribed ? "opt_in" : "opt_out",
+    })) ?? [];
+
     return Response.json({
       object: "contact",
       id: contact.id,
@@ -34,7 +47,7 @@ export async function GET(
       unsubscribed: contact.unsubscribed,
       properties: contact.customProperties,
       segments: contact.segments ?? [],
-      topics: contact.topicSubscriptions ?? [],
+      topics,
       created_at: contact.createdAt,
     });
   } catch (err) {
