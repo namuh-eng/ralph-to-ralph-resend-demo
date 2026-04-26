@@ -40,23 +40,21 @@ export function ContactsList() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", String(limit));
       if (search) params.set("search", search);
       if (statusFilter) params.set("status", statusFilter);
-      if (segmentFilter) params.set("segment", segmentFilter);
+      if (segmentFilter) params.set("segment_id", segmentFilter);
 
       const res = await fetch(`/api/contacts?${params.toString()}`);
       const data = await res.json();
       setContacts(data.data || []);
-      setTotal(data.total || 0);
+      setTotal(data.data?.length || 0); // Temporary until total count logic is updated in API
     } catch {
       setContacts([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, statusFilter, segmentFilter]);
+  }, [search, statusFilter, segmentFilter]);
 
   useEffect(() => {
     fetchContacts();
