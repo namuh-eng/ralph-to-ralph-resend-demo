@@ -188,6 +188,25 @@ For production, we recommend:
 - **Database**: Use a managed PostgreSQL (AWS RDS, Supabase, Neon, etc.) instead of the Docker Compose Postgres
 - **Reverse proxy**: Put Nginx or Caddy in front for TLS termination
 - **Secrets**: Store credentials in your cloud provider's secrets manager
+- **Rate limiting**: Use a shared Redis/ElastiCache instance instead of the disabled local default
+
+### Shared rate limiting (staging/production)
+
+Namuh Send now treats API rate limiting as an explicit runtime contract:
+
+- `RATE_LIMIT_BACKEND=disabled` skips API rate limiting entirely. This is the default for local single-process development only.
+- `RATE_LIMIT_BACKEND=redis` enables the middleware-backed shared limiter. If Redis is misconfigured or unavailable, API requests fail with `503` instead of silently falling back to per-process memory.
+- `REDIS_URL` must point at a TLS-enabled Redis endpoint such as `rediss://default:<password>@<primary-endpoint>:6379`.
+
+For AWS ElastiCache, enable **in-transit encryption** on the replication group/serverless cache and use the TLS endpoint that AWS exposes. AWS documents both the `TransitEncryptionEnabled=true` requirement and TLS client connections to the primary/configuration endpoint.
+
+Quick verification after deploy:
+
+```bash
+curl -i http://localhost:3015/api/auth/verify \
+  -H 'x-forwarded-for: 203.0.113.10'
+# Expect: X-RateLimit-Backend: redis when enabled
+```
 
 The included `Dockerfile` produces an optimized multi-stage build suitable for any container platform (AWS App Runner, Google Cloud Run, Fly.io, Railway, etc.):
 
