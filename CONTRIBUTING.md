@@ -9,16 +9,18 @@ Thanks for your interest in contributing to Namuh Send!
 ```bash
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
-npm install
-make setup    # starts Postgres, creates .env, runs migrations, seeds DB
+cp .env.example .env
+make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
 make dev      # http://localhost:3015
 ```
+
+`make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). The Docker Compose app/migration services use their own internal `postgres` hostname automatically.
 
 The seed prints an API key to the console — save it. Then verify everything works:
 
 ```bash
-# Check the app + database are healthy
-curl http://localhost:3015/api/health
+# Check the dashboard loads
+curl -I http://localhost:3015
 
 # Send a test email (replace YOUR_API_KEY with the key from seed)
 curl -X POST http://localhost:3015/api/emails \
@@ -34,11 +36,13 @@ curl -X POST http://localhost:3015/api/emails \
 
 Without AWS credentials, emails are logged to the console instead of sent — the full API flow still works for development.
 
+To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMPT=1 npm install`.
+
 <details>
 <summary>Manual setup (without make setup)</summary>
 
 1. Copy `.env.example` to `.env` and set `DASHBOARD_KEY` (see the file for a generation command).
-2. Start Postgres: `docker compose up -d` (or point `DATABASE_URL` at your own instance).
+2. Start Postgres: `docker compose up postgres -d` (or point `DATABASE_URL` at your own instance). If port `5432` is already taken, change both `POSTGRES_PORT` and the port inside `DATABASE_URL` in `.env`.
 3. Push schema and seed: `npm run db:push && npm run db:seed`
 4. Start dev server: `npm run dev`
 

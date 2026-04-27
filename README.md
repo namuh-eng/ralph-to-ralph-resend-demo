@@ -44,7 +44,7 @@ The fastest way to get Namuh Send running:
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
 cp .env.example .env
-# Edit .env — set DASHBOARD_KEY (required), add AWS credentials for email sending
+# Edit .env — set DASHBOARD_KEY (required); AWS credentials are only needed for real email sending
 docker compose up -d
 ```
 
@@ -83,6 +83,8 @@ curl -X POST http://localhost:3015/api/emails \
     "html": "<h1>It works!</h1>"
   }'
 ```
+
+Open `http://localhost:3015/docs` for the full local API reference.
 
 ### TypeScript SDK
 
@@ -136,11 +138,14 @@ AWS_REGION=us-east-1
 
 # Optional
 POSTGRES_PASSWORD=your-db-password     # Default: namuh
+POSTGRES_PORT=5432                     # Change this and DATABASE_URL together if 5432 is taken
 PORT=3015                              # Default: 3015
 CLOUDFLARE_API_TOKEN=your-cf-token     # For auto DNS setup
 CLOUDFLARE_ZONE_ID=your-zone-id
 S3_BUCKET_NAME=your-bucket             # For email attachments
 ```
+
+`.env.example` keeps `DATABASE_URL` on `localhost` for host-run commands like `npm run dev` and `npm run db:push`. Docker Compose injects its own internal `postgres` hostname for the containerized app and migration services.
 
 Start everything:
 
@@ -159,13 +164,15 @@ git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
 npm install
 cp .env.example .env
-# Edit .env — set DATABASE_URL and DASHBOARD_KEY
-npm run db:migrate
+# Edit .env — set DASHBOARD_KEY (required). Leave DATABASE_URL as localhost unless you're using another Postgres instance.
+npm run db:push
 npm run db:seed          # Optional: creates sample data
 npm run dev              # Development (port 3015)
 # or
 npm run build && npm start  # Production
 ```
+
+To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMPT=1 npm install`.
 
 ### AWS SES Sandbox
 
@@ -221,18 +228,15 @@ drizzle/          # Database migration files
 
 ## Development
 
+For local contributor onboarding, use the same Docker-backed path as [CONTRIBUTING.md](./CONTRIBUTING.md):
+
 ```bash
-# Start Postgres
-docker compose up postgres -d
-
-# Install deps + run migrations
-npm install
-npm run db:push
-npm run db:seed
-
-# Start dev server
-npm run dev
+cp .env.example .env
+make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
+make dev      # http://localhost:3015
 ```
+
+`make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). Docker Compose app and migration containers use their own internal `postgres` hostname automatically.
 
 ```bash
 make check       # Typecheck + lint

@@ -49,9 +49,11 @@ db-push:
 
 # One-command local setup (requires Docker)
 setup:
-	@echo "→ Starting Postgres..." && docker compose up -d
+	@test -f .env || (cp .env.example .env && echo "  ✓ Created .env from .env.example")
+	@node -e "const fs=require('fs'); const crypto=require('crypto'); const path='.env'; let env=fs.readFileSync(path,'utf8'); if(/^DASHBOARD_KEY=$$/m.test(env)){ env=env.replace(/^DASHBOARD_KEY=$$/m, 'DASHBOARD_KEY='+crypto.randomUUID()); fs.writeFileSync(path, env); console.log('  ✓ Generated DASHBOARD_KEY in .env'); }"
+	@echo "→ Starting Postgres..." && docker compose up postgres -d
+	@echo "→ Waiting for Postgres..." && until docker compose exec -T postgres pg_isready -U namuh >/dev/null 2>&1; do sleep 1; done && echo "  ✓ Postgres is ready"
 	@echo "→ Installing dependencies..." && npm install
-	@test -f .env || (cp .env.example .env && echo "  ✓ Created .env from .env.example — edit DASHBOARD_KEY")
 	@echo "→ Pushing schema..." && npx drizzle-kit push --config drizzle.config.ts
 	@echo "→ Seeding database..." && npx tsx scripts/seed.ts
 	@echo "\n✓ Setup complete! Run 'make dev' to start the server."
