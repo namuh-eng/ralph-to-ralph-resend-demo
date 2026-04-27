@@ -72,12 +72,14 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
   - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` — SES + S3
   - `S3_BUCKET_NAME` — email attachment storage
   - Google OAuth client credentials for Better Auth
-- **Deployment**: Docker Compose is the reference deploy. Team production uses `bash scripts/deploy.sh` (service name, URL, and ECR details live in local memory).
+- **Deployment**: Docker Compose is the reference deploy. Team production uses `bash scripts/deploy.sh` for both the Next.js app and the standalone ingester service (service name, URL, and any non-default ECR details can be overridden via environment variables if local memory differs from the repo defaults).
+- **Ingester cutover**: SES SNS should point at `https://<ingester-service-url>/events/ses`, not the app URL. See `docs/ingester-deploy.md` for the split-service runbook, CloudWatch log tailing, and replay instructions.
 
 ## Security — Secrets Management
 - **Never hardcode** passwords, tokens, or API keys in scripts or source.
 - **Contributors / local dev**: use `.env` (gitignored).
 - **Team production**: secrets live in **AWS Secrets Manager** (region `us-east-1`). Ask Jaeyun or Ashley for the current secret IDs and access.
+- **Shared service wiring**: both the app and the ingester must receive the same database/credential secrets; keep the actual secret IDs external to the repo and inject them through App Runner configuration.
 - Retrieve at runtime:
   ```bash
   aws secretsmanager get-secret-value --secret-id <id> --region us-east-1 --query SecretString --output text

@@ -1,13 +1,24 @@
-FROM oven/bun:1.3-alpine AS base
+FROM oven/bun:1.3-alpine AS build
 
-FROM base AS build
-COPY . /usr/src/app
-WORKDIR /usr/src/app
-RUN bun install --frozen-lockfile
-RUN bun run build --filter @namuh/ingester
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY packages ./packages
+RUN bun install --frozen-lockfile --ignore-scripts
+COPY . .
+RUN bun build ./packages/ingester/src/server.ts \
+  --target bun \
+  --minify \
+  --outfile /tmp/ingester-server.js
 
-FROM base
-COPY --from=build /usr/src/app /usr/src/app
-WORKDIR /usr/src/app/packages/ingester
+FROM oven/bun:1.3-alpine AS runner
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3016
+RUN addgroup --system --gid 1001 bunjs \
+  && adduser --system --uid 1001 ingester
+COPY --from=build /tmp/ingester-server.js ./server.js
+USER ingester
 EXPOSE 3016
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "/app/server.js"]

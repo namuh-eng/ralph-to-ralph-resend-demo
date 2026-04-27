@@ -1,5 +1,5 @@
-// ABOUTME: Unit tests for deploy-001 — validates production build config, Dockerfile, and deploy script
-// ABOUTME: Ensures ECS Fargate deployment infrastructure is correctly configured
+// ABOUTME: Static deployment tests for the app + ingester App Runner split
+// ABOUTME: Verifies repo-visible Docker, compose, deploy script, and runbook wiring
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const root = join(__dirname, "..");
 
-describe("deploy-001: ECS Fargate deployment configuration", () => {
+describe("deploy-001: App Runner deployment configuration", () => {
   it("next.config.js has standalone output for Docker deployment", () => {
     const config = readFileSync(join(root, "next.config.js"), "utf-8");
     expect(config).toContain('output: "standalone"');
@@ -29,25 +29,64 @@ describe("deploy-001: ECS Fargate deployment configuration", () => {
     expect(dockerfile).toContain("ENV PORT=8080");
   });
 
-  it("deploy script updates existing App Runner services to the requested image tag", () => {
+  it("deploy script updates both App Runner services to the requested image tag", () => {
     const scriptPath = join(root, "scripts", "deploy.sh");
     expect(existsSync(scriptPath)).toBe(true);
     const script = readFileSync(scriptPath, "utf-8");
+    expect(script).toContain('deploy_service "${APP_RUNNER_SERVICE}"');
+    expect(script).toContain('deploy_service "${INGESTER_APP_RUNNER_SERVICE}"');
     expect(script).toContain("aws apprunner update-service");
     expect(script).toContain("Service.SourceConfiguration");
     expect(script).toContain(
       'image_repository["ImageIdentifier"] = os.environ["IMAGE_IDENTIFIER"]',
     );
+    expect(script).toContain(
+      'image_configuration["Port"] = os.environ["PORT"]',
+    );
   });
 
-  it("package.json has build script", () => {
+  it("package.json has build scripts for the app and ingester", () => {
     const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8"));
     expect(pkg.scripts.build).toBe("next build");
+    expect(pkg.scripts["build:ingester"]).toContain(
+      "packages/ingester/src/server.ts",
+    );
+    expect(pkg.scripts["start:ingester"]).toBe(
+      "bun ./packages/ingester/src/server.ts",
+    );
   });
 
   it(".dockerignore excludes node_modules and .next", () => {
     const ignore = readFileSync(join(root, ".dockerignore"), "utf-8");
     expect(ignore).toContain("node_modules");
     expect(ignore).toContain(".next");
+  });
+
+  it("docker-compose includes a dedicated ingester service with a healthcheck", () => {
+    const compose = readFileSync(join(root, "docker-compose.yml"), "utf-8");
+    expect(compose).toContain("ingester:");
+    expect(compose).toContain("dockerfile: packages/ingester/Dockerfile");
+    expect(compose).toContain("INGESTER_PORT:-3016");
+    expect(compose).toContain("http://127.0.0.1:3016/health");
+  });
+
+  it("ingester Dockerfile builds a standalone server bundle", () => {
+    const dockerfile = readFileSync(
+      join(root, "packages", "ingester", "Dockerfile"),
+      "utf-8",
+    );
+    expect(dockerfile).toContain("bun build ./packages/ingester/src/server.ts");
+    expect(dockerfile).toContain("--outfile /tmp/ingester-server.js");
+    expect(dockerfile).toContain("EXPOSE 3016");
+    expect(dockerfile).toContain('CMD ["bun", "/app/server.js"]');
+  });
+
+  it("ingester runbook captures the split deploy and operational steps", () => {
+    const runbookPath = join(root, "docs", "ingester-deploy.md");
+    expect(existsSync(runbookPath)).toBe(true);
+    const runbook = readFileSync(runbookPath, "utf-8");
+    expect(runbook).toContain("SES SNS should point at");
+    expect(runbook).toContain("aws logs tail");
+    expect(runbook).toContain("curl -i");
   });
 });
