@@ -5,6 +5,12 @@ import {
   unauthorizedResponse,
   validateDashboardKey,
 } from "@/lib/api-auth";
+import {
+  DASHBOARD_METRICS_CACHE_TTL_SECONDS,
+  getMetricsAggregateCacheKey,
+  readDashboardAggregateCache,
+  writeDashboardAggregateCache,
+} from "@/lib/cache/dashboard-aggregates";
 import { getDateRangeBounds } from "@/lib/date-range";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
@@ -54,10 +60,17 @@ export async function GET(request: NextRequest) {
     const range = searchParams.get("range") || "last_15_days";
     const domain = searchParams.get("domain");
     const eventType = searchParams.get("event_type");
+    const cacheKey = getMetricsAggregateCacheKey({ range, domain, eventType });
+
+    const cached = await readDashboardAggregateCache<unknown>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "x-namuh-cache": "hit" },
+      });
+    }
 
     const { start, end } = getMetricsDateRange(range);
 
-    // Build conditions
     const conditions = [
       gte(emails.createdAt, start),
       lte(emails.createdAt, end),
@@ -66,7 +79,6 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(senderDomainSql, domain));
     }
 
-    // Query aggregated stats
     const result = await db
       .select({
         total: sql<number>`count(*)::int`,
@@ -104,7 +116,6 @@ export async function GET(request: NextRequest) {
         ? Math.round((stats.complained / totalEmails) * 10000) / 100
         : 0;
 
-    // Build daily chart query — optionally filtered by event type
     const dailyConditions = [...conditions];
     if (eventType && eventType !== "all" && EVENT_TYPE_TO_STATUS[eventType]) {
       const statuses = EVENT_TYPE_TO_STATUS[eventType];
@@ -126,7 +137,6 @@ export async function GET(request: NextRequest) {
       count: r.count,
     }));
 
-    // Daily bounce rate data (percentage per day)
     const dailyBounceRows = await db
       .select({
         date: sql<string>`to_char(${emails.createdAt}::date, 'YYYY-MM-DD')`,
@@ -143,7 +153,6 @@ export async function GET(request: NextRequest) {
       rate: r.total > 0 ? Math.round((r.bounced / r.total) * 10000) / 100 : 0,
     }));
 
-    // Daily complain rate data (percentage per day)
     const dailyComplainRows = await db
       .select({
         date: sql<string>`to_char(${emails.createdAt}::date, 'YYYY-MM-DD')`,
@@ -161,7 +170,6 @@ export async function GET(request: NextRequest) {
         r.total > 0 ? Math.round((r.complained / r.total) * 10000) / 100 : 0,
     }));
 
-    // Per-domain breakdown
     const domainBreakdownRows = await db
       .select({
         domain: senderDomainSql,
@@ -182,15 +190,12 @@ export async function GET(request: NextRequest) {
           r.total > 0 ? Math.round((r.delivered / r.total) * 10000) / 100 : 0,
       }));
 
-    // Get unique domain names for the filter
-    const domains = domainBreakdown.map((d) => d.domain);
-
-    return NextResponse.json({
+    const payload = {
       totalEmails,
       deliverabilityRate,
       bounceRate,
       complainRate,
-      domains,
+      domains: domainBreakdown.map((d) => d.domain),
       dailyData,
       domainBreakdown,
       bounceBreakdown: {
@@ -202,6 +207,16 @@ export async function GET(request: NextRequest) {
       complained: stats.complained,
       dailyComplainData,
       lastUpdated: new Date().toISOString(),
+    };
+
+    await writeDashboardAggregateCache(
+      cacheKey,
+      payload,
+      DASHBOARD_METRICS_CACHE_TTL_SECONDS,
+    );
+
+    return NextResponse.json(payload, {
+      headers: { "x-namuh-cache": "miss" },
     });
   } catch (error) {
     console.error("Failed to fetch metrics:", error);

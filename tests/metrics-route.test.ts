@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockSelect = vi.hoisted(() => vi.fn());
 const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockReadDashboardAggregateCache = vi.hoisted(() => vi.fn());
+const mockWriteDashboardAggregateCache = vi.hoisted(() => vi.fn());
 const mockGte = vi.hoisted(() =>
   vi.fn((left, right) => ({ kind: "gte", left, right })),
 );
@@ -50,6 +52,22 @@ vi.mock("@/lib/api-auth", () => ({
       headers: { "content-type": "application/json" },
     }),
   validateDashboardKey: mockValidateDashboardKey,
+}));
+
+vi.mock("@/lib/cache/dashboard-aggregates", () => ({
+  DASHBOARD_METRICS_CACHE_TTL_SECONDS: 60,
+  getMetricsAggregateCacheKey: ({
+    range,
+    domain,
+    eventType,
+  }: {
+    range: string;
+    domain: string | null;
+    eventType: string | null;
+  }) =>
+    `dashboard-aggregate:v1:metrics:${range}:${domain ?? "all"}:${eventType ?? "all"}`,
+  readDashboardAggregateCache: mockReadDashboardAggregateCache,
+  writeDashboardAggregateCache: mockWriteDashboardAggregateCache,
 }));
 
 vi.mock("drizzle-orm", async () => {
@@ -151,6 +169,8 @@ describe("metrics route filters", () => {
       session: { id: "session-1" },
       user: { id: "user-1" },
     });
+    mockReadDashboardAggregateCache.mockResolvedValue(null);
+    mockWriteDashboardAggregateCache.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -167,6 +187,7 @@ describe("metrics route filters", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("x-namuh-cache")).toBe("miss");
 
     const firstWhere = whereArgs[0] as {
       kind: string;
@@ -258,5 +279,63 @@ describe("metrics route filters", () => {
       conds: Array<{ kind: string }>;
     };
     expect(firstWhere.conds.some((cond) => cond.kind === "eq")).toBe(true);
+  });
+
+  it("returns cached metrics payloads without hitting the database", async () => {
+    mockReadDashboardAggregateCache.mockResolvedValue({
+      totalEmails: 99,
+      deliverabilityRate: 98,
+      bounceRate: 1,
+      complainRate: 0,
+      complained: 0,
+      domains: ["example.com"],
+      dailyData: [],
+      domainBreakdown: [],
+      bounceBreakdown: {
+        permanent: 0,
+        transient: 0,
+        undetermined: 0,
+      },
+      dailyBounceData: [],
+      dailyComplainData: [],
+      lastUpdated: "2026-04-23T06:45:30.000Z",
+    });
+
+    const metricsRoute = await import("@/app/api/metrics/route");
+    const response = await metricsRoute.GET(
+      makeNextRequest(
+        "http://localhost/api/metrics?range=last_7_days&domain=example.com&event_type=delivered",
+      ) as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-namuh-cache")).toBe("hit");
+    expect(mockSelect).not.toHaveBeenCalled();
+    expect(mockWriteDashboardAggregateCache).not.toHaveBeenCalled();
+
+    const json = await response.json();
+    expect(json.totalEmails).toBe(99);
+    expect(mockReadDashboardAggregateCache).toHaveBeenCalledWith(
+      "dashboard-aggregate:v1:metrics:last_7_days:example.com:delivered",
+    );
+  });
+
+  it("writes a fresh aggregate response to cache with a short ttl", async () => {
+    const whereArgs: unknown[] = [];
+    queueMetricsQueries(whereArgs);
+
+    const metricsRoute = await import("@/app/api/metrics/route");
+    const response = await metricsRoute.GET(
+      makeNextRequest(
+        "http://localhost/api/metrics?range=last_7_days&event_type=opened",
+      ) as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockWriteDashboardAggregateCache).toHaveBeenCalledOnce();
+    expect(mockWriteDashboardAggregateCache.mock.calls[0]?.[0]).toBe(
+      "dashboard-aggregate:v1:metrics:last_7_days:all:opened",
+    );
+    expect(mockWriteDashboardAggregateCache.mock.calls[0]?.[2]).toBe(60);
   });
 });
