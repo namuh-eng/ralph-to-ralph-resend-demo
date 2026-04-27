@@ -24,7 +24,7 @@ app.post("/events/ses", async (c) => {
 
     // SES tags are sometimes nested in mail.tags
     const emailId = sesMessage.mail.headers?.find(
-      (h: any) => h.name === "X-Entity-ID",
+      (h: { name: string; value: string }) => h.name === "X-Entity-ID",
     )?.value;
 
     if (emailId) {

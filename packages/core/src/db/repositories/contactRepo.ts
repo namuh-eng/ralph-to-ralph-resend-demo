@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, lt, or } from "drizzle-orm";
+import { type SQL, and, desc, eq, gt, lt, or } from "drizzle-orm";
 import { db } from "../client";
 import { contacts } from "../schema";
 
@@ -40,7 +40,7 @@ export const contactRepo = {
       .returning({ id: contacts.id });
   },
 
-  async list(options: { limit?: number; after?: string; where?: any } = {}) {
+  async list(options: { limit?: number; after?: string; where?: SQL } = {}) {
     const { limit = 40, after, where } = options;
     const conditions = [];
     if (where) conditions.push(where);

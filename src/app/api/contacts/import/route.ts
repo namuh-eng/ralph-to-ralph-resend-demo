@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
     const createdIds: string[] = [];
 
     for (const row of rows) {
-      const data: Record<string, any> = {};
+      const data: { email?: string; firstName?: string; lastName?: string } =
+        {};
       const customProps: Record<string, string> = {};
 
-      Object.entries(row).forEach(([colName, colValue]) => {
+      for (const [colName, colValue] of Object.entries(row)) {
         const mappedKey = mapping[colName];
         if (mappedKey) {
           const value = colValue?.trim();
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
           else if (mappedKey === "last_name") data.lastName = value;
           else customProps[mappedKey] = value;
         }
-      });
+      }
 
       if (!data.email) continue;
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
             lastName: data.lastName || existing.lastName,
             segments: updatedSegments,
             customProperties: {
-              ...((existing.customProperties as any) || {}),
+              ...((existing.customProperties as Record<string, string>) || {}),
               ...customProps,
             },
           })

@@ -1,11 +1,12 @@
 import {
+  emailEvents,
   signWebhookPayload,
   webhookDeliveryRepo,
   webhookRepo,
 } from "@namuh/core";
 
 export class WebhookDispatcher {
-  async dispatch(webhookId: string, event: any) {
+  async dispatch(webhookId: string, event: typeof emailEvents.$inferSelect) {
     const webhook = await webhookRepo.findById(webhookId);
     if (!webhook || webhook.status !== "active") return;
 
@@ -59,17 +60,18 @@ export class WebhookDispatcher {
         statusCode: res.status,
         success: res.ok,
       };
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       await webhookDeliveryRepo.update(delivery.id, {
         status: "failed",
-        responseBody: error.message,
+        responseBody: message,
         attemptedAt: new Date(),
         nextRetryAt: this.calculateNextRetry(1),
       });
 
       return {
         success: false,
-        error: error.message,
+        error: message,
       };
     }
   }

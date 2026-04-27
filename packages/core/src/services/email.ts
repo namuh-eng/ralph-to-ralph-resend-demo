@@ -43,7 +43,7 @@ export class EmailService {
       bcc: params.bcc ?? [],
       replyTo: params.replyTo ?? [],
       headers: params.headers ?? {},
-      attachments: (params.attachments as any) ?? [],
+      attachments: params.attachments ?? [],
       tags: params.tags ?? [],
       status: params.scheduledAt ? "scheduled" : "sent",
       scheduledAt: params.scheduledAt,
@@ -54,7 +54,7 @@ export class EmailService {
     return { id: record.id, providerId };
   }
 
-  async sendBatch(items: any[]) {
+  async sendBatch(items: Parameters<EmailService["send"]>[0][]) {
     // Encapsulate 5-at-a-time concurrency
     const CONCURRENCY = 5;
     const results = [];

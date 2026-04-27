@@ -17,15 +17,15 @@ export class ScheduledEmailWorker {
 
       try {
         await emailProvider.sendEmail({
-          from: email.from!,
-          to: email.to as string[],
-          subject: email.subject!,
-          html: email.html!,
-          text: email.text!,
-          cc: email.cc as string[],
-          bcc: email.bcc as string[],
-          replyTo: email.replyTo as string[],
-          headers: email.headers as Record<string, string>,
+          from: email.from,
+          to: email.to,
+          subject: email.subject,
+          html: email.html ?? undefined,
+          text: email.text ?? undefined,
+          cc: (email.cc as string[]) ?? undefined,
+          bcc: (email.bcc as string[]) ?? undefined,
+          replyTo: (email.replyTo as string[]) ?? undefined,
+          headers: (email.headers as Record<string, string>) ?? undefined,
         });
 
         await emailRepo.update(email.id, { status: "sent" });

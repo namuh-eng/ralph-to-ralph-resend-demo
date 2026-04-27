@@ -41,7 +41,7 @@ export const broadcastRepo = {
     const conditions = [];
 
     if (search) conditions.push(ilike(broadcasts.name, `%${search}%`));
-    if (status) conditions.push(eq(broadcasts.status, status as any));
+    if (status) conditions.push(eq(broadcasts.status, status));
     if (segmentId) conditions.push(eq(broadcasts.audienceId, segmentId));
     if (after) conditions.push(lt(broadcasts.id, after));
 
