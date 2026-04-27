@@ -145,17 +145,17 @@ export async function PATCH(
       html: updated.html,
       text: updated.text,
       variables:
-        (
-          updated.variables as Array<{ name: string; required?: boolean }>
-        )?.map((v, index) => ({
-          id: `var-${index}`,
-          key: v.name,
-          type: "string",
-          required: v.required ?? false,
-          fallback_value: null,
-          created_at: updated.createdAt,
-          updated_at: updated.createdAt,
-        })) || [],
+        (updated.variables as Array<{ name: string; required?: boolean }>)?.map(
+          (v, index) => ({
+            id: `var-${index}`,
+            key: v.name,
+            type: "string",
+            required: v.required ?? false,
+            fallback_value: null,
+            created_at: updated.createdAt,
+            updated_at: updated.createdAt,
+          }),
+        ) || [],
       created_at: updated.createdAt,
       updated_at: updated.createdAt,
     });

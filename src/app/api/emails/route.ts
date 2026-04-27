@@ -1,6 +1,10 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
+import {
+  normalizeAttachmentsForSend,
+  normalizeAttachmentsForStorage,
+} from "@/lib/email-attachments";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
 import { sendEmailSchema } from "@/lib/validation/emails";
 import { desc, eq, gt, lt } from "drizzle-orm";
@@ -130,12 +134,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text,
         replyTo,
         headers: validated.headers as Record<string, string>,
-        attachments:
-          (validated.attachments as Array<{
-            filename: string;
-            content?: string;
-            path?: string;
-          }>) ?? undefined,
+        attachments: normalizeAttachmentsForSend(validated.attachments),
       });
     }
 
@@ -153,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text ?? "",
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
-        attachments: (validated.attachments as Array<unknown>) ?? [],
+        attachments: normalizeAttachmentsForStorage(validated.attachments),
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,

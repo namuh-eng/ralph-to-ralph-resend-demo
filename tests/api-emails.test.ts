@@ -191,6 +191,55 @@ describe("POST /api/emails", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
   });
+
+  it("stores attachment ids and only sends attachments with content", async () => {
+    mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
+    const valuesMock = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: "email-uuid" }]),
+    });
+    mockDb.insert = vi.fn().mockReturnValue({ values: valuesMock });
+
+    const { POST } = await import("@/app/api/emails/route");
+    const req = makeRequest(
+      "POST",
+      {
+        from: "sender@domain.com",
+        to: ["single@test.com"],
+        subject: "Test",
+        html: "<p>Hi</p>",
+        attachments: [
+          { filename: "inline.txt", content: "aGVsbG8=" },
+          { filename: "remote.txt", path: "https://example.com/file.txt" },
+        ],
+      },
+      { Authorization: "Bearer re_test123" },
+    );
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [{ filename: "inline.txt", content: "aGVsbG8=" }],
+      }),
+    );
+    expect(valuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({
+            id: expect.any(String),
+            filename: "inline.txt",
+            content: "aGVsbG8=",
+          }),
+          expect.objectContaining({
+            id: expect.any(String),
+            filename: "remote.txt",
+            path: "https://example.com/file.txt",
+          }),
+        ],
+      }),
+    );
+  });
 });
 
 // ── POST /api/emails/batch Tests ──────────────────────────────────
@@ -214,9 +263,10 @@ describe("POST /api/emails/batch", () => {
       Authorization: "Bearer re_test123",
     });
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     const json = await res.json();
-    expect(json.error).toContain("100");
+    expect(json.error).toBe("Validation failed");
+    expect(json.details).toBeDefined();
   });
 
   it("sends batch and returns array of ids", async () => {
