@@ -26,6 +26,13 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  if (Array.isArray(body) && body.length > 100) {
+    return Response.json(
+      { error: "Batch size cannot exceed 100 emails" },
+      { status: 400 },
+    );
+  }
+
   const result = batchSendEmailSchema.safeParse(body);
   if (!result.success) {
     return Response.json(
@@ -53,6 +60,16 @@ export async function POST(request: Request): Promise<Response> {
             ? new Date(item.scheduled_at)
             : null;
 
+          const attachmentsForSes = (item.attachments ?? []).flatMap((a) =>
+            typeof a.content === "string"
+              ? [{ filename: a.filename, content: a.content }]
+              : [],
+          );
+          const attachmentsForDb = (item.attachments ?? []).map((a) => ({
+            id: crypto.randomUUID(),
+            ...a,
+          }));
+
           if (!scheduledAt) {
             await sesSendEmail({
               from: item.from,
@@ -64,7 +81,8 @@ export async function POST(request: Request): Promise<Response> {
               text: item.text,
               replyTo,
               headers: item.headers as Record<string, string>,
-              attachments: item.attachments as any,
+              attachments:
+                attachmentsForSes.length > 0 ? attachmentsForSes : undefined,
             });
           }
 
@@ -81,7 +99,7 @@ export async function POST(request: Request): Promise<Response> {
               text: item.text ?? "",
               tags: item.tags ?? [],
               headers: (item.headers as Record<string, string>) ?? {},
-              attachments: (item.attachments as any) ?? [],
+              attachments: attachmentsForDb,
               status: scheduledAt ? "scheduled" : "sent",
               scheduledAt: scheduledAt,
               topicId: item.topic_id || null,

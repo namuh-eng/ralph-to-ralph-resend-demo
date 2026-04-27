@@ -20,8 +20,12 @@ function makeChain<T>(rows: T[]) {
     limit: vi.fn().mockReturnThis(),
     offset: vi.fn().mockReturnThis(),
     groupBy: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
+    onConflictDoUpdate: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue(rows),
     // biome-ignore lint/suspicious/noThenProperty: mocks Drizzle's thenable query builder
     then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
@@ -963,6 +967,7 @@ describe("route smoke coverage", () => {
 
     mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: [] }); // contact
     mockFindFirst.mockResolvedValueOnce({ id: "s1", name: "VIP" }); // segment
+    mockInsert.mockImplementationOnce(() => makeChain([]));
     mockUpdate.mockImplementationOnce(() => makeChain([{ id: "c1" }]));
     const contactSegmentPost = await contactSegmentRoute.POST(
       makeNextRequest("http://localhost/api/contacts/c1/segments/s1", {

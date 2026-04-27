@@ -342,9 +342,9 @@ export function EmailDetail({ email }: EmailDetailProps) {
           </p>
           <div className="flex flex-wrap gap-2">
             {email.tags.length > 0 ? (
-              email.tags.map((tag, i) => (
+              email.tags.map((tag) => (
                 <div
-                  key={i}
+                  key={`${tag.name}:${tag.value}`}
                   className="px-2 py-0.5 bg-[rgba(176,199,217,0.1)] border border-[rgba(176,199,217,0.145)] rounded text-[12px] text-[#F0F0F0]"
                 >
                   <span className="text-[#A1A4A5]">{tag.name}:</span>{" "}
@@ -362,8 +362,8 @@ export function EmailDetail({ email }: EmailDetailProps) {
           </p>
           <div className="space-y-1">
             {Object.keys(email.headers).length > 0 ? (
-              Object.entries(email.headers).map(([key, value], i) => (
-                <div key={i} className="text-[12px] font-mono">
+              Object.entries(email.headers).map(([key, value]) => (
+                <div key={key} className="text-[12px] font-mono">
                   <span className="text-[#A1A4A5]">{key}:</span>{" "}
                   <span className="text-[#F0F0F0]">{value}</span>
                 </div>
@@ -380,11 +380,11 @@ export function EmailDetail({ email }: EmailDetailProps) {
         <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-4">
           EMAIL EVENTS
         </p>
-        <div className="space-y-3">
+        <div className="space-y-3" data-testid="event-timeline">
           {email.events.length > 0 ? (
-            email.events.map((event, i) => (
+            email.events.map((event) => (
               <div
-                key={i}
+                key={`${event.timestamp}-${event.type}`}
                 className="flex items-center gap-3 text-[13px] group"
               >
                 <div
@@ -397,7 +397,10 @@ export function EmailDetail({ email }: EmailDetailProps) {
                         : "bg-blue-500",
                   )}
                 />
-                <span className="text-[#F0F0F0] min-w-[100px]">
+                <span
+                  className="text-[#F0F0F0] min-w-[100px]"
+                  data-testid="event-badge"
+                >
                   {formatStatusLabel(event.type)}
                 </span>
                 <span className="text-[#666]">
