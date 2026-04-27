@@ -237,13 +237,23 @@ make dev      # http://localhost:3015
 ```
 
 `make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). Docker Compose app and migration containers use their own internal `postgres` hostname automatically.
+`npm install`/`npm ci` also installs the repo's versioned Git hooks automatically by setting `core.hooksPath` to `.githooks`.
 
 ```bash
-make check       # Typecheck + lint
-make test        # Unit tests
-make test-e2e    # E2E tests (requires dev server)
-make all         # Everything
+npm run hooks:install  # optional manual reinstall if you used --ignore-scripts
+npm run check          # runs the same change-scoped push guardrail used on pre-push
+make check             # full repo typecheck + lint
+make test              # Unit tests
+make test-e2e          # E2E tests (requires dev server)
+make all               # Everything
 ```
+
+Local guardrails:
+
+- `pre-commit` runs Biome on staged JS/TS/JSON/CSS/Markdown files for quick feedback.
+- `pre-push` runs `npm run check`, which checks only the files changed from `origin/main` and blocks the push if those changed files fail lint or typecheck.
+
+`make check` still runs the full repo validation. The push hook stays change-scoped because the current upstream branch still has unrelated legacy lint/typecheck failures outside this PR's scope.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide.
 

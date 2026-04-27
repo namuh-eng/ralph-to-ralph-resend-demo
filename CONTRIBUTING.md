@@ -15,6 +15,7 @@ make dev      # http://localhost:3015
 ```
 
 `make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). The Docker Compose app/migration services use their own internal `postgres` hostname automatically.
+`npm install`/`npm ci` also installs the repo's versioned Git hooks automatically by setting `core.hooksPath` to `.githooks`.
 
 The seed prints an API key to the console — save it. Then verify everything works:
 
@@ -37,6 +38,7 @@ curl -X POST http://localhost:3015/api/emails \
 Without AWS credentials, emails are logged to the console instead of sent — the full API flow still works for development.
 
 To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMPT=1 npm install`.
+If you install dependencies with `--ignore-scripts`, run `npm run hooks:install` once to enable the local guardrails manually.
 
 <details>
 <summary>Manual setup (without make setup)</summary>
@@ -52,12 +54,21 @@ To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMP
 
 | Command | Purpose |
 |---|---|
-| `make check` | TypeScript typecheck + Biome lint/format |
+| `npm run hooks:install` | Reinstall the versioned Git hooks (`.githooks`) |
+| `npm run check` | Run the same change-scoped push guardrails used by `pre-push` |
+| `make check` | Run full-repo TypeScript typecheck + Biome lint/format |
 | `make test` | Unit tests (Vitest) |
 | `make test-e2e` | E2E tests (Playwright, requires dev server) |
 | `make all` | Run everything |
 
 Run `make check && make test` before opening a PR.
+
+## Local Git Guardrails
+
+- `pre-commit`: runs `biome check` on staged JS/TS/JSON/CSS/Markdown files for fast feedback before the commit is created.
+- `pre-push`: runs `npm run check`, which compares your branch against `origin/main` and blocks the push if any changed files fail lint or typecheck.
+
+The hooks are versioned in `.githooks/`, so everyone on the repo gets the same guardrails after a normal install. `make check` remains available for full-repo validation; the hook stays change-scoped because `origin/main` still has unrelated legacy failures outside most focused PRs.
 
 ## Ports
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "→ Running change-scoped push guardrails..."
+npm run check
