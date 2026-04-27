@@ -1,5 +1,5 @@
 import {
-  emailEvents,
+  type emailEvents,
   signWebhookPayload,
   webhookDeliveryRepo,
   webhookRepo,

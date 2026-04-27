@@ -81,7 +81,11 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       // Validate required variables
-      const templateVars = (template.variables as any[]) ?? [];
+      const templateVars =
+        (template.variables as Array<{
+          name: string;
+          required: boolean;
+        }>) ?? [];
       const requiredVars = templateVars
         .filter((v) => v.required)
         .map((v) => v.name);
@@ -126,7 +130,12 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text,
         replyTo,
         headers: validated.headers as Record<string, string>,
-        attachments: validated.attachments as any,
+        attachments:
+          (validated.attachments as Array<{
+            filename: string;
+            content?: string;
+            path?: string;
+          }>) ?? undefined,
       });
     }
 
@@ -144,7 +153,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text ?? "",
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
-        attachments: (validated.attachments as any) ?? [],
+        attachments: (validated.attachments as Array<unknown>) ?? [],
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,

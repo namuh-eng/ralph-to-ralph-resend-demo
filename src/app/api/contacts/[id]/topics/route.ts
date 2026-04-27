@@ -45,9 +45,10 @@ export async function GET(
     }
 
     const subscriptions =
-      (contact.topicSubscriptions as
-        | Array<{ topicId: string; subscribed: boolean }>
-        | null) ?? [];
+      (contact.topicSubscriptions as Array<{
+        topicId: string;
+        subscribed: boolean;
+      }> | null) ?? [];
 
     const data = await Promise.all(
       subscriptions.map(async (sub) => {

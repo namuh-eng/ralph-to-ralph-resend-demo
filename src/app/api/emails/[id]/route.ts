@@ -53,7 +53,7 @@ export async function PATCH(
 
   const { id } = await params;
 
-  let body: any;
+  let body: { scheduled_at?: string | null };
   try {
     body = await request.json();
   } catch {
@@ -76,7 +76,7 @@ export async function PATCH(
       );
     }
 
-    const updates: Record<string, any> = {};
+    const updates: { scheduledAt?: Date | null } = {};
     if (body.scheduled_at !== undefined) {
       updates.scheduledAt = body.scheduled_at
         ? new Date(body.scheduled_at)

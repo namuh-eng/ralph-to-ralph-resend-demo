@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
       await Promise.all(
         targetContacts.map(async (c) => {
           const currentTopics =
-            (c.topicSubscriptions as
-              | Array<{ topicId: string; subscribed: boolean }>
-              | null) ?? [];
+            (c.topicSubscriptions as Array<{
+              topicId: string;
+              subscribed: boolean;
+            }> | null) ?? [];
           const exists = currentTopics.some((t) => t.topicId === topic.id);
           if (!exists) {
             await db

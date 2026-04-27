@@ -35,9 +35,10 @@ export async function GET(
     // Map internal topic shape to documented opt_in/opt_out shape
     const topics =
       (
-        contact.topicSubscriptions as
-          | Array<{ topicId: string; subscribed: boolean }>
-          | null
+        contact.topicSubscriptions as Array<{
+          topicId: string;
+          subscribed: boolean;
+        }> | null
       )?.map((t) => ({
         id: t.topicId,
         subscription: t.subscribed ? "opt_in" : "opt_out",
