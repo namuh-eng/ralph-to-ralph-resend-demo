@@ -47,7 +47,14 @@ export async function PATCH(
 
   const { id } = await params;
 
-  let body: any;
+  let body: {
+    endpoint?: string;
+    url?: string;
+    events?: string[];
+    event_types?: string[];
+    status?: string;
+    active?: boolean;
+  };
   try {
     body = await request.json();
   } catch {

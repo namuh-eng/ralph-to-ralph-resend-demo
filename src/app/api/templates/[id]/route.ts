@@ -40,7 +40,9 @@ export async function GET(
       html: template.html,
       text: template.text,
       variables:
-        (template.variables as any[])?.map((v, index) => ({
+        (
+          template.variables as Array<{ name: string; required?: boolean }>
+        )?.map((v, index) => ({
           id: `var-${index}`,
           key: v.name,
           type: "string",
@@ -95,7 +97,9 @@ export async function PATCH(
         const extracted = extractTemplateVariables(fullContent);
 
         // Merge with existing manual variable requirements if they exist
-        const currentVars = (existing.variables as any[]) ?? [];
+        const currentVars =
+          (existing.variables as Array<{ name: string; required?: boolean }>) ??
+          [];
         const varMap = new Map(currentVars.map((v) => [v.name, v]));
 
         updateData.variables = extracted.map((name) => ({
@@ -107,7 +111,9 @@ export async function PATCH(
 
     // Manual variable override
     if (body.variables !== undefined) {
-      updateData.variables = body.variables.map((v: any) => ({
+      updateData.variables = (
+        body.variables as Array<{ name: string; required?: boolean }>
+      ).map((v) => ({
         name: v.name,
         required: v.required ?? false,
       }));
@@ -139,7 +145,9 @@ export async function PATCH(
       html: updated.html,
       text: updated.text,
       variables:
-        (updated.variables as any[])?.map((v, index) => ({
+        (
+          updated.variables as Array<{ name: string; required?: boolean }>
+        )?.map((v, index) => ({
           id: `var-${index}`,
           key: v.name,
           type: "string",

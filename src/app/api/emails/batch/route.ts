@@ -63,8 +63,14 @@ export async function POST(request: Request): Promise<Response> {
               html: item.html,
               text: item.text,
               replyTo,
-              headers: item.headers as Record<string, string>,
-              attachments: item.attachments as any,
+              headers: (item.headers as Record<string, string>) ?? {},
+              attachments: (item.attachments as Array<{
+                filename: string;
+                content?: string;
+                path?: string;
+                content_type?: string;
+                content_id?: string;
+              }>) ?? [],
             });
           }
 
@@ -81,7 +87,13 @@ export async function POST(request: Request): Promise<Response> {
               text: item.text ?? "",
               tags: item.tags ?? [],
               headers: (item.headers as Record<string, string>) ?? {},
-              attachments: (item.attachments as any) ?? [],
+              attachments: (item.attachments as Array<{
+                filename: string;
+                content?: string;
+                path?: string;
+                content_type?: string;
+                content_id?: string;
+              }>) ?? [],
               status: scheduledAt ? "scheduled" : "sent",
               scheduledAt: scheduledAt,
               topicId: item.topic_id || null,

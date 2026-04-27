@@ -27,7 +27,14 @@ export async function GET(
       );
     }
 
-    const attachments = (email.attachments as any[]) ?? [];
+    const attachments =
+      (email.attachments as Array<{
+        id: string;
+        filename: string;
+        contentType: string;
+        size: number;
+        s3Key: string;
+      }>) ?? [];
     const attachment = attachments.find((a) => a.id === attachmentId);
 
     if (!attachment) {
