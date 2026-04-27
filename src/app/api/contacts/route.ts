@@ -39,19 +39,21 @@ export async function POST(request: NextRequest) {
     let resolvedTopics: Array<{ topicId: string; subscribed: boolean }> = [];
     if (validated.topics) {
       resolvedTopics = await Promise.all(
-        validated.topics.map(async (t: any) => {
-          const topicId = typeof t === "string" ? t : t.id;
-          const subscription =
-            typeof t === "string" ? "opt_in" : t.subscription || "opt_in";
-          const found = await db.query.topics.findFirst({
-            where: eq(topics.id, topicId),
-          });
-          if (!found) return null;
-          return {
-            topicId: found.id,
-            subscribed: subscription === "opt_in",
-          };
-        }),
+        validated.topics.map(
+          async (t: string | { id: string; subscription?: string }) => {
+            const topicId = typeof t === "string" ? t : t.id;
+            const subscription =
+              typeof t === "string" ? "opt_in" : t.subscription || "opt_in";
+            const found = await db.query.topics.findFirst({
+              where: eq(topics.id, topicId),
+            });
+            if (!found) return null;
+            return {
+              topicId: found.id,
+              subscribed: subscription === "opt_in",
+            };
+          },
+        ),
       ).then((results) =>
         results.filter(
           (r): r is { topicId: string; subscribed: boolean } => r !== null,
@@ -82,8 +84,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 },
       );
-    } catch (dbError: any) {
-      if (dbError.code === "23505") {
+    } catch (dbError) {
+      if (
+        dbError &&
+        typeof dbError === "object" &&
+        "code" in dbError &&
+        dbError.code === "23505"
+      ) {
         // PostgreSQL unique violation code
         return NextResponse.json(
           { error: "A contact with this email already exists" },

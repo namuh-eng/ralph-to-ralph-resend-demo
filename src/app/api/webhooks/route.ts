@@ -74,8 +74,16 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const validated = result.data;
-  const endpoint = validated.endpoint || validated.url!;
-  const events = validated.events || validated.event_types!;
+  const endpoint = validated.endpoint ?? (validated as { url?: string }).url;
+  const events =
+    validated.events ?? (validated as { event_types?: string[] }).event_types;
+
+  if (!endpoint || !events) {
+    return Response.json(
+      { error: "Endpoint and events are required" },
+      { status: 422 },
+    );
+  }
 
   try {
     const signingSecret = `whsec_${randomBytes(24).toString("base64url")}`;
