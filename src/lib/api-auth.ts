@@ -107,3 +107,29 @@ export function unauthorizedResponse(): Response {
 export async function getServerSession() {
   return auth.api.getSession({ headers: await headers() });
 }
+
+/**
+ * Validate access for dashboard-managed routes that should accept either:
+ * - a regular API key,
+ * - the dashboard master key, or
+ * - an authenticated dashboard session.
+ */
+export async function authorizeDashboardOrApiKey(
+  authHeader: string | null | undefined,
+): Promise<AuthResult | { dashboard: true } | null> {
+  const apiKeyAuth = await validateApiKey(authHeader);
+  if (apiKeyAuth) {
+    return apiKeyAuth;
+  }
+
+  if (validateDashboardKey(authHeader)) {
+    return { dashboard: true };
+  }
+
+  const session = await getServerSession();
+  if (session) {
+    return { dashboard: true };
+  }
+
+  return null;
+}

@@ -11,6 +11,7 @@ const mockValidateApiKey = vi.hoisted(() => vi.fn());
 const mockCountFn = vi.hoisted(() => vi.fn());
 const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockAuthorizeDashboardOrApiKey = vi.hoisted(() => vi.fn());
 
 function makeChain<T>(rows: T[]) {
   return {
@@ -214,9 +215,14 @@ describe("route smoke coverage", () => {
         validateApiKey: mockValidateApiKey,
         validateDashboardKey: mockValidateDashboardKey,
         getServerSession: mockGetServerSession,
+        authorizeDashboardOrApiKey: mockAuthorizeDashboardOrApiKey,
       };
     });
     mockValidateApiKey.mockResolvedValue({
+      apiKeyId: "key-1",
+      permission: "full_access",
+    });
+    mockAuthorizeDashboardOrApiKey.mockResolvedValue({
       apiKeyId: "key-1",
       permission: "full_access",
     });
@@ -363,6 +369,101 @@ describe("route smoke coverage", () => {
     json = await dashboardKeyResponse.json();
     expect(json.transactional.monthlyUsed).toBe(7);
     expect(mockGetServerSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows dashboard-session auth for audience list routes", async () => {
+    mockAuthorizeDashboardOrApiKey.mockResolvedValueOnce({ dashboard: true });
+    mockSelect.mockReturnValueOnce(
+      makeChain([
+        {
+          id: "c1",
+          email: "alice@example.com",
+          firstName: "Alice",
+          lastName: "Example",
+          unsubscribed: false,
+          segments: ["VIP"],
+          createdAt: new Date("2026-04-27T00:00:00.000Z"),
+        },
+      ]),
+    );
+
+    const contactsRoute = await import("@/app/api/contacts/route");
+    const response = await contactsRoute.GET(
+      makeNextRequest("http://localhost/api/contacts"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      object: "list",
+      data: [
+        expect.objectContaining({
+          email: "alice@example.com",
+          status: "subscribed",
+        }),
+      ],
+    });
+  });
+
+  it("allows dashboard-session auth for audience create routes", async () => {
+    mockAuthorizeDashboardOrApiKey.mockResolvedValue({ dashboard: true });
+    mockInsert
+      .mockReturnValueOnce(makeChain([{ id: "segment-1", name: "VIP" }]))
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            id: "topic-1",
+            name: "Product updates",
+            description: null,
+            defaultSubscription: "opt_out",
+            visibility: "public",
+            createdAt: new Date("2026-04-27T00:00:00.000Z"),
+          },
+        ]),
+      )
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            id: "property-1",
+            key: "company",
+            name: "Company",
+            type: "string",
+            fallbackValue: null,
+            createdAt: new Date("2026-04-27T00:00:00.000Z"),
+            updatedAt: new Date("2026-04-27T00:00:00.000Z"),
+          },
+        ]),
+      );
+
+    const segmentsRoute = await import("@/app/api/segments/route");
+    const topicsRoute = await import("@/app/api/topics/route");
+    const propertiesRoute = await import("@/app/api/properties/route");
+
+    await expect(
+      segmentsRoute.POST(
+        makeNextRequest("http://localhost/api/segments", {
+          method: "POST",
+          body: JSON.stringify({ name: "VIP" }),
+        }) as never,
+      ),
+    ).resolves.toHaveProperty("status", 201);
+
+    await expect(
+      topicsRoute.POST(
+        makeNextRequest("http://localhost/api/topics", {
+          method: "POST",
+          body: JSON.stringify({ name: "Product updates" }),
+        }) as never,
+      ),
+    ).resolves.toHaveProperty("status", 201);
+
+    await expect(
+      propertiesRoute.POST(
+        makeNextRequest("http://localhost/api/properties", {
+          method: "POST",
+          body: JSON.stringify({ name: "Company" }),
+        }) as never,
+      ),
+    ).resolves.toHaveProperty("status", 201);
   });
 
   it("covers segments get/post happy path and validation", async () => {

@@ -1,4 +1,7 @@
-import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import {
+  authorizeDashboardOrApiKey,
+  unauthorizedResponse,
+} from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { contacts, segments, topics } from "@/lib/db/schema";
 import { createContactSchema } from "@/lib/validation/contacts";
@@ -6,7 +9,9 @@ import { type SQL, and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const auth = await validateApiKey(request.headers.get("authorization"));
+  const auth = await authorizeDashboardOrApiKey(
+    request.headers.get("authorization"),
+  );
   if (!auth) return unauthorizedResponse();
 
   try {
@@ -109,7 +114,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: Request) {
-  const auth = await validateApiKey(request.headers.get("authorization"));
+  const auth = await authorizeDashboardOrApiKey(
+    request.headers.get("authorization"),
+  );
   if (!auth) return unauthorizedResponse();
 
   const url = new URL(request.url);
