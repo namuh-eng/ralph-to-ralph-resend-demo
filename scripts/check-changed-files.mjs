@@ -78,29 +78,18 @@ function runTypecheck(changedFiles) {
     return;
   }
 
-  console.log(
-    `→ Typechecking changed JS/TS files against baseline (${typedFiles.length})...`,
-  );
+  console.log("→ Running full-project typecheck...");
   const result = spawnSync("bunx", ["tsc", "--noEmit", "--pretty", "false"], {
     cwd: repoRoot,
     encoding: "utf8",
+    stdio: "inherit",
   });
 
-  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
-  if ((result.status ?? 0) === 0) {
-    console.log("✓ Typecheck passed");
-    return;
-  }
-
-  const relevant = typedFiles.some((file) => output.includes(`${file}(`));
-  if (relevant) {
-    process.stderr.write(output);
+  if ((result.status ?? 0) !== 0) {
     process.exit(result.status ?? 1);
   }
 
-  console.log(
-    "↷ Full-project typecheck is red outside the files changed on this branch; allowing push.",
-  );
+  console.log("✓ Typecheck passed");
 }
 
 function runLint(changedFiles) {
