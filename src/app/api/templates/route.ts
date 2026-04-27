@@ -139,10 +139,12 @@ export async function POST(request: NextRequest) {
         replyTo: body.reply_to || null,
         previewText: body.preview_text || null,
         text: body.text || null,
-        variables: variablesArr.map((v: any) => ({
-          name: v.name,
-          required: v.required ?? false,
-        })),
+        variables: (variablesArr as Array<{ name: string; required?: boolean }>).map(
+          (v) => ({
+            name: v.name,
+            required: v.required ?? false,
+          }),
+        ),
         status: "draft",
       })
       .returning();
