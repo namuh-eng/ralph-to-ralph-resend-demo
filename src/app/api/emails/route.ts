@@ -125,7 +125,7 @@ export async function POST(request: Request): Promise<Response> {
         html: finalHtml,
         text: validated.text,
         replyTo,
-        headers: validated.headers,
+        headers: validated.headers as Record<string, string>,
         attachments: validated.attachments as any,
       });
     }
@@ -143,7 +143,7 @@ export async function POST(request: Request): Promise<Response> {
         html: finalHtml,
         text: validated.text ?? "",
         tags: validated.tags ?? [],
-        headers: validated.headers ?? {},
+        headers: (validated.headers as Record<string, string>) ?? {},
         attachments: (validated.attachments as any) ?? [],
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,

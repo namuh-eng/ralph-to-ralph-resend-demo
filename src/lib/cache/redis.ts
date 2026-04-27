@@ -32,6 +32,29 @@ export async function setCache(
   }
 }
 
+export async function incrCache(key: string, ttlSeconds: number): Promise<number | null> {
+  if (!client) return null;
+  try {
+    const multi = client.multi();
+    multi.incr(key);
+    multi.expire(key, ttlSeconds, "NX");
+    const replies = await multi.exec();
+    const count = replies?.[0];
+    return typeof count === "number" ? count : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getTtl(key: string): Promise<number | null> {
+  if (!client) return null;
+  try {
+    return await client.ttl(key);
+  } catch {
+    return null;
+  }
+}
+
 export async function invalidateCache(key: string): Promise<void> {
   if (!client) return;
   try {

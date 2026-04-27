@@ -1,3 +1,10 @@
+import {
+  type EmailOptions,
+  type EmailResponse,
+  type DomainOptions,
+  type DomainResponse as CoreDomainResponse,
+} from "@namuh/core";
+
 // ── Types ────────────────────────────────────────────────────────
 
 interface SDKOptions {
@@ -11,25 +18,11 @@ interface ApiResponse<T> {
 
 // ── Email Types ──────────────────────────────────────────────────
 
-interface SendEmailPayload {
-  from: string;
-  to: string | string[];
-  subject: string;
-  html?: string;
-  text?: string;
+export type SendEmailPayload = EmailOptions & {
   react?: unknown;
-  cc?: string | string[];
-  bcc?: string | string[];
-  reply_to?: string | string[];
-  headers?: Record<string, string>;
-  attachments?: Array<{ filename: string; content: string }>;
-  tags?: Array<{ name: string; value: string }>;
-  scheduled_at?: string;
-}
+};
 
-interface EmailResponse {
-  id: string;
-}
+export type { EmailResponse };
 
 interface EmailListItem {
   id: string;
@@ -66,19 +59,8 @@ interface EmailDetailResponse {
 
 // ── Domain Types ─────────────────────────────────────────────────
 
-interface CreateDomainPayload {
-  name: string;
-  region?: string;
-}
-
-interface DomainResponse {
-  id: string;
-  name: string;
-  status: string;
-  region?: string;
-  created_at?: string;
-  records?: unknown;
-}
+export type CreateDomainPayload = DomainOptions;
+export type DomainResponse = CoreDomainResponse;
 
 interface DomainListResponse {
   data: DomainResponse[];

@@ -1,38 +1,80 @@
-import { signWebhookPayload } from "@namuh/core";
+import { signWebhookPayload, webhookDeliveryRepo, webhookRepo } from "@namuh/core";
 
 export class WebhookDispatcher {
-  async dispatch(webhook: any, event: any) {
+  async dispatch(webhookId: string, event: any) {
+    const webhook = await webhookRepo.findById(webhookId);
+    if (!webhook || webhook.status !== "active") return;
+
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const msgId = `wh_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+
     const body = JSON.stringify({
+      id: msgId,
       type: event.type,
       created_at: new Date().toISOString(),
       data: event.payload,
     });
 
     const signature = signWebhookPayload(
-      webhook.signingSecret,
+      webhook.signingSecret || "",
       msgId,
       timestamp,
       body,
     );
 
-    const res = await fetch(webhook.url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "svix-id": msgId,
-        "svix-timestamp": timestamp,
-        "svix-signature": signature,
-      },
-      body,
+    const delivery = await webhookDeliveryRepo.create({
+      webhookId: webhook.id,
+      eventId: event.id,
+      status: "pending",
+      attempt: 1,
     });
 
-    return {
-      statusCode: res.status,
-      success: res.ok,
-    };
+    try {
+      const res = await fetch(webhook.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "svix-id": msgId,
+          "svix-timestamp": timestamp,
+          "svix-signature": signature,
+        },
+        body,
+      });
+
+      const responseBody = await res.text();
+
+      await webhookDeliveryRepo.update(delivery.id, {
+        statusCode: res.status,
+        responseBody,
+        status: res.ok ? "success" : "failed",
+        attemptedAt: new Date(),
+        nextRetryAt: res.ok ? null : this.calculateNextRetry(1),
+      });
+
+      return {
+        statusCode: res.status,
+        success: res.ok,
+      };
+    } catch (error: any) {
+      await webhookDeliveryRepo.update(delivery.id, {
+        status: "failed",
+        responseBody: error.message,
+        attemptedAt: new Date(),
+        nextRetryAt: this.calculateNextRetry(1),
+      });
+
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  private calculateNextRetry(attempt: number): Date {
+    // 10s, 1m, 5m, 30m, 2h, 6h, 24h
+    const intervals = [10, 60, 300, 1800, 7200, 21600, 86400];
+    const seconds = intervals[attempt - 1] || 86400;
+    return new Date(Date.now() + seconds * 1000);
   }
 }
 

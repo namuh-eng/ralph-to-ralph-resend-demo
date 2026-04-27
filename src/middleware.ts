@@ -1,14 +1,27 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
+import { incrCache, getTtl } from "@/lib/cache/redis";
 
-// Simple in-memory rate limiter for middleware
+// Fallback in-memory rate limiter if Redis is unavailable
 const hits = new Map<string, { count: number; resetAt: number }>();
 
-function checkRate(
+async function checkRate(
   key: string,
   maxRequests: number,
   windowMs: number,
-): { allowed: true } | { allowed: false; retryAfter: number } {
+): Promise<{ allowed: true } | { allowed: false; retryAfter: number }> {
+  const redisKey = `ratelimit:${key}`;
+  const count = await incrCache(redisKey, Math.ceil(windowMs / 1000));
+
+  if (count !== null) {
+    if (count <= maxRequests) {
+      return { allowed: true };
+    }
+    const ttl = await getTtl(redisKey);
+    return { allowed: false, retryAfter: ttl || Math.ceil(windowMs / 1000) };
+  }
+
+  // Fallback to in-memory
   const now = Date.now();
   const entry = hits.get(key);
 
@@ -68,7 +81,7 @@ function getLimits(
   return { max: 100, windowMs: 60_000 };
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect non-API page routes with session check
@@ -95,7 +108,7 @@ export function middleware(request: NextRequest) {
   const rateLimitKey = `${ip}:${authKey}:${pathname}`;
 
   const { max, windowMs } = getLimits(pathname, request.method);
-  const result = checkRate(rateLimitKey, max, windowMs);
+  const result = await checkRate(rateLimitKey, max, windowMs);
 
   if (!result.allowed) {
     return NextResponse.json(

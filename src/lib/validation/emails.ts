@@ -34,15 +34,15 @@ export const sendEmailSchema = z
     cc: emailRecipientSchema.optional(),
     bcc: emailRecipientSchema.optional(),
     reply_to: emailRecipientSchema.optional(),
-    headers: z.record(z.string()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
     attachments: z.array(attachmentSchema).optional(),
     tags: z.array(tagSchema).optional(),
-    scheduled_at: z.string().datetime({ offset: true }).optional(),
+    scheduled_at: z.string().optional(),
     topic_id: z.string().uuid().optional(),
     template: z
       .object({
         id: z.string().uuid(),
-        variables: z.record(z.any()).optional(),
+        variables: z.record(z.string(), z.any()).optional(),
       })
       .optional(),
   })

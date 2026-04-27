@@ -63,7 +63,7 @@ export async function POST(request: Request): Promise<Response> {
               html: item.html,
               text: item.text,
               replyTo,
-              headers: item.headers,
+              headers: item.headers as Record<string, string>,
               attachments: item.attachments as any,
             });
           }
@@ -80,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
               html: item.html ?? "",
               text: item.text ?? "",
               tags: item.tags ?? [],
-              headers: item.headers ?? {},
+              headers: (item.headers as Record<string, string>) ?? {},
               attachments: (item.attachments as any) ?? [],
               status: scheduledAt ? "scheduled" : "sent",
               scheduledAt: scheduledAt,

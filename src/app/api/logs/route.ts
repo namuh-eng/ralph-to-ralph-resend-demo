@@ -1,7 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { logs } from "@/lib/db/schema";
-import { type SQL, and, desc, eq, lt } from "drizzle-orm";
+import { type SQL, and, desc, eq, gt, lt } from "drizzle-orm";
 
 export async function GET(request: Request): Promise<Response> {
   const auth = await validateApiKey(request.headers.get("authorization"));

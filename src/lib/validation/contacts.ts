@@ -7,7 +7,7 @@ export const createContactSchema = z.object({
   first_name: z.string().max(255).optional(),
   last_name: z.string().max(255).optional(),
   unsubscribed: z.boolean().optional(),
-  properties: z.record(z.string()).optional(),
+  properties: z.record(z.string(), z.string()).optional(),
   segments: z.array(z.string()).optional(),
   topics: z
     .array(
@@ -27,7 +27,7 @@ export const updateContactSchema = z.object({
   first_name: z.string().max(255).optional(),
   last_name: z.string().max(255).optional(),
   unsubscribed: z.boolean().optional(),
-  properties: z.record(z.string()).optional(),
+  properties: z.record(z.string(), z.string()).optional(),
 });
 
 export type CreateContactRequest = z.infer<typeof createContactSchema>;

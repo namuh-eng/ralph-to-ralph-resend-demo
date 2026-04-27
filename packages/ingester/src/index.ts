@@ -1,4 +1,4 @@
-import { emailEventRepo, emailRepo } from "@namuh/core";
+import { emailEventRepo, webhookDispatcher, webhookRepo } from "@namuh/core";
 import { Hono } from "hono";
 
 const app = new Hono();
@@ -22,22 +22,27 @@ app.post("/events/ses", async (c) => {
 
     console.log(`Received SES event ${eventType} for message ${sesId}`);
 
-    // Resolve internal emailId from tags or messageId
-    // Resend/SES usually includes tags in the 'mail' object if passed
-    const broadcastId = sesMessage.mail.tags?.["broadcast_id"]?.[0];
-    
-    // For now, we assume standard SES event normalization
-    const payload = sesMessage[eventType.toLowerCase()] || sesMessage;
-
-    // Use a default system userId if not found
+    // SES tags are sometimes nested in mail.tags
     const emailId = sesMessage.mail.headers?.find((h: any) => h.name === "X-Entity-ID")?.value;
 
     if (emailId) {
-      await emailEventRepo.create({
+      const event = await emailEventRepo.create({
         emailId,
         type: eventType.toLowerCase(),
-        payload,
+        payload: sesMessage[eventType.toLowerCase()] || sesMessage,
       });
+
+      // Simple fan-out: dispatch to all active webhooks subscribed to this type
+      const { data: hooks } = await webhookRepo.list({ limit: 100 });
+      for (const hook of hooks) {
+        const types = hook.eventTypes as string[];
+        if (hook.status === "active" && (types.includes("*") || types.includes(event.type))) {
+          // Fire and forget for now in this context, or await if we want serial
+          webhookDispatcher.dispatch(hook.id, event).catch(err => {
+            console.error(`Error dispatching webhook ${hook.id}:`, err);
+          });
+        }
+      }
     }
   }
 
