@@ -89,6 +89,12 @@ export async function sendEmail(
   if (input.attachments && input.attachments.length > 0) {
     const rawMessage = buildMimeMessage(input);
     const command = new SendEmailCommand({
+      FromEmailAddress: input.from,
+      Destination: {
+        ToAddresses: input.to,
+        CcAddresses: input.cc,
+        BccAddresses: input.bcc,
+      },
       Content: {
         Raw: {
           Data: new TextEncoder().encode(rawMessage),
