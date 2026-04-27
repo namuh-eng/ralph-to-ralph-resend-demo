@@ -263,9 +263,10 @@ describe("POST /api/emails/batch", () => {
       Authorization: "Bearer re_test123",
     });
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     const json = await res.json();
-    expect(json.error).toBe("Batch size cannot exceed 100 emails");
+    expect(json.error).toBe("Validation failed");
+    expect(json.details.formErrors[0]).toContain("100");
   });
 
   it("sends batch and returns array of ids", async () => {

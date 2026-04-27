@@ -39,6 +39,10 @@ export interface EmailResponse {
 
 export type SendEmailResponse = EmailResponse;
 
+export interface BatchEmailResponse {
+  data: EmailResponse[];
+}
+
 export interface EmailListItem {
   id: string;
   from: string;
@@ -90,6 +94,16 @@ export interface DomainOptions {
   capabilities?: DomainCapability[];
 }
 
+export interface UpdateDomainPayload {
+  click_tracking?: boolean;
+  open_tracking?: boolean;
+  tracking_subdomain?: string;
+  capabilities?: DomainCapability[];
+  sending_enabled?: boolean;
+  receiving_enabled?: boolean;
+  tls?: "opportunistic" | "enforced";
+}
+
 export interface DomainResponse {
   object: "domain";
   id: string;
@@ -118,6 +132,13 @@ export interface DomainListResponse {
   object: "list";
   data: DomainListItem[];
   has_more: boolean;
+}
+
+export interface AutoConfigureDomainResponse {
+  ok: boolean;
+  records: DomainRecord[];
+  cloudflare_records: number;
+  warnings?: string[];
 }
 
 export interface CreateApiKeyPayload {

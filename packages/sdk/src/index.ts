@@ -1,6 +1,8 @@
 import type {
   ApiKeyListResponse,
   ApiKeyResponse,
+  AutoConfigureDomainResponse,
+  BatchEmailResponse,
   ContactListItem,
   ContactListResponse,
   ContactResponse,
@@ -16,6 +18,7 @@ import type {
   EmailListResponse,
   EmailOptions,
   EmailResponse,
+  UpdateDomainPayload,
 } from "../../core/src/dto";
 
 interface SDKOptions {
@@ -135,6 +138,16 @@ class Emails {
     return this.http.request<EmailResponse>("POST", "/api/emails", rest);
   }
 
+  async sendBatch(
+    payload: SendEmailPayload[],
+  ): Promise<ApiResponse<BatchEmailResponse>> {
+    return this.http.request<BatchEmailResponse>(
+      "POST",
+      "/api/emails/batch",
+      payload,
+    );
+  }
+
   async list(): Promise<ApiResponse<EmailListResponse>> {
     return this.http.request<EmailListResponse>("GET", "/api/emails");
   }
@@ -159,10 +172,30 @@ class Domains {
     return this.http.request<DomainResponse>("GET", `/api/domains/${id}`);
   }
 
+  async update(
+    id: string,
+    payload: UpdateDomainPayload,
+  ): Promise<ApiResponse<Pick<DomainResponse, "object" | "id">>> {
+    return this.http.request<Pick<DomainResponse, "object" | "id">>(
+      "PATCH",
+      `/api/domains/${id}`,
+      payload,
+    );
+  }
+
   async verify(id: string): Promise<ApiResponse<DomainResponse>> {
     return this.http.request<DomainResponse>(
       "POST",
       `/api/domains/${id}/verify`,
+    );
+  }
+
+  async autoConfigure(
+    id: string,
+  ): Promise<ApiResponse<AutoConfigureDomainResponse>> {
+    return this.http.request<AutoConfigureDomainResponse>(
+      "POST",
+      `/api/domains/${id}/auto-configure`,
     );
   }
 }
@@ -233,13 +266,16 @@ export type {
   ApiResponse,
   EmailOptions,
   EmailResponse,
+  BatchEmailResponse,
   EmailListItem,
   EmailListResponse,
   EmailDetailResponse,
   DomainOptions,
+  UpdateDomainPayload,
   DomainResponse,
   DomainListItem,
   DomainListResponse,
+  AutoConfigureDomainResponse,
   CreateApiKeyPayload,
   ApiKeyResponse,
   ApiKeyListResponse,
