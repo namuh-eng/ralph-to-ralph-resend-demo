@@ -10,7 +10,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: "bun run dev",
     port: 3015,
     reuseExistingServer: true,
   },
