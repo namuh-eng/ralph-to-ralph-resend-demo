@@ -2,9 +2,7 @@
   "name": "namuh-send",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*"],
   "scripts": {
     "postinstall": "bash scripts/postinstall-star.sh 2>/dev/null || true",
     "dev": "next dev --port 3015",

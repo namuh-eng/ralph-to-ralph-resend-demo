@@ -1,6 +1,6 @@
+import { getTtl, incrCache } from "@/lib/cache/redis";
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
-import { incrCache, getTtl } from "@/lib/cache/redis";
 
 // Fallback in-memory rate limiter if Redis is unavailable
 const hits = new Map<string, { count: number; resetAt: number }>();

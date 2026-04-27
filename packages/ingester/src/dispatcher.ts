@@ -1,4 +1,8 @@
-import { signWebhookPayload, webhookDeliveryRepo, webhookRepo } from "@namuh/core";
+import {
+  signWebhookPayload,
+  webhookDeliveryRepo,
+  webhookRepo,
+} from "@namuh/core";
 
 export class WebhookDispatcher {
   async dispatch(webhookId: string, event: any) {

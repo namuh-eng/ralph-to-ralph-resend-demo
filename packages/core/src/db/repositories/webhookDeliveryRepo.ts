@@ -14,7 +14,10 @@ export const webhookDeliveryRepo = {
     return results[0];
   },
 
-  async update(id: string, data: Partial<typeof webhookDeliveries.$inferInsert>) {
+  async update(
+    id: string,
+    data: Partial<typeof webhookDeliveries.$inferInsert>,
+  ) {
     const results = await db
       .update(webhookDeliveries)
       .set(data)
@@ -23,7 +26,10 @@ export const webhookDeliveryRepo = {
     return results[0];
   },
 
-  async listByWebhookId(webhookId: string, options: { limit?: number; after?: string } = {}) {
+  async listByWebhookId(
+    webhookId: string,
+    options: { limit?: number; after?: string } = {},
+  ) {
     const { limit = 20, after } = options;
     const conditions = [eq(webhookDeliveries.webhookId, webhookId)];
 
@@ -41,7 +47,7 @@ export const webhookDeliveryRepo = {
 
     return { data, hasMore };
   },
-  
+
   async findPendingRetries() {
     return await db
       .select()
@@ -49,9 +55,9 @@ export const webhookDeliveryRepo = {
       .where(
         and(
           eq(webhookDeliveries.status, "pending"),
-          lt(webhookDeliveries.nextRetryAt, new Date())
-        )
+          lt(webhookDeliveries.nextRetryAt, new Date()),
+        ),
       )
       .orderBy(desc(webhookDeliveries.createdAt));
-  }
+  },
 };

@@ -1,8 +1,8 @@
-import {
-  type EmailOptions,
-  type EmailResponse,
-  type DomainOptions,
-  type DomainResponse as CoreDomainResponse,
+import type {
+  DomainResponse as CoreDomainResponse,
+  DomainOptions,
+  EmailOptions,
+  EmailResponse,
 } from "@namuh/core";
 
 // ── Types ────────────────────────────────────────────────────────

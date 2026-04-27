@@ -32,7 +32,10 @@ export async function setCache(
   }
 }
 
-export async function incrCache(key: string, ttlSeconds: number): Promise<number | null> {
+export async function incrCache(
+  key: string,
+  ttlSeconds: number,
+): Promise<number | null> {
   if (!client) return null;
   try {
     const multi = client.multi();

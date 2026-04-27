@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
           firstName: validated.first_name || null,
           lastName: validated.last_name || null,
           unsubscribed: validated.unsubscribed ?? false,
-          customProperties: (validated.properties as Record<string, string>) || null,
+          customProperties:
+            (validated.properties as Record<string, string>) || null,
           segments: resolvedSegments.length > 0 ? resolvedSegments : null,
           topicSubscriptions: resolvedTopics.length > 0 ? resolvedTopics : null,
         })

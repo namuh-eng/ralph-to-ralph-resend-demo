@@ -23,7 +23,9 @@ app.post("/events/ses", async (c) => {
     console.log(`Received SES event ${eventType} for message ${sesId}`);
 
     // SES tags are sometimes nested in mail.tags
-    const emailId = sesMessage.mail.headers?.find((h: any) => h.name === "X-Entity-ID")?.value;
+    const emailId = sesMessage.mail.headers?.find(
+      (h: any) => h.name === "X-Entity-ID",
+    )?.value;
 
     if (emailId) {
       const event = await emailEventRepo.create({
@@ -36,9 +38,12 @@ app.post("/events/ses", async (c) => {
       const { data: hooks } = await webhookRepo.list({ limit: 100 });
       for (const hook of hooks) {
         const types = hook.eventTypes as string[];
-        if (hook.status === "active" && (types.includes("*") || types.includes(event.type))) {
+        if (
+          hook.status === "active" &&
+          (types.includes("*") || types.includes(event.type))
+        ) {
           // Fire and forget for now in this context, or await if we want serial
-          webhookDispatcher.dispatch(hook.id, event).catch(err => {
+          webhookDispatcher.dispatch(hook.id, event).catch((err) => {
             console.error(`Error dispatching webhook ${hook.id}:`, err);
           });
         }
