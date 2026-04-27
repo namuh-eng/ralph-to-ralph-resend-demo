@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
+import { getCached, setCache } from "@/lib/cache/redis";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
-import { getCached, setCache } from "@/lib/cache/redis";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "./auth";

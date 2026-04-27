@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
 
     const mapping = JSON.parse(mappingStr || "{}") as Record<string, string>;
     const text = await file.text();
-    const parseResult = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const parseResult = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+    });
     const rows = parseResult.data as Record<string, string>[];
 
     // Resolve segment if provided

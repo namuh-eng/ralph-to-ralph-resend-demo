@@ -58,7 +58,7 @@ export function TeamTab() {
               <th className="px-4 py-3 text-left text-[11px] font-medium text-[#A1A4A5] tracking-wider uppercase">
                 Status
               </th>
-              <th className="px-4 py-3 text-right"></th>
+              <th className="px-4 py-3 text-right" />
             </tr>
           </thead>
           <tbody>

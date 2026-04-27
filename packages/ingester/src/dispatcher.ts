@@ -2,7 +2,9 @@ import { signWebhookPayload } from "@namuh/core";
 
 export class WebhookDispatcher {
   async dispatch(webhook: any, event: any) {
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const msgId = `wh_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
     const body = JSON.stringify({
       type: event.type,
       created_at: new Date().toISOString(),
@@ -11,6 +13,7 @@ export class WebhookDispatcher {
 
     const signature = signWebhookPayload(
       webhook.signingSecret,
+      msgId,
       timestamp,
       body,
     );
@@ -19,8 +22,8 @@ export class WebhookDispatcher {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "svix-id": `wh_${Date.now()}`,
-        "svix-timestamp": timestamp.toString(),
+        "svix-id": msgId,
+        "svix-timestamp": timestamp,
         "svix-signature": signature,
       },
       body,

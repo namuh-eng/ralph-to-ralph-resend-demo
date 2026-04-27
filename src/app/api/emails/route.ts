@@ -63,7 +63,9 @@ export async function POST(request: Request): Promise<Response> {
   const cc = normalizeToArray(validated.cc);
   const bcc = normalizeToArray(validated.bcc);
   const replyTo = normalizeToArray(validated.reply_to);
-  const scheduledAt = validated.scheduled_at ? new Date(validated.scheduled_at) : null;
+  const scheduledAt = validated.scheduled_at
+    ? new Date(validated.scheduled_at)
+    : null;
 
   try {
     let finalHtml = validated.html || "";

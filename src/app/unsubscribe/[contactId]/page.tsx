@@ -1,13 +1,15 @@
 "use client";
 
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function UnsubscribePage() {
   const params = useParams();
   const contactId = params.contactId as string;
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading",
+  );
 
   useEffect(() => {
     if (!contactId) return;
@@ -30,17 +32,24 @@ export default function UnsubscribePage() {
         {status === "loading" && (
           <div className="space-y-4">
             <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mx-auto" />
-            <h1 className="text-xl font-semibold text-white">Processing request...</h1>
-            <p className="text-zinc-400 text-sm">One moment while we update your preferences.</p>
+            <h1 className="text-xl font-semibold text-white">
+              Processing request...
+            </h1>
+            <p className="text-zinc-400 text-sm">
+              One moment while we update your preferences.
+            </p>
           </div>
         )}
 
         {status === "success" && (
           <div className="space-y-4">
             <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
-            <h1 className="text-xl font-semibold text-white">Unsubscribed successfully</h1>
+            <h1 className="text-xl font-semibold text-white">
+              Unsubscribed successfully
+            </h1>
             <p className="text-zinc-400 text-sm">
-              You have been removed from our mailing list. You will no longer receive marketing emails from this sender.
+              You have been removed from our mailing list. You will no longer
+              receive marketing emails from this sender.
             </p>
           </div>
         )}
@@ -48,13 +57,16 @@ export default function UnsubscribePage() {
         {status === "error" && (
           <div className="space-y-4">
             <XCircle className="w-12 h-12 text-red-500 mx-auto" />
-            <h1 className="text-xl font-semibold text-white">Something went wrong</h1>
+            <h1 className="text-xl font-semibold text-white">
+              Something went wrong
+            </h1>
             <p className="text-zinc-400 text-sm">
-              We couldn't process your unsubscribe request. Please try again or contact support if the issue persists.
+              We couldn't process your unsubscribe request. Please try again or
+              contact support if the issue persists.
             </p>
           </div>
         )}
-        
+
         <div className="mt-12 pt-6 border-t border-white/[0.04]">
           <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">
             Powered by Namuh Send

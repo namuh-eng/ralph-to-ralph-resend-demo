@@ -42,7 +42,10 @@ export async function GET(request: NextRequest) {
     const hasMore = rows.length > limit;
     const dataRows = hasMore ? rows.slice(0, limit) : rows;
 
-    const totalCount = await db.$count(topics, conditions.length > 0 ? and(...conditions) : undefined);
+    const totalCount = await db.$count(
+      topics,
+      conditions.length > 0 ? and(...conditions) : undefined,
+    );
 
     return NextResponse.json({
       object: "list",

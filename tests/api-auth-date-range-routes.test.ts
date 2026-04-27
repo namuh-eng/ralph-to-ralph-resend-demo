@@ -55,7 +55,7 @@ describe("lib/api-auth", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.doUnmock("@/lib/api-auth");
-    delete process.env.DASHBOARD_KEY;
+    process.env.DASHBOARD_KEY = undefined;
   });
 
   it("validates a bearer API key by sha256 token hash", async () => {

@@ -5,10 +5,10 @@ import { and, eq, lte } from "drizzle-orm";
 
 /**
  * processScheduledEmails
- * 
+ *
  * Scans for emails with status 'scheduled' where scheduledAt is in the past.
  * Sends them via SES and updates status to 'sent'.
- * 
+ *
  * Note: In a production environment, this should run in a dedicated worker process
  * or as a serverless cron job (e.g. AWS Lambda + EventBridge).
  */
@@ -19,12 +19,7 @@ export async function processScheduledEmails() {
   const pending = await db
     .select()
     .from(emails)
-    .where(
-      and(
-        eq(emails.status, "scheduled"),
-        lte(emails.scheduledAt, now)
-      )
-    )
+    .where(and(eq(emails.status, "scheduled"), lte(emails.scheduledAt, now)))
     .limit(50); // Process in batches
 
   if (pending.length === 0) return { processed: 0 };
@@ -45,10 +40,10 @@ export async function processScheduledEmails() {
         html: email.html ?? undefined,
         text: email.text ?? undefined,
         headers: email.headers as Record<string, string>,
-        attachments: (email.attachments as any[])?.map(a => ({
+        attachments: (email.attachments as any[])?.map((a) => ({
           filename: a.filename,
-          content: a.content || "" // Simple string content for now
-        }))
+          content: a.content || "", // Simple string content for now
+        })),
       });
 
       // 3. Mark as sent
@@ -68,6 +63,6 @@ export async function processScheduledEmails() {
   return {
     processed: pending.length,
     sent: sentCount,
-    errors: errorCount
+    errors: errorCount,
   };
 }

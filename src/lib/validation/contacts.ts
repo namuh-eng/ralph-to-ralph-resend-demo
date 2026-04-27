@@ -9,13 +9,17 @@ export const createContactSchema = z.object({
   unsubscribed: z.boolean().optional(),
   properties: z.record(z.string()).optional(),
   segments: z.array(z.string()).optional(),
-  topics: z.array(z.union([
-    z.string().uuid(),
-    z.object({
-      id: z.string().uuid(),
-      subscription: z.enum(["opt_in", "opt_out"]),
-    })
-  ])).optional(),
+  topics: z
+    .array(
+      z.union([
+        z.string().uuid(),
+        z.object({
+          id: z.string().uuid(),
+          subscription: z.enum(["opt_in", "opt_out"]),
+        }),
+      ]),
+    )
+    .optional(),
 });
 
 export const updateContactSchema = z.object({

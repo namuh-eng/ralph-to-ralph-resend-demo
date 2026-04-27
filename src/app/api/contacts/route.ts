@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
       resolvedTopics = await Promise.all(
         validated.topics.map(async (t: any) => {
           const topicId = typeof t === "string" ? t : t.id;
-          const subscription = typeof t === "string" ? "opt_in" : (t.subscription || "opt_in");
+          const subscription =
+            typeof t === "string" ? "opt_in" : t.subscription || "opt_in";
           const found = await db.query.topics.findFirst({
             where: eq(topics.id, topicId),
           });

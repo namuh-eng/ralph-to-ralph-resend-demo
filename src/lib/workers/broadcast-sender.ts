@@ -1,10 +1,16 @@
 import { db } from "@/lib/db";
-import { broadcasts, contacts, emails, segments, topics } from "@/lib/db/schema";
+import {
+  broadcasts,
+  contacts,
+  emails,
+  segments,
+  topics,
+} from "@/lib/db/schema";
 import { and, eq, lte, sql } from "drizzle-orm";
 
 /**
  * processScheduledBroadcasts
- * 
+ *
  * Scans for broadcasts with status 'queued' or 'scheduled' (with scheduledAt in the past).
  * Fills in the actual email fanout and updates status to 'sent'.
  */
@@ -18,8 +24,8 @@ export async function processScheduledBroadcasts() {
     .where(
       and(
         sql`${broadcasts.status} IN ('queued', 'scheduled')`,
-        lte(broadcasts.scheduledAt, now)
-      )
+        lte(broadcasts.scheduledAt, now),
+      ),
     )
     .limit(5); // Process in small batches for fanout safety
 
@@ -36,21 +42,42 @@ export async function processScheduledBroadcasts() {
         .where(eq(broadcasts.id, broadcast.id));
 
       // 3. Resolve audience contacts
-      let targetContacts: { email: string; firstName: string | null; lastName: string | null }[] = [];
+      let targetContacts: {
+        email: string;
+        firstName: string | null;
+        lastName: string | null;
+      }[] = [];
 
       if (broadcast.audienceId) {
         // Resolve segment contacts (naive JSON check for now)
-        const [segment] = await db.select({ name: segments.name }).from(segments).where(eq(segments.id, broadcast.audienceId)).limit(1);
+        const [segment] = await db
+          .select({ name: segments.name })
+          .from(segments)
+          .where(eq(segments.id, broadcast.audienceId))
+          .limit(1);
         if (segment) {
           targetContacts = await db
-            .select({ email: contacts.email, firstName: contacts.firstName, lastName: contacts.lastName })
+            .select({
+              email: contacts.email,
+              firstName: contacts.firstName,
+              lastName: contacts.lastName,
+            })
             .from(contacts)
-            .where(and(eq(contacts.unsubscribed, false), sql`${contacts.segments} ? ${segment.name}`));
+            .where(
+              and(
+                eq(contacts.unsubscribed, false),
+                sql`${contacts.segments} ? ${segment.name}`,
+              ),
+            );
         }
       } else {
         // Fallback: send to all subscribed contacts if no segment specified
         targetContacts = await db
-          .select({ email: contacts.email, firstName: contacts.firstName, lastName: contacts.lastName })
+          .select({
+            email: contacts.email,
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
+          })
           .from(contacts)
           .where(eq(contacts.unsubscribed, false));
       }
@@ -85,17 +112,16 @@ export async function processScheduledBroadcasts() {
             topicId: broadcast.topicId,
             tags: [{ name: "broadcast_id", value: broadcast.id }],
           });
-          
+
           totalEmailsCreated++;
         }
       }
-      
+
       // 5. Mark broadcast as finished
       await db
         .update(broadcasts)
         .set({ status: "sent" })
         .where(eq(broadcasts.id, broadcast.id));
-
     } catch (err) {
       console.error(`Failed to process broadcast ${broadcast.id}:`, err);
       // Revert status to queued for retry
@@ -108,6 +134,6 @@ export async function processScheduledBroadcasts() {
 
   return {
     processed: pending.length,
-    emailsCreated: totalEmailsCreated
+    emailsCreated: totalEmailsCreated,
   };
 }

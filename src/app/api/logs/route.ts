@@ -15,7 +15,8 @@ export async function GET(request: Request): Promise<Response> {
 
   const status = url.searchParams.get("status");
   const method = url.searchParams.get("method");
-  const apiKeyId = url.searchParams.get("api_key_id") || url.searchParams.get("apiKeyId");
+  const apiKeyId =
+    url.searchParams.get("api_key_id") || url.searchParams.get("apiKeyId");
   const after = url.searchParams.get("after");
   const before = url.searchParams.get("before");
 

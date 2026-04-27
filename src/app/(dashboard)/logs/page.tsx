@@ -30,7 +30,7 @@ export default async function LogsPage(props: {
       conditions.push(and(gte(logs.status, 400), lte(logs.status, 499)) as SQL);
     } else if (status === "5xx") {
       conditions.push(gte(logs.status, 500) as SQL);
-    } else if (!isNaN(Number(status))) {
+    } else if (!Number.isNaN(Number(status))) {
       conditions.push(eq(logs.status, Number(status)));
     }
   }

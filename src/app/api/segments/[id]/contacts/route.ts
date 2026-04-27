@@ -48,9 +48,7 @@ export async function GET(
       )
       .where(eq(contactsToSegments.segmentId, segmentId));
 
-    const rows = await query
-      .orderBy(desc(contacts.id))
-      .limit(limit + 1);
+    const rows = await query.orderBy(desc(contacts.id)).limit(limit + 1);
 
     const hasMore = rows.length > limit;
     const dataRows = hasMore ? rows.slice(0, limit) : rows;

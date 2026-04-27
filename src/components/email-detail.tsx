@@ -432,8 +432,6 @@ export function EmailDetail({ email }: EmailDetailProps) {
           ))}
         </div>
       </div>
-
-      {/* Content Tabs */}
       <div className="border-b border-[rgba(176,199,217,0.145)] mb-4">
         <div className="flex items-center gap-0">
           {(
@@ -486,12 +484,8 @@ export function EmailDetail({ email }: EmailDetailProps) {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Content Area */}
-      {activeTab === "insights" ? (
-        <div className="min-h-[300px]">
-          {needsAttention.length > 0 && (
+      </div>activeTab === "insights" ? (
+        <div className="min-h-[300px]">needsAttention.length > 0 && (
             <div data-testid="needs-attention-section" className="mb-6">
               <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-2 px-4">
                 NEEDS ATTENTION
@@ -502,8 +496,7 @@ export function EmailDetail({ email }: EmailDetailProps) {
                 ))}
               </div>
             </div>
-          )}
-          {doingGreat.length > 0 && (
+          )doingGreat.length > 0 && (
             <div data-testid="doing-great-section">
               <p className="text-[11px] font-medium text-[#A1A4A5] tracking-wider mb-2 px-4">
                 DOING GREAT
@@ -514,29 +507,26 @@ export function EmailDetail({ email }: EmailDetailProps) {
                 ))}
               </div>
             </div>
-          )}
+          )
         </div>
       ) : (
-        <div className="bg-white rounded-lg min-h-[300px] p-6">
-          {activeTab === "preview" && <EmailPreview html={email.html || ""} />}
-          {activeTab === "plaintext" && (
+        <div className="bg-white rounded-lg min-h-[300px] p-6">activeTab === "preview" && <EmailPreview html={email.html || ""} />activeTab === "plaintext" && (
             <pre
               data-testid="email-plaintext"
               className="text-black text-[14px] whitespace-pre-wrap font-mono"
             >
               {email.text || ""}
             </pre>
-          )}
-          {activeTab === "html" && (
+          )activeTab === "html" && (
             <pre
               data-testid="email-html"
               className="text-black text-[14px] whitespace-pre-wrap font-mono"
             >
               {email.html || ""}
             </pre>
-          )}
+          )
         </div>
-      )}
+      )
     </div>
   );
 }

@@ -24,28 +24,32 @@ export const attachmentSchema = z.object({
 
 // ── Email Request Schemas ──────────────────────────────────────────
 
-export const sendEmailSchema = z.object({
-  from: emailAddressSchema,
-  to: emailRecipientSchema,
-  subject: z.string().min(1).max(1024),
-  html: z.string().optional(),
-  text: z.string().optional(),
-  cc: emailRecipientSchema.optional(),
-  bcc: emailRecipientSchema.optional(),
-  reply_to: emailRecipientSchema.optional(),
-  headers: z.record(z.string()).optional(),
-  attachments: z.array(attachmentSchema).optional(),
-  tags: z.array(tagSchema).optional(),
-  scheduled_at: z.string().datetime({ offset: true }).optional(),
-  topic_id: z.string().uuid().optional(),
-  template: z.object({
-    id: z.string().uuid(),
-    variables: z.record(z.any()).optional(),
-  }).optional(),
-}).refine(data => data.html || data.text || data.template, {
-  message: "html, text, or template is required",
-  path: ["html"]
-});
+export const sendEmailSchema = z
+  .object({
+    from: emailAddressSchema,
+    to: emailRecipientSchema,
+    subject: z.string().min(1).max(1024),
+    html: z.string().optional(),
+    text: z.string().optional(),
+    cc: emailRecipientSchema.optional(),
+    bcc: emailRecipientSchema.optional(),
+    reply_to: emailRecipientSchema.optional(),
+    headers: z.record(z.string()).optional(),
+    attachments: z.array(attachmentSchema).optional(),
+    tags: z.array(tagSchema).optional(),
+    scheduled_at: z.string().datetime({ offset: true }).optional(),
+    topic_id: z.string().uuid().optional(),
+    template: z
+      .object({
+        id: z.string().uuid(),
+        variables: z.record(z.any()).optional(),
+      })
+      .optional(),
+  })
+  .refine((data) => data.html || data.text || data.template, {
+    message: "html, text, or template is required",
+    path: ["html"],
+  });
 
 export const batchSendEmailSchema = z.array(sendEmailSchema).max(100);
 
