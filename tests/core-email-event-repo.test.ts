@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFindFirst = vi.fn();
 const mockInsertReturning = vi.fn();
+const mockOnConflictDoNothing = vi.fn();
 const mockUpdateWhere = vi.fn();
 const mockUpdateSet = vi.fn();
 const mockUpdate = vi.fn();
@@ -26,12 +27,14 @@ describe("packages/core emailEventRepo.create", () => {
     mockUpdateWhere.mockResolvedValue(undefined);
     mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
     mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockOnConflictDoNothing.mockReturnValue({ returning: mockInsertReturning });
 
     mockTransaction.mockImplementation(async (callback) =>
       callback({
         insert: () => ({
           values: () => ({
             returning: mockInsertReturning,
+            onConflictDoNothing: mockOnConflictDoNothing,
           }),
         }),
         update: mockUpdate,
@@ -76,6 +79,28 @@ describe("packages/core emailEventRepo.create", () => {
     const result = await emailEventRepo.create(event);
 
     expect(result).toEqual(event);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing event when a source id hits the duplicate guard", async () => {
+    const existingEvent = {
+      id: "evt_3",
+      emailId: "email_1",
+      sourceId: "sns-msg-1",
+      type: "delivered",
+      payload: { smtpResponse: "250 ok" },
+    };
+    mockInsertReturning.mockResolvedValue([]);
+    mockFindFirst.mockResolvedValue(existingEvent);
+
+    const { emailEventRepo } = await import(
+      "../packages/core/src/db/repositories/emailEventRepo"
+    );
+
+    const result = await emailEventRepo.createOrIgnoreDuplicate(existingEvent);
+
+    expect(result).toEqual({ event: existingEvent, created: false });
+    expect(mockOnConflictDoNothing).toHaveBeenCalledOnce();
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 });
