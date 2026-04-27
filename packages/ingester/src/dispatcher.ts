@@ -13,9 +13,13 @@ export class WebhookDispatcher {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const msgId = `wh_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
+    const webhookEventType = event.type.includes(".")
+      ? event.type
+      : `email.${event.type}`;
+
     const body = JSON.stringify({
       id: msgId,
-      type: event.type,
+      type: webhookEventType,
       created_at: new Date().toISOString(),
       data: event.payload,
     });

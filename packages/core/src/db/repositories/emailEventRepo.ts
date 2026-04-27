@@ -1,6 +1,12 @@
-import { and, desc, eq, lt } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../client";
-import { emailEvents } from "../schema";
+import { emailEvents, emails } from "../schema";
+
+const STATUS_BY_EVENT_TYPE: Record<string, string> = {
+  delivered: "delivered",
+  bounced: "bounced",
+  complained: "complained",
+};
 
 export const emailEventRepo = {
   async findById(id: string) {
@@ -10,8 +16,19 @@ export const emailEventRepo = {
   },
 
   async create(data: typeof emailEvents.$inferInsert) {
-    const results = await db.insert(emailEvents).values(data).returning();
-    return results[0];
+    return await db.transaction(async (tx) => {
+      const [event] = await tx.insert(emailEvents).values(data).returning();
+      const nextStatus = STATUS_BY_EVENT_TYPE[data.type];
+
+      if (nextStatus) {
+        await tx
+          .update(emails)
+          .set({ status: nextStatus })
+          .where(eq(emails.id, data.emailId));
+      }
+
+      return event;
+    });
   },
 
   async listByEmailId(emailId: string) {
