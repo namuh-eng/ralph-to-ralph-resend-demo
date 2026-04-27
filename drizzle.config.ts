@@ -1,5 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 
+process.loadEnvFile?.(".env");
+
 const url = process.env.DATABASE_URL ?? "";
 const needsSsl = url.includes("amazonaws.com");
 
