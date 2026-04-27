@@ -41,3 +41,6 @@ ralph_to_ralph_archive/
 # Superset terminal app config
 .superset/
 .qrspi/
+
+# Local clawhip repo metadata (single-machine only)
+.clawhip/
