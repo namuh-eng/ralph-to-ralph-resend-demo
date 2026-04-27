@@ -30,13 +30,6 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (Array.isArray(body) && body.length > 100) {
-    return Response.json(
-      { error: "Batch size cannot exceed 100 emails" },
-      { status: 400 },
-    );
-  }
-
   const result = batchSendEmailSchema.safeParse(body);
   if (!result.success) {
     return Response.json(

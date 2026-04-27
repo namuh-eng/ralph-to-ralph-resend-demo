@@ -3,6 +3,7 @@ import { autoConfigureDomain } from "@/lib/cloudflare";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
 import { createDomainIdentity, getDomainIdentity } from "@/lib/ses";
+import { autoConfigureDomainParamsSchema } from "@/lib/validation/domains";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -13,7 +14,15 @@ export async function POST(
   const auth = await validateApiKey(_req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  const { id } = await params;
+  const parsedParams = autoConfigureDomainParamsSchema.safeParse(await params);
+  if (!parsedParams.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsedParams.error.flatten() },
+      { status: 422 },
+    );
+  }
+
+  const { id } = parsedParams.data;
 
   try {
     const rows = await db
@@ -28,34 +37,29 @@ export async function POST(
 
     const domain = rows[0];
 
-    // Step 1: Create domain identity in SES (gets DKIM tokens)
     let dkimTokens: string[];
     try {
       const identity = await createDomainIdentity(domain.name);
       dkimTokens = identity.dkimTokens;
     } catch {
-      // Identity may already exist — try to get existing DKIM tokens
       const existing = await getDomainIdentity(domain.name);
       dkimTokens = existing.dkimTokens;
     }
 
-    // Step 2: Auto-configure DNS records via Cloudflare
     const { records: cfRecords, warnings } = await autoConfigureDomain(
       domain.name,
       dkimTokens,
     );
 
-    // Step 3: Build records array for DB storage from what was actually created
-    const allRecords = cfRecords.map((r) => ({
-      type: r.type,
-      name: r.name,
-      value: r.content,
+    const allRecords = cfRecords.map((record) => ({
+      type: record.type,
+      name: record.name,
+      value: record.content,
       status: "pending" as const,
       ttl: "Auto",
-      ...(r.priority !== undefined ? { priority: r.priority } : {}),
+      ...(record.priority !== undefined ? { priority: record.priority } : {}),
     }));
 
-    // Step 4: Update domain in DB with records and pending status
     await db
       .update(domains)
       .set({
