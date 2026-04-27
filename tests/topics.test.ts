@@ -299,7 +299,7 @@ describe("Topics API route", () => {
     vi.clearAllMocks();
     vi.resetModules();
     vi.doMock("@/lib/api-auth", () => ({
-      validateApiKey: () =>
+      authorizeDashboardOrApiKey: () =>
         Promise.resolve({
           apiKeyId: "test",
           permission: "full_access",

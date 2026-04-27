@@ -16,15 +16,17 @@ function createChainMock(resolvedData: unknown[], count: number) {
     orderBy: () => chain,
     limit: () => chain,
     offset: () => chain,
-    then: (resolve: (v: any) => any) => Promise.resolve(resolve(resolvedData)),
-    catch: (reject: (e: any) => any) => chain,
+    // biome-ignore lint/suspicious/noThenProperty: mocks Drizzle's thenable query builder
+    then: (resolve: (value: unknown[]) => unknown) =>
+      Promise.resolve(resolve(resolvedData)),
+    catch: (_reject: (error: unknown) => unknown) => chain,
     $count: () => Promise.resolve(count),
   };
   return { db: chain };
 }
 
 vi.mock("@/lib/api-auth", () => ({
-  validateApiKey: () =>
+  authorizeDashboardOrApiKey: () =>
     Promise.resolve({
       apiKeyId: "test",
       permission: "full_access",
