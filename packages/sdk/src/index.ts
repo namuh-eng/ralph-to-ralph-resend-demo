@@ -1,14 +1,25 @@
 import type {
-  DomainResponse as CoreDomainResponse,
+  ApiKeyListResponse,
+  ApiKeyResponse,
+  ContactListItem,
+  ContactListResponse,
+  ContactResponse,
+  CreateApiKeyPayload,
+  CreateContactPayload,
+  CreateContactResponse,
+  DomainListItem,
+  DomainListResponse,
   DomainOptions,
+  DomainResponse,
+  EmailDetailResponse,
+  EmailListItem,
+  EmailListResponse,
   EmailOptions,
   EmailResponse,
-} from "@namuh/core";
-
-// ── Types ────────────────────────────────────────────────────────
+} from "../../core/src/dto";
 
 interface SDKOptions {
-  baseUrl?: string;
+  baseUrl: string;
 }
 
 interface ApiResponse<T> {
@@ -16,124 +27,46 @@ interface ApiResponse<T> {
   error: { message: string; statusCode: number } | null;
 }
 
-// ── Email Types ──────────────────────────────────────────────────
-
 export type SendEmailPayload = EmailOptions & {
   react?: unknown;
 };
-
-export type { EmailResponse };
-
-interface EmailListItem {
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  cc: string[] | null;
-  bcc: string[] | null;
-  reply_to: string | null;
-  last_event: string;
-  scheduled_at: string | null;
-  created_at: string;
-}
-
-interface EmailListResponse {
-  object: string;
-  has_more: boolean;
-  data: EmailListItem[];
-}
-
-interface EmailDetailResponse {
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  html: string | null;
-  text: string | null;
-  cc: string[] | null;
-  bcc: string[] | null;
-  reply_to: string | null;
-  last_event: string;
-  created_at: string;
-}
-
-// ── Domain Types ─────────────────────────────────────────────────
-
 export type CreateDomainPayload = DomainOptions;
-export type DomainResponse = CoreDomainResponse;
 
-interface DomainListResponse {
-  data: DomainResponse[];
-}
+function normalizeBaseUrl(baseUrl?: string): string {
+  if (!baseUrl?.trim()) {
+    throw new Error("A non-empty baseUrl is required");
+  }
 
-// ── API Key Types ────────────────────────────────────────────────
-
-interface CreateApiKeyPayload {
-  name: string;
-  permission?: "full_access" | "sending_access";
-  domain_id?: string;
-}
-
-interface ApiKeyResponse {
-  id: string;
-  name: string;
-  token?: string;
-  key_prefix: string;
-  permission: string;
-  domain_id: string | null;
-  created_at: string;
-}
-
-interface ApiKeyListResponse {
-  data: ApiKeyResponse[];
-}
-
-// ── Contact Types ────────────────────────────────────────────────
-
-interface CreateContactPayload {
-  emails: string[];
-  segment_ids?: string[];
-}
-
-interface ContactResponse {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  unsubscribed: boolean;
-}
-
-interface ContactListResponse {
-  data: ContactResponse[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-// ── React rendering helper ───────────────────────────────────────
-
-function renderReactToHtml(element: unknown): string | null {
+  let normalized: URL;
   try {
-    // Dynamic import to avoid hard dependency on react-dom
-    const ReactDOMServer = require("react-dom/server") as {
-      renderToStaticMarkup: (element: unknown) => string;
-    };
-    return ReactDOMServer.renderToStaticMarkup(element);
+    normalized = new URL(baseUrl);
+  } catch {
+    throw new Error("baseUrl must be a valid absolute URL");
+  }
+
+  if (!["http:", "https:"].includes(normalized.protocol)) {
+    throw new Error("baseUrl must use http or https");
+  }
+
+  return normalized.toString().replace(/\/$/, "");
+}
+
+async function renderReactToHtml(element: unknown): Promise<string | null> {
+  try {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    return renderToStaticMarkup(
+      element as Parameters<typeof renderToStaticMarkup>[0],
+    );
   } catch {
     return null;
   }
 }
 
-// ── HTTP Client ──────────────────────────────────────────────────
-
 class HttpClient {
-  private baseUrl: string;
-  private apiKey: string;
-
-  constructor(apiKey: string, baseUrl: string) {
-    this.apiKey = apiKey;
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-  }
+  constructor(
+    private readonly apiKey: string,
+    private readonly baseUrl: string,
+  ) {}
 
   async request<T>(
     method: string,
@@ -152,28 +85,33 @@ class HttpClient {
       }
 
       const response = await fetch(`${this.baseUrl}${path}`, options);
+      const rawBody = await response.text();
+      const parsedBody = rawBody ? (JSON.parse(rawBody) as unknown) : null;
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({
-          error: response.statusText,
-        }));
+        const errorBody =
+          parsedBody && typeof parsedBody === "object" ? parsedBody : null;
+
         return {
           data: null,
           error: {
             message:
-              (errorBody as Record<string, string>).error ?? "Request failed",
+              errorBody &&
+              "error" in errorBody &&
+              typeof errorBody.error === "string"
+                ? errorBody.error
+                : response.statusText || "Request failed",
             statusCode: response.status,
           },
         };
       }
 
-      const data = (await response.json()) as T;
-      return { data, error: null };
-    } catch (err) {
+      return { data: parsedBody as T | null, error: null };
+    } catch (error) {
       return {
         data: null,
         error: {
-          message: err instanceof Error ? err.message : "Unknown error",
+          message: error instanceof Error ? error.message : "Unknown error",
           statusCode: 500,
         },
       };
@@ -181,21 +119,14 @@ class HttpClient {
   }
 }
 
-// ── Resource Classes ─────────────────────────────────────────────
-
 class Emails {
-  private http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
+  constructor(private readonly http: HttpClient) {}
 
   async send(payload: SendEmailPayload): Promise<ApiResponse<EmailResponse>> {
     const { react, ...rest } = payload;
 
-    // If react prop is provided, render it to HTML
     if (react != null) {
-      const rendered = renderReactToHtml(react);
+      const rendered = await renderReactToHtml(react);
       if (rendered) {
         rest.html = rendered;
       }
@@ -214,15 +145,9 @@ class Emails {
 }
 
 class Domains {
-  private http: HttpClient;
+  constructor(private readonly http: HttpClient) {}
 
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async create(
-    payload: CreateDomainPayload,
-  ): Promise<ApiResponse<DomainResponse>> {
+  async create(payload: DomainOptions): Promise<ApiResponse<DomainResponse>> {
     return this.http.request<DomainResponse>("POST", "/api/domains", payload);
   }
 
@@ -243,11 +168,7 @@ class Domains {
 }
 
 class ApiKeys {
-  private http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
+  constructor(private readonly http: HttpClient) {}
 
   async create(
     payload: CreateApiKeyPayload,
@@ -259,25 +180,18 @@ class ApiKeys {
     return this.http.request<ApiKeyListResponse>("GET", "/api/api-keys");
   }
 
-  async delete(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
-    return this.http.request<{ deleted: boolean }>(
-      "DELETE",
-      `/api/api-keys/${id}`,
-    );
+  async delete(id: string): Promise<ApiResponse<null>> {
+    return this.http.request<null>("DELETE", `/api/api-keys/${id}`);
   }
 }
 
 class Contacts {
-  private http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
+  constructor(private readonly http: HttpClient) {}
 
   async create(
     payload: CreateContactPayload,
-  ): Promise<ApiResponse<{ created: number; ids: string[] }>> {
-    return this.http.request<{ created: number; ids: string[] }>(
+  ): Promise<ApiResponse<CreateContactResponse>> {
+    return this.http.request<CreateContactResponse>(
       "POST",
       "/api/contacts",
       payload,
@@ -293,21 +207,18 @@ class Contacts {
   }
 }
 
-// ── Main SDK Class ───────────────────────────────────────────────
-
 class NamuhSend {
   public readonly emails: Emails;
   public readonly domains: Domains;
   public readonly apiKeys: ApiKeys;
   public readonly contacts: Contacts;
 
-  constructor(apiKey: string, options?: SDKOptions) {
+  constructor(apiKey: string, options: SDKOptions) {
     if (!apiKey) {
       throw new Error("API key is required");
     }
 
-    const baseUrl = options?.baseUrl ?? "http://localhost:3015";
-    const http = new HttpClient(apiKey, baseUrl);
+    const http = new HttpClient(apiKey, normalizeBaseUrl(options.baseUrl));
 
     this.emails = new Emails(http);
     this.domains = new Domains(http);
@@ -320,18 +231,21 @@ export { NamuhSend };
 export type {
   SDKOptions,
   ApiResponse,
-  SendEmailPayload,
+  EmailOptions,
   EmailResponse,
   EmailListItem,
   EmailListResponse,
   EmailDetailResponse,
-  CreateDomainPayload,
+  DomainOptions,
   DomainResponse,
+  DomainListItem,
   DomainListResponse,
   CreateApiKeyPayload,
   ApiKeyResponse,
   ApiKeyListResponse,
   CreateContactPayload,
+  CreateContactResponse,
   ContactResponse,
+  ContactListItem,
   ContactListResponse,
 };

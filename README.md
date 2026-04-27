@@ -96,7 +96,7 @@ bun add namuh-send
 import { NamuhSend } from "namuh-send";
 
 const client = new NamuhSend("YOUR_API_KEY", {
-  baseUrl: "http://localhost:3015",
+  baseUrl: "https://your-deployment.example.com",
 });
 
 await client.emails.send({

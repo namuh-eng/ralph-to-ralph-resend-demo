@@ -92,8 +92,8 @@ await client.apiKeys.delete("key-id");
 ## Contacts
 
 ```typescript
-// Create contacts
-await client.contacts.create({ emails: ["user@example.com"] });
+// Create a contact
+await client.contacts.create({ email: "user@example.com" });
 
 // List contacts
 const { data } = await client.contacts.list();
@@ -116,4 +116,15 @@ if (error) {
 
 // data is guaranteed non-null here
 console.log(data.id);
+```
+
+## Configuration
+
+The SDK is publish-ready and does not assume a local dev server. Pass your
+deployment origin explicitly:
+
+```typescript
+const client = new NamuhSend("re_your_api_key", {
+  baseUrl: "https://api.your-deployment.example.com",
+});
 ```
