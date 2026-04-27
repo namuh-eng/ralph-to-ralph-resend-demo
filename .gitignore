@@ -19,6 +19,7 @@ scripts/*
 !scripts/seed.ts
 !scripts/install-git-hooks.mjs
 !scripts/check-changed-files.mjs
+!scripts/deploy.sh
 
 # Playwright test artifacts
 test-results/
