@@ -41,7 +41,15 @@ export async function POST(
       verificationStatus = "verified";
     } else {
       // Simulate checking if some records passed but not all
-      const records = (domain.records as any[]) ?? [];
+      const records =
+        (domain.records as Array<{
+          type: string;
+          name: string;
+          value: string;
+          status: string;
+          ttl: string;
+          priority?: number;
+        }>) ?? [];
       const verifiedCount = records.filter(
         (r) => r.status === "verified",
       ).length;
