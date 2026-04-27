@@ -5,18 +5,19 @@ import {
   unauthorizedResponse,
   validateDashboardKey,
 } from "@/lib/api-auth";
+import { getDateRangeBounds } from "@/lib/date-range";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
-import { and, gte, inArray, like, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
-const RANGE_MAP: Record<string, number> = {
-  today: 0,
-  yesterday: 1,
-  last_3_days: 3,
-  last_7_days: 7,
-  last_15_days: 15,
-  last_30_days: 30,
+const RANGE_TO_PRESET: Record<string, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  last_3_days: "Last 3 days",
+  last_7_days: "Last 7 days",
+  last_15_days: "Last 15 days",
+  last_30_days: "Last 30 days",
 };
 
 // Map event type filter values to email status values
@@ -33,25 +34,11 @@ const EVENT_TYPE_TO_STATUS: Record<string, string[]> = {
   suppressed: ["suppressed"],
 };
 
-function getDateRange(range: string): Date {
-  const now = new Date();
-  const days = RANGE_MAP[range] ?? 15;
-  if (range === "yesterday") {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 1);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  if (range === "today") {
-    const d = new Date(now);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  const d = new Date(now);
-  d.setDate(d.getDate() - days);
-  d.setHours(0, 0, 0, 0);
-  return d;
+function getMetricsDateRange(range: string): { start: Date; end: Date } {
+  return getDateRangeBounds(RANGE_TO_PRESET[range] || "Last 15 days");
 }
+
+const senderDomainSql = sql<string>`substring(${emails.from} from '@([^>]+)')`;
 
 // Dashboard-only internal endpoint
 export async function GET(request: NextRequest) {
@@ -68,12 +55,15 @@ export async function GET(request: NextRequest) {
     const domain = searchParams.get("domain");
     const eventType = searchParams.get("event_type");
 
-    const startDate = getDateRange(range);
+    const { start, end } = getMetricsDateRange(range);
 
     // Build conditions
-    const conditions = [gte(emails.createdAt, startDate)];
+    const conditions = [
+      gte(emails.createdAt, start),
+      lte(emails.createdAt, end),
+    ];
     if (domain) {
-      conditions.push(like(emails.from, `%@${domain}%`));
+      conditions.push(eq(senderDomainSql, domain));
     }
 
     // Query aggregated stats
@@ -174,13 +164,13 @@ export async function GET(request: NextRequest) {
     // Per-domain breakdown
     const domainBreakdownRows = await db
       .select({
-        domain: sql<string>`substring(${emails.from} from '@([^>]+)')`,
+        domain: senderDomainSql,
         total: sql<number>`count(*)::int`,
         delivered: sql<number>`count(*) filter (where ${emails.status} = 'delivered')::int`,
       })
       .from(emails)
       .where(and(...conditions))
-      .groupBy(sql`substring(${emails.from} from '@([^>]+)')`)
+      .groupBy(senderDomainSql)
       .orderBy(sql`count(*) desc`);
 
     const domainBreakdown = domainBreakdownRows
