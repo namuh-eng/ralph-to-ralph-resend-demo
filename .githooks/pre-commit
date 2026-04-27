@@ -19,4 +19,4 @@ if [ "${#files_to_check[@]}" -eq 0 ]; then
 fi
 
 echo "→ Running Biome on staged files..."
-npx biome check --files-ignore-unknown=true --no-errors-on-unmatched "${files_to_check[@]}"
+bunx biome check --files-ignore-unknown=true --no-errors-on-unmatched "${files_to_check[@]}"

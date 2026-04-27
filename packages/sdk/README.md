@@ -1,19 +1,19 @@
-# resend-clone
+# namuh-send
 
-TypeScript SDK for the Resend Clone email API.
+TypeScript SDK for the Namuh Send email API.
 
 ## Installation
 
 ```bash
-npm install resend-clone
+bun add namuh-send
 ```
 
 ## Getting Started
 
 ```typescript
-import { ResendClone } from "resend-clone";
+import { NamuhSend } from "namuh-send";
 
-const client = new ResendClone("re_your_api_key", {
+const client = new NamuhSend("re_your_api_key", {
   baseUrl: "https://your-deployment.example.com",
 });
 ```

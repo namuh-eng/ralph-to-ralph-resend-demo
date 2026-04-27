@@ -81,7 +81,7 @@ function runTypecheck(changedFiles) {
   console.log(
     `→ Typechecking changed JS/TS files against baseline (${typedFiles.length})...`,
   );
-  const result = spawnSync("npx", ["tsc", "--noEmit", "--pretty", "false"], {
+  const result = spawnSync("bunx", ["tsc", "--noEmit", "--pretty", "false"], {
     cwd: repoRoot,
     encoding: "utf8",
   });
@@ -114,7 +114,7 @@ function runLint(changedFiles) {
     `→ Linting changed files with Biome (${lintableFiles.length})...`,
   );
   const result = spawnSync(
-    "npx",
+    "bunx",
     [
       "biome",
       "check",

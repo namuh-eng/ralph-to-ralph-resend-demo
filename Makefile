@@ -8,44 +8,44 @@ check: typecheck lint
 
 # TypeScript type checking
 typecheck:
-	@echo "→ TypeCheck..." && npx tsc --noEmit && echo "  ✓ TypeCheck passed"
+	@echo "→ TypeCheck..." && bunx tsc --noEmit && echo "  ✓ TypeCheck passed"
 
 # Lint and format check (Biome)
 lint:
-	@echo "→ Lint & Format..." && npx biome check . && echo "  ✓ Lint & Format passed"
+	@echo "→ Lint & Format..." && bunx biome check . && echo "  ✓ Lint & Format passed"
 
 # Auto-fix lint and format issues
 fix:
-	npx biome check --write .
+	bunx biome check --write .
 
 format:
-	npx biome format --write .
+	bunx biome format --write .
 
 # Unit tests (Vitest)
 test:
-	@echo "→ Unit Tests..." && npx vitest run && echo "  ✓ Unit Tests passed"
+	@echo "→ Unit Tests..." && bunx vitest run && echo "  ✓ Unit Tests passed"
 
 # E2E tests (Playwright — requires dev server running)
 test-e2e:
-	@echo "→ E2E Tests..." && npx playwright test && echo "  ✓ E2E Tests passed"
+	@echo "→ E2E Tests..." && bunx playwright test && echo "  ✓ E2E Tests passed"
 
 # Dev server
 dev:
-	npm run dev
+	bun run dev
 
 # Production build
 build:
-	npm run build
+	bun run build
 
 # Database migrations
 db-generate:
-	npx drizzle-kit generate --config drizzle.config.ts
+	bunx drizzle-kit generate --config drizzle.config.ts
 
 db-migrate:
-	npx drizzle-kit migrate --config drizzle.config.ts
+	bunx drizzle-kit migrate --config drizzle.config.ts
 
 db-push:
-	npx drizzle-kit push --config drizzle.config.ts
+	bunx drizzle-kit push --config drizzle.config.ts
 
 # One-command local setup (requires Docker)
 setup:
@@ -53,9 +53,9 @@ setup:
 	@node -e "const fs=require('fs'); const crypto=require('crypto'); const path='.env'; let env=fs.readFileSync(path,'utf8'); if(/^DASHBOARD_KEY=$$/m.test(env)){ env=env.replace(/^DASHBOARD_KEY=$$/m, 'DASHBOARD_KEY='+crypto.randomUUID()); fs.writeFileSync(path, env); console.log('  ✓ Generated DASHBOARD_KEY in .env'); }"
 	@echo "→ Starting Postgres..." && docker compose up postgres -d
 	@echo "→ Waiting for Postgres..." && until docker compose exec -T postgres pg_isready -U namuh >/dev/null 2>&1; do sleep 1; done && echo "  ✓ Postgres is ready"
-	@echo "→ Installing dependencies and git hooks..." && npm install
-	@echo "→ Pushing schema..." && npx drizzle-kit push --config drizzle.config.ts
-	@echo "→ Seeding database..." && npx tsx scripts/seed.ts
+	@echo "→ Installing dependencies and git hooks..." && bun install
+	@echo "→ Pushing schema..." && bunx drizzle-kit push --config drizzle.config.ts
+	@echo "→ Seeding database..." && bunx tsx scripts/seed.ts
 	@echo "\n✓ Setup complete! Run 'make dev' to start the server."
 
 # Clean build artifacts
