@@ -10,6 +10,7 @@ const mockDelete = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
 const mockCountFn = vi.hoisted(() => vi.fn());
 const mockValidateDashboardKey = vi.hoisted(() => vi.fn());
+const mockGetServerSession = vi.hoisted(() => vi.fn());
 
 function makeChain<T>(rows: T[]) {
   return {
@@ -19,9 +20,14 @@ function makeChain<T>(rows: T[]) {
     limit: vi.fn().mockReturnThis(),
     offset: vi.fn().mockReturnThis(),
     groupBy: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
+    onConflictDoUpdate: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue(rows),
+    // biome-ignore lint/suspicious/noThenProperty: mocks Drizzle's thenable query builder
     then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
   };
 }
@@ -207,6 +213,7 @@ describe("route smoke coverage", () => {
         ...actual,
         validateApiKey: mockValidateApiKey,
         validateDashboardKey: mockValidateDashboardKey,
+        getServerSession: mockGetServerSession,
       };
     });
     mockValidateApiKey.mockResolvedValue({
@@ -214,17 +221,22 @@ describe("route smoke coverage", () => {
       permission: "full_access",
     });
     mockValidateDashboardKey.mockReturnValue(true);
+    mockGetServerSession.mockResolvedValue({
+      session: { id: "session-1" },
+      user: { id: "user-1" },
+    });
   });
 
-  it("covers metrics auth failure and happy path", async () => {
+  it("covers metrics auth failure, session auth, and dashboard key auth", async () => {
     mockValidateDashboardKey.mockReturnValueOnce(false);
+    mockGetServerSession.mockResolvedValueOnce(null);
     const metricsRoute = await import("@/app/api/metrics/route");
     const unauthorized = await metricsRoute.GET(
       makeNextRequest("http://localhost/api/metrics") as never,
     );
     expect(unauthorized.status).toBe(401);
 
-    mockValidateDashboardKey.mockReturnValue(true);
+    mockValidateDashboardKey.mockReturnValueOnce(false);
     mockSelect
       .mockReturnValueOnce(
         makeChain([
@@ -253,15 +265,15 @@ describe("route smoke coverage", () => {
         ]),
       );
 
-    const response = await metricsRoute.GET(
+    const sessionResponse = await metricsRoute.GET(
       makeNextRequest(
         "http://localhost/api/metrics?range=last_7_days&domain=example.com&event_type=delivered",
-        { headers: { authorization: "Bearer token" } },
       ) as never,
     );
 
-    expect(response.status).toBe(200);
-    const json = await response.json();
+    expect(sessionResponse.status).toBe(200);
+    expect(mockGetServerSession).toHaveBeenCalledTimes(2);
+    const json = await sessionResponse.json();
     expect(json.totalEmails).toBe(10);
     expect(json.deliverabilityRate).toBe(70);
     expect(json.bounceRate).toBe(20);
@@ -270,17 +282,50 @@ describe("route smoke coverage", () => {
     expect(json.domainBreakdown).toEqual([
       { domain: "example.com", count: 10, rate: 70 },
     ]);
+
+    mockSelect
+      .mockReturnValueOnce(
+        makeChain([
+          {
+            total: 0,
+            delivered: 0,
+            bounced: 0,
+            hard_bounced: 0,
+            soft_bounced: 0,
+            undetermined_bounced: 0,
+            complained: 0,
+          },
+        ]),
+      )
+      .mockReturnValueOnce(makeChain([]))
+      .mockReturnValueOnce(makeChain([]))
+      .mockReturnValueOnce(makeChain([]))
+      .mockReturnValueOnce(makeChain([]));
+    mockValidateDashboardKey.mockReturnValueOnce(true);
+    const dashboardKeyResponse = await metricsRoute.GET(
+      makeNextRequest("http://localhost/api/metrics", {
+        headers: { authorization: "Bearer token" },
+      }) as never,
+    );
+
+    expect(dashboardKeyResponse.status).toBe(200);
+    expect(mockGetServerSession).toHaveBeenCalledTimes(2);
   });
 
-  it("covers usage auth failure and happy path", async () => {
+  it("covers usage auth failure, session auth, and dashboard key auth", async () => {
     mockValidateDashboardKey.mockReturnValueOnce(false);
+    mockGetServerSession.mockResolvedValueOnce(null);
     const usageRoute = await import("@/app/api/usage/route");
     const unauthorized = await usageRoute.GET(
       makeNextRequest("http://localhost/api/usage"),
     );
     expect(unauthorized.status).toBe(401);
 
-    mockValidateDashboardKey.mockReturnValue(true);
+    mockValidateDashboardKey.mockReturnValueOnce(false);
+    mockGetServerSession.mockResolvedValueOnce({
+      session: { id: "session-1" },
+      user: { id: "user-1" },
+    });
     mockCountFn.mockResolvedValue(0);
     mockCountFn.mockResolvedValueOnce(42);
     mockCountFn.mockResolvedValueOnce(3);
@@ -288,19 +333,36 @@ describe("route smoke coverage", () => {
     mockCountFn.mockResolvedValueOnce(4);
     mockCountFn.mockResolvedValueOnce(2);
 
-    const response = await usageRoute.GET(
-      makeNextRequest("http://localhost/api/usage", {
-        headers: { authorization: "Bearer token" },
-      }),
+    const sessionResponse = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage"),
     );
 
-    expect(response.status).toBe(200);
-    const json = await response.json();
+    expect(sessionResponse.status).toBe(200);
+    let json = await sessionResponse.json();
     expect(json.transactional.monthlyUsed).toBe(42);
     expect(json.transactional.dailyUsed).toBe(3);
     expect(json.marketing.contactsUsed).toBe(120);
     expect(json.marketing.segmentsUsed).toBe(4);
     expect(json.team.domainsUsed).toBe(2);
+
+    mockValidateDashboardKey.mockReturnValueOnce(true);
+    mockCountFn.mockResolvedValue(0);
+    mockCountFn.mockResolvedValueOnce(7);
+    mockCountFn.mockResolvedValueOnce(1);
+    mockCountFn.mockResolvedValueOnce(8);
+    mockCountFn.mockResolvedValueOnce(2);
+    mockCountFn.mockResolvedValueOnce(1);
+
+    const dashboardKeyResponse = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage", {
+        headers: { authorization: "Bearer token" },
+      }),
+    );
+
+    expect(dashboardKeyResponse.status).toBe(200);
+    json = await dashboardKeyResponse.json();
+    expect(json.transactional.monthlyUsed).toBe(7);
+    expect(mockGetServerSession).toHaveBeenCalledTimes(2);
   });
 
   it("covers segments get/post happy path and validation", async () => {
@@ -927,6 +989,7 @@ describe("route smoke coverage", () => {
 
     mockFindFirst.mockResolvedValueOnce({ id: "c1", segments: [] }); // contact
     mockFindFirst.mockResolvedValueOnce({ id: "s1", name: "VIP" }); // segment
+    mockInsert.mockImplementationOnce(() => makeChain([]));
     mockUpdate.mockImplementationOnce(() => makeChain([{ id: "c1" }]));
     const contactSegmentPost = await contactSegmentRoute.POST(
       makeNextRequest("http://localhost/api/contacts/c1/segments/s1", {

@@ -21,7 +21,7 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 - **E2E Tests**: Playwright (pre-configured)
 - **Linting**: Biome (pre-configured)
 
-## Repo Layout (npm workspaces monorepo)
+## Repo Layout (monorepo, Bun workspaces)
 - `src/` — main Next.js app
   - `src/app/` — App Router pages and API routes, with `(dashboard)` segment + `auth/`, `docs/`
   - `src/components/` — React UI components
@@ -29,7 +29,7 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
   - `src/middleware.ts` — per-route rate limiting
 - `packages/core/` — `@namuh/core` — shared DB client, repositories, DTOs, webhook helpers
 - `packages/ingester/` — `@namuh/ingester` — Hono webhook dispatcher for SES/SNS events and scheduled email worker
-- `packages/sdk/` — `resend-clone` — public TypeScript SDK published to npm
+- `packages/sdk/` — `namuh-send` — public TypeScript SDK published to npm
 - `tests/` — Vitest unit tests
 - `tests/e2e/` — Playwright E2E tests
 - `drizzle/` — generated migration SQL
@@ -40,14 +40,14 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 ## Commands
 - `make check` — typecheck + Biome
 - `make test` — Vitest unit tests
-- `make test-e2e` — Playwright (requires `npm run dev` running on port 3015)
+- `make test-e2e` — Playwright (requires `bun run dev` running on port 3015)
 - `make all` — check + test
-- `npm run dev` — Next.js dev server on port 3015
-- `npm run build` — production build
-- `npm run db:generate` — Drizzle migration files
-- `npm run db:migrate` — apply migrations
-- `npm run db:push` — push schema (dev)
-- `npm run db:seed` — seed sample data
+- `bun run dev` — Next.js dev server on port 3015
+- `bun run build` — production build
+- `bun run db:generate` — Drizzle migration files
+- `bun run db:migrate` — apply migrations
+- `bun run db:push` — push schema (dev)
+- `bun run db:seed` — seed sample data
 - `docker compose up -d` — full stack with Postgres + auto-migration
 
 ## Quality Standards

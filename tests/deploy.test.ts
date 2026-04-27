@@ -15,11 +15,11 @@ describe("deploy-001: ECS Fargate deployment configuration", () => {
 
   it("Dockerfile exists with multi-stage build", () => {
     const dockerfile = readFileSync(join(root, "Dockerfile"), "utf-8");
-    expect(dockerfile).toContain("FROM node:20-alpine AS base");
+    expect(dockerfile).toContain("FROM oven/bun:1.3-alpine AS base");
     expect(dockerfile).toContain("AS deps");
     expect(dockerfile).toContain("AS builder");
     expect(dockerfile).toContain("AS runner");
-    expect(dockerfile).toContain("npm run build");
+    expect(dockerfile).toContain("bun run build");
     expect(dockerfile).toContain(".next/standalone");
   });
 
@@ -29,12 +29,15 @@ describe("deploy-001: ECS Fargate deployment configuration", () => {
     expect(dockerfile).toContain("ENV PORT=8080");
   });
 
-  it("deploy script targets ECR + ECS when present", () => {
+  it("deploy script updates existing App Runner services to the requested image tag", () => {
     const scriptPath = join(root, "scripts", "deploy.sh");
-    if (!existsSync(scriptPath)) return; // script is gitignored, skip if absent
+    expect(existsSync(scriptPath)).toBe(true);
     const script = readFileSync(scriptPath, "utf-8");
-    expect(script).toContain("ecr");
-    expect(script).toMatch(/ecs|fargate/i);
+    expect(script).toContain("aws apprunner update-service");
+    expect(script).toContain("Service.SourceConfiguration");
+    expect(script).toContain(
+      'image_repository["ImageIdentifier"] = os.environ["IMAGE_IDENTIFIER"]',
+    );
   });
 
   it("package.json has build script", () => {

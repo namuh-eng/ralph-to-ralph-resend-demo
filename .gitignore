@@ -17,6 +17,9 @@ scripts/*
 !scripts/start.sh
 !scripts/postinstall-star.sh
 !scripts/seed.ts
+!scripts/install-git-hooks.mjs
+!scripts/check-changed-files.mjs
+!scripts/deploy.sh
 
 # Playwright test artifacts
 test-results/
@@ -39,3 +42,6 @@ ralph_to_ralph_archive/
 # Superset terminal app config
 .superset/
 .qrspi/
+
+# Local clawhip repo metadata (single-machine only)
+.clawhip/

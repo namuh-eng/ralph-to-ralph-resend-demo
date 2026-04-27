@@ -317,12 +317,15 @@ describe("Topics API route", () => {
         where: () => chain,
         orderBy: () => chain,
         limit: () => chain,
-        then: (resolve: any) => resolve([]),
-        catch: (reject: any) => reject(new Error("Mock error")),
+        // biome-ignore lint/suspicious/noThenProperty: mocks Drizzle's thenable query builder
+        then: (resolve: (rows: unknown[]) => unknown) => resolve([]),
+        catch: (reject: (err: Error) => unknown) =>
+          reject(new Error("Mock error")),
       };
       return {
         db: {
           select: () => chain,
+          $count: async () => 0,
         },
       };
     });
