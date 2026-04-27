@@ -30,7 +30,7 @@ export class EmailService {
     let providerId: string | null = null;
     if (!params.scheduledAt) {
       const res = await emailProvider.sendEmail(params);
-      providerId = res.id;
+      providerId = res.id ?? null;
     }
 
     const [record] = await emailRepo.create({

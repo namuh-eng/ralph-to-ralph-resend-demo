@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "./auth";
 
 export interface AuthResult {
   apiKeyId: string;
