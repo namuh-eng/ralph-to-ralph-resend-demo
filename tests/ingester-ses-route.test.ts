@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCreateOrIgnoreDuplicate = vi.fn();
 const mockWebhookList = vi.fn();
-const mockDispatch = vi.fn();
+const mockEnqueue = vi.fn();
+const mockDispatchDelivery = vi.fn();
 
 vi.mock("@namuh/core", () => ({
   emailEventRepo: {
@@ -60,7 +61,8 @@ vi.mock("hono", () => {
 
 vi.mock("../packages/ingester/src/dispatcher", () => ({
   webhookDispatcher: {
-    dispatch: mockDispatch,
+    enqueue: mockEnqueue,
+    dispatchDelivery: mockDispatchDelivery,
   },
 }));
 
@@ -152,7 +154,8 @@ describe("SES SNS ingestion route", () => {
     vi.resetModules();
     vi.clearAllMocks();
 
-    mockDispatch.mockResolvedValue(undefined);
+    mockEnqueue.mockResolvedValue({ id: "delivery-1" });
+    mockDispatchDelivery.mockResolvedValue(undefined);
     mockWebhookList.mockResolvedValue({
       data: [
         {
@@ -205,7 +208,8 @@ describe("SES SNS ingestion route", () => {
       type: "delivered",
       payload: { smtpResponse: "250 ok" },
     });
-    expect(mockDispatch).toHaveBeenCalledWith("hook-1", persistedEvent);
+    expect(mockEnqueue).toHaveBeenCalledWith("hook-1", persistedEvent.id);
+    expect(mockDispatchDelivery).toHaveBeenCalledWith("delivery-1");
   });
 
   it("rejects invalid SNS signatures before touching persistence", async () => {
@@ -229,7 +233,8 @@ describe("SES SNS ingestion route", () => {
       "SNS signature verification failed",
     );
     expect(mockCreateOrIgnoreDuplicate).not.toHaveBeenCalled();
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(mockEnqueue).not.toHaveBeenCalled();
+    expect(mockDispatchDelivery).not.toHaveBeenCalled();
   });
 
   it("acks duplicate SNS notifications without re-dispatching downstream webhooks", async () => {
@@ -257,7 +262,8 @@ describe("SES SNS ingestion route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(mockEnqueue).not.toHaveBeenCalled();
+    expect(mockDispatchDelivery).not.toHaveBeenCalled();
     expect(mockWebhookList).not.toHaveBeenCalled();
   });
 

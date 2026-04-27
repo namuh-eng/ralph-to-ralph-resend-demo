@@ -80,8 +80,12 @@ app.post("/events/ses", async (c) => {
           types.includes(event.type) ||
           types.includes(webhookEventType))
       ) {
-        webhookDispatcher.dispatch(hook.id, event).catch((err) => {
-          console.error(`Error dispatching webhook ${hook.id}:`, err);
+        const delivery = await webhookDispatcher.enqueue(hook.id, event.id);
+        webhookDispatcher.dispatchDelivery(delivery.id).catch((err) => {
+          console.error(
+            `Error dispatching webhook delivery ${delivery.id}:`,
+            err,
+          );
         });
       }
     }

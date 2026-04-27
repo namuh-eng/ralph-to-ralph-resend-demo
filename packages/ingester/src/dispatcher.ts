@@ -1,26 +1,82 @@
 import {
-  type emailEvents,
+  emailEventRepo,
   signWebhookPayload,
   webhookDeliveryRepo,
   webhookRepo,
 } from "@namuh/core";
 
+const DEFAULT_RETRY_DELAYS_SECONDS = [10, 60, 300, 1800, 7200, 21600, 86400];
+const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_MAX_ATTEMPTS = DEFAULT_RETRY_DELAYS_SECONDS.length + 1;
+const RESPONSE_BODY_SNIPPET_LIMIT = 1_000;
+
+type WebhookDispatcherOptions = {
+  fetchImpl?: typeof fetch;
+  now?: () => Date;
+  retryDelaysSeconds?: number[];
+  maxAttempts?: number;
+  timeoutMs?: number;
+};
+
 export class WebhookDispatcher {
-  async dispatch(webhookId: string, event: typeof emailEvents.$inferSelect) {
-    const webhook = await webhookRepo.findById(webhookId);
-    if (!webhook || webhook.status !== "active") return;
+  private readonly fetchImpl: typeof fetch;
+  private readonly now: () => Date;
+  private readonly retryDelaysSeconds: number[];
+  private readonly maxAttempts: number;
+  private readonly timeoutMs: number;
 
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const msgId = `wh_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  constructor(options: WebhookDispatcherOptions = {}) {
+    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.now = options.now ?? (() => new Date());
+    this.retryDelaysSeconds =
+      options.retryDelaysSeconds ?? DEFAULT_RETRY_DELAYS_SECONDS;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  }
 
-    const webhookEventType = event.type.includes(".")
-      ? event.type
-      : `email.${event.type}`;
+  async enqueue(webhookId: string, eventId: string) {
+    return await webhookDeliveryRepo.create({
+      webhookId,
+      eventId,
+      status: "pending",
+      attempt: 0,
+      nextRetryAt: null,
+    });
+  }
 
+  async dispatchDelivery(deliveryId: string) {
+    const delivery = await webhookDeliveryRepo.findById(deliveryId);
+    if (!delivery) return null;
+
+    const [webhook, event] = await Promise.all([
+      webhookRepo.findById(delivery.webhookId),
+      emailEventRepo.findById(delivery.eventId),
+    ]);
+
+    if (!webhook) {
+      return await this.markTerminal(delivery, "Webhook not found");
+    }
+
+    if (webhook.status !== "active") {
+      return await this.markTerminal(delivery, "Webhook is disabled");
+    }
+
+    if (!event) {
+      return await this.markTerminal(delivery, "Webhook event not found");
+    }
+
+    const attemptedAt = this.now();
+    const attemptNumber = delivery.attempt + 1;
+    const timestamp = Math.floor(attemptedAt.getTime() / 1000).toString();
+    const msgId = `whd_${delivery.id}_${attemptNumber}`;
+    const eventType =
+      typeof event.type === "string" && event.type.includes(".")
+        ? event.type
+        : `email.${event.type}`;
     const body = JSON.stringify({
       id: msgId,
-      type: webhookEventType,
-      created_at: new Date().toISOString(),
+      type: eventType,
+      created_at: attemptedAt.toISOString(),
       data: event.payload,
     });
 
@@ -31,15 +87,8 @@ export class WebhookDispatcher {
       body,
     );
 
-    const delivery = await webhookDeliveryRepo.create({
-      webhookId: webhook.id,
-      eventId: event.id,
-      status: "pending",
-      attempt: 1,
-    });
-
     try {
-      const res = await fetch(webhook.url, {
+      const response = await this.fetchImpl(webhook.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,43 +97,96 @@ export class WebhookDispatcher {
           "svix-signature": signature,
         },
         body,
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
 
-      const responseBody = await res.text();
+      const responseBody = this.toSnippet(await response.text());
+      const nextRetryAt = response.ok
+        ? null
+        : this.calculateNextRetry(attemptNumber);
+      const nextStatus = response.ok
+        ? "success"
+        : attemptNumber >= this.maxAttempts
+          ? "dead_letter"
+          : "pending";
 
-      await webhookDeliveryRepo.update(delivery.id, {
-        statusCode: res.status,
+      return await webhookDeliveryRepo.update(delivery.id, {
+        attempt: attemptNumber,
+        attemptedAt,
+        statusCode: response.status,
         responseBody,
-        status: res.ok ? "success" : "failed",
-        attemptedAt: new Date(),
-        nextRetryAt: res.ok ? null : this.calculateNextRetry(1),
+        status: nextStatus,
+        nextRetryAt: nextStatus === "pending" ? nextRetryAt : null,
       });
-
-      return {
-        statusCode: res.status,
-        success: res.ok,
-      };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await webhookDeliveryRepo.update(delivery.id, {
-        status: "failed",
-        responseBody: message,
-        attemptedAt: new Date(),
-        nextRetryAt: this.calculateNextRetry(1),
-      });
+      const message = this.toSnippet(
+        error instanceof Error ? error.message : String(error),
+      );
+      const nextStatus =
+        attemptNumber >= this.maxAttempts ? "dead_letter" : "pending";
 
-      return {
-        success: false,
-        error: message,
-      };
+      return await webhookDeliveryRepo.update(delivery.id, {
+        attempt: attemptNumber,
+        attemptedAt,
+        responseBody: message,
+        statusCode: null,
+        status: nextStatus,
+        nextRetryAt:
+          nextStatus === "pending"
+            ? this.calculateNextRetry(attemptNumber)
+            : null,
+      });
     }
   }
 
-  private calculateNextRetry(attempt: number): Date {
-    // 10s, 1m, 5m, 30m, 2h, 6h, 24h
-    const intervals = [10, 60, 300, 1800, 7200, 21600, 86400];
-    const seconds = intervals[attempt - 1] || 86400;
-    return new Date(Date.now() + seconds * 1000);
+  async dispatchPendingDeliveries(
+    options: { limit?: number; now?: Date } = {},
+  ) {
+    const deliveries = await webhookDeliveryRepo.findDispatchable(options);
+
+    const results = [];
+    for (const delivery of deliveries) {
+      const result = await this.dispatchDelivery(delivery.id);
+      if (result) {
+        results.push(result);
+      }
+    }
+
+    return {
+      processed: results.length,
+      results,
+    };
+  }
+
+  private calculateNextRetry(attemptNumber: number): Date {
+    const seconds =
+      this.retryDelaysSeconds[attemptNumber - 1] ??
+      this.retryDelaysSeconds[this.retryDelaysSeconds.length - 1] ??
+      86_400;
+
+    return new Date(this.now().getTime() + seconds * 1_000);
+  }
+
+  private async markTerminal(
+    delivery: {
+      id: string;
+      attempt: number;
+    },
+    message: string,
+  ) {
+    return await webhookDeliveryRepo.update(delivery.id, {
+      attempt: delivery.attempt,
+      status: "failed",
+      responseBody: this.toSnippet(message),
+      statusCode: null,
+      nextRetryAt: null,
+    });
+  }
+
+  private toSnippet(value: string) {
+    return value.length > RESPONSE_BODY_SNIPPET_LIMIT
+      ? `${value.slice(0, RESPONSE_BODY_SNIPPET_LIMIT)}…`
+      : value;
   }
 }
 
