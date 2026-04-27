@@ -118,6 +118,16 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
+    const attachmentsForSes = (validated.attachments ?? []).flatMap((a) =>
+      typeof a.content === "string"
+        ? [{ filename: a.filename, content: a.content }]
+        : [],
+    );
+    const attachmentsForDb = (validated.attachments ?? []).map((a) => ({
+      id: crypto.randomUUID(),
+      ...a,
+    }));
+
     // Only send immediately if not scheduled
     if (!scheduledAt) {
       await sesSendEmail({
@@ -131,11 +141,7 @@ export async function POST(request: Request): Promise<Response> {
         replyTo,
         headers: validated.headers as Record<string, string>,
         attachments:
-          (validated.attachments as Array<{
-            filename: string;
-            content?: string;
-            path?: string;
-          }>) ?? undefined,
+          attachmentsForSes.length > 0 ? attachmentsForSes : undefined,
       });
     }
 
@@ -153,7 +159,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text ?? "",
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
-        attachments: (validated.attachments as Array<unknown>) ?? [],
+        attachments: attachmentsForDb,
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,

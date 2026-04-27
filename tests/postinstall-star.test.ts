@@ -53,9 +53,18 @@ describe("postinstall-star", () => {
     } = {},
   ): { stdout: string; exitCode: number } {
     const { env = {}, input = "", args = [] } = options;
+    // Strip ambient skip vars from the inherited environment so CI runners
+    // (which set SKIP_STAR_PROMPT=1 at the job level for bun install) cannot
+    // make the script short-circuit before the test asserts on its output.
+    // Tests that want the skip behavior set the var explicitly via `env`.
+    const {
+      SKIP_STAR_PROMPT: _skip,
+      NAMUH_SEND_SKIP_STAR_PROMPT: _nskip,
+      ...inherited
+    } = process.env;
     try {
       const stdout = execFileSync("bash", [SCRIPT, ...args], {
-        env: { ...process.env, ...env },
+        env: { ...inherited, ...env },
         input,
         encoding: "utf-8",
         timeout: 5000,

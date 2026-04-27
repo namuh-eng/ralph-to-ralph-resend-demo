@@ -1,0 +1,113 @@
+# ABOUTME: CI guardrails — change-scoped lint/typecheck plus the documented onboarding acceptance flow.
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  typecheck:
+    name: Typecheck (full project)
+    runs-on: ubuntu-latest
+    env:
+      SKIP_STAR_PROMPT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.8"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: tsc --noEmit
+        run: bunx tsc --noEmit --pretty false
+
+  lint:
+    name: Lint (change-scoped)
+    runs-on: ubuntu-latest
+    env:
+      SKIP_STAR_PROMPT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # scripts/check-changed-files.mjs needs origin/main history to compute the merge base.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.8"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: bun run check
+        run: bun run check
+
+  tests:
+    name: Unit tests (Vitest)
+    runs-on: ubuntu-latest
+    env:
+      SKIP_STAR_PROMPT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.8"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: bunx vitest run
+        run: bunx vitest run
+
+  onboarding:
+    name: Onboarding acceptance
+    runs-on: ubuntu-latest
+    env:
+      SKIP_STAR_PROMPT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.8"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare documented local env
+        run: |
+          cp .env.example .env
+          node -e "const fs=require('fs'); const path='.env'; let env=fs.readFileSync(path,'utf8'); if(/^DASHBOARD_KEY=$/m.test(env)){ env=env.replace(/^DASHBOARD_KEY=$/m, 'DASHBOARD_KEY=ci-test-key'); } else if(!/^DASHBOARD_KEY=/m.test(env)){ env += '\nDASHBOARD_KEY=ci-test-key\n'; } fs.writeFileSync(path, env);"
+
+      - name: Validate Docker Compose config
+        run: docker compose config
+
+      - name: Start documented local Postgres
+        run: docker compose up postgres -d
+
+      - name: Wait for Postgres
+        run: until docker compose exec -T postgres pg_isready -U namuh >/dev/null 2>&1; do sleep 1; done
+
+      - name: Push schema with documented local DATABASE_URL
+        run: bunx drizzle-kit push --config drizzle.config.ts
+
+      - name: Seed sample data
+        run: bunx tsx scripts/seed.ts
+
+      - name: Verify postinstall star prompt suppression regression
+        run: bunx vitest run tests/postinstall-star.test.ts
+
+      - name: Tear down Docker services
+        if: always()
+        run: docker compose down -v

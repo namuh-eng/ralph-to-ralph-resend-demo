@@ -295,7 +295,7 @@ class Contacts {
 
 // ── Main SDK Class ───────────────────────────────────────────────
 
-class ResendClone {
+class NamuhSend {
   public readonly emails: Emails;
   public readonly domains: Domains;
   public readonly apiKeys: ApiKeys;
@@ -316,7 +316,7 @@ class ResendClone {
   }
 }
 
-export { ResendClone };
+export { NamuhSend };
 export type {
   SDKOptions,
   ApiResponse,

@@ -1,16 +1,17 @@
-FROM node:20-alpine AS base
+FROM oven/bun:1.3-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --production=false
+COPY package.json bun.lock ./
+COPY packages ./packages
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # Migration runner — lightweight image with drizzle-kit + pg
 FROM base AS migrator
@@ -20,7 +21,7 @@ COPY drizzle ./drizzle
 COPY drizzle.config.ts ./
 COPY src/lib/db/schema.ts ./src/lib/db/schema.ts
 COPY package.json ./
-CMD ["npx", "drizzle-kit", "migrate", "--config", "drizzle.config.ts"]
+CMD ["bunx", "drizzle-kit", "migrate", "--config", "drizzle.config.ts"]
 
 # Production app
 FROM base AS runner
@@ -35,4 +36,4 @@ USER nextjs
 EXPOSE 8080
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

@@ -1,6 +1,10 @@
 // ABOUTME: Metrics API endpoint — returns aggregated email stats, daily chart data, and per-domain breakdown
 
-import { unauthorizedResponse, validateDashboardKey } from "@/lib/api-auth";
+import {
+  getServerSession,
+  unauthorizedResponse,
+  validateDashboardKey,
+} from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
 import { and, gte, inArray, like, sql } from "drizzle-orm";
@@ -51,8 +55,12 @@ function getDateRange(range: string): Date {
 
 // Dashboard-only internal endpoint
 export async function GET(request: NextRequest) {
-  const auth = validateDashboardKey(request.headers.get("authorization"));
-  if (!auth) return unauthorizedResponse();
+  const hasDashboardKey = validateDashboardKey(
+    request.headers.get("authorization"),
+  );
+  const session = hasDashboardKey ? null : await getServerSession();
+
+  if (!hasDashboardKey && !session) return unauthorizedResponse();
 
   try {
     const searchParams = request.nextUrl.searchParams;

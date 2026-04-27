@@ -4,21 +4,24 @@ Thanks for your interest in contributing to Namuh Send!
 
 ## Setup
 
-**Quick start** (requires Docker + Node.js):
+**Quick start** (requires Docker + [Bun](https://bun.sh)):
 
 ```bash
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
-npm install
-make setup    # starts Postgres, creates .env, runs migrations, seeds DB
+cp .env.example .env
+make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
 make dev      # http://localhost:3015
 ```
+
+`make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). The Docker Compose app/migration services use their own internal `postgres` hostname automatically.
+`bun install` also installs the repo's versioned Git hooks automatically by setting `core.hooksPath` to `.githooks`.
 
 The seed prints an API key to the console — save it. Then verify everything works:
 
 ```bash
-# Check the app + database are healthy
-curl http://localhost:3015/api/health
+# Check the dashboard loads
+curl -I http://localhost:3015
 
 # Send a test email (replace YOUR_API_KEY with the key from seed)
 curl -X POST http://localhost:3015/api/emails \
@@ -34,13 +37,16 @@ curl -X POST http://localhost:3015/api/emails \
 
 Without AWS credentials, emails are logged to the console instead of sent — the full API flow still works for development.
 
+To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMPT=1 bun install`.
+If you install dependencies with `--ignore-scripts`, run `bun run hooks:install` once to enable the local guardrails manually.
+
 <details>
 <summary>Manual setup (without make setup)</summary>
 
 1. Copy `.env.example` to `.env` and set `DASHBOARD_KEY` (see the file for a generation command).
-2. Start Postgres: `docker compose up -d` (or point `DATABASE_URL` at your own instance).
-3. Push schema and seed: `npm run db:push && npm run db:seed`
-4. Start dev server: `npm run dev`
+2. Start Postgres: `docker compose up postgres -d` (or point `DATABASE_URL` at your own instance). If port `5432` is already taken, change both `POSTGRES_PORT` and the port inside `DATABASE_URL` in `.env`.
+3. Push schema and seed: `bun run db:push && bun run db:seed`
+4. Start dev server: `bun run dev`
 
 </details>
 
@@ -48,16 +54,25 @@ Without AWS credentials, emails are logged to the console instead of sent — th
 
 | Command | Purpose |
 |---|---|
-| `make check` | TypeScript typecheck + Biome lint/format |
+| `bun run hooks:install` | Reinstall the versioned Git hooks (`.githooks`) |
+| `bun run check` | Run the same change-scoped push guardrails used by `pre-push` |
+| `make check` | Run full-repo TypeScript typecheck + Biome lint/format |
 | `make test` | Unit tests (Vitest) |
 | `make test-e2e` | E2E tests (Playwright, requires dev server) |
 | `make all` | Run everything |
 
 Run `make check && make test` before opening a PR.
 
+## Local Git Guardrails
+
+- `pre-commit`: runs `biome check` on staged JS/TS/JSON/CSS/Markdown files for fast feedback before the commit is created.
+- `pre-push`: runs `bun run check`, which compares your branch against `origin/main` and blocks the push if any changed files fail lint or typecheck.
+
+The hooks are versioned in `.githooks/`, so everyone on the repo gets the same guardrails after a normal install. `make check` remains available for full-repo validation; the hook stays change-scoped because `origin/main` still has unrelated legacy failures outside most focused PRs.
+
 ## Ports
 
-- **3015** — dev server (`npm run dev`)
+- **3015** — dev server (`bun run dev`)
 - **8080** — production Docker image (internal)
 
 ## AWS SES (optional for local dev)
@@ -68,7 +83,7 @@ New AWS accounts start in SES **sandbox mode** — you can only send to verified
 
 ## Code Style
 
-- **Biome** handles formatting — `make check` auto-reports issues, `npm run lint:fix` fixes them
+- **Biome** handles formatting — `make check` auto-reports issues, `bun run lint:fix` fixes them
 - **TypeScript strict mode** — no `any`, no type assertions without justification
 - Every feature needs at least one unit test (Vitest) and one E2E test (Playwright)
 

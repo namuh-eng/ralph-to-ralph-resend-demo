@@ -1,13 +1,13 @@
 {
-  "name": "resend-clone",
+  "name": "namuh-send",
   "version": "1.0.0",
-  "description": "TypeScript SDK for the Resend Clone email API",
+  "description": "TypeScript SDK for the Namuh Send email API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "keywords": ["email", "api", "sdk", "resend"],
   "license": "MIT",

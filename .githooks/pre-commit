@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+files_to_check=()
+while IFS= read -r file; do
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+
+  case "$file" in
+    *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.json|*.jsonc|*.css|*.md)
+      files_to_check+=("$file")
+      ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ "${#files_to_check[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+echo "→ Running Biome on staged files..."
+bunx biome check --files-ignore-unknown=true --no-errors-on-unmatched "${files_to_check[@]}"

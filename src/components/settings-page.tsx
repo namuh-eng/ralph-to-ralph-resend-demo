@@ -7,7 +7,7 @@ import { type UsageData, UsageTab } from "@/components/settings-usage";
 import { useEffect, useState } from "react";
 
 const SMTP_CREDENTIALS = [
-  { label: "Host", value: "smtp.resend-clone.com" },
+  { label: "Host", value: "smtp.namuh-send.com" },
   { label: "Port", value: "465" },
   { label: "Username", value: "resend" },
   { label: "Password", value: "YOUR_API_KEY" },
@@ -122,7 +122,7 @@ export function SettingsPage() {
               EXAMPLE CONFIGURATION
             </p>
             <pre className="text-[13px] text-[#F0F0F0] font-mono whitespace-pre-wrap">
-              {`SMTP_HOST=smtp.resend-clone.com
+              {`SMTP_HOST=smtp.namuh-send.com
 SMTP_PORT=465
 SMTP_USER=resend
 SMTP_PASS=re_YOUR_API_KEY`}
@@ -178,7 +178,7 @@ SMTP_PASS=re_YOUR_API_KEY`}
                   Successfully unsubscribed
                 </div>
                 <p className="text-gray-400 text-xs mt-6">
-                  Powered by Resend Clone
+                  Powered by Namuh Send
                 </p>
               </div>
             </div>

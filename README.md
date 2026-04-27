@@ -44,7 +44,7 @@ The fastest way to get Namuh Send running:
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
 cp .env.example .env
-# Edit .env — set DASHBOARD_KEY (required), add AWS credentials for email sending
+# Edit .env — set DASHBOARD_KEY (required); AWS credentials are only needed for real email sending
 docker compose up -d
 ```
 
@@ -55,7 +55,7 @@ That's it. Open **http://localhost:3015** and enter your dashboard key.
 ## Features
 
 - **REST API** — Send emails via a simple POST request with API key auth
-- **TypeScript SDK** — [`resend-clone`](./packages/sdk) npm package with full type safety
+- **TypeScript SDK** — [`namuh-send`](./packages/sdk) npm package with full type safety
 - **React Email Templates** — Pass React components via the SDK's `react` prop
 - **Domain Verification** — DKIM, SPF, DMARC auto-configured via Cloudflare DNS
 - **API Key Management** — `full_access` and `sending_access` permission scopes
@@ -84,16 +84,18 @@ curl -X POST http://localhost:3015/api/emails \
   }'
 ```
 
+Open `http://localhost:3015/docs` for the full local API reference.
+
 ### TypeScript SDK
 
 ```bash
-npm install resend-clone
+bun add namuh-send
 ```
 
 ```typescript
-import { ResendClone } from "resend-clone";
+import { NamuhSend } from "namuh-send";
 
-const client = new ResendClone("YOUR_API_KEY", {
+const client = new NamuhSend("YOUR_API_KEY", {
   baseUrl: "http://localhost:3015",
 });
 
@@ -136,11 +138,14 @@ AWS_REGION=us-east-1
 
 # Optional
 POSTGRES_PASSWORD=your-db-password     # Default: namuh
+POSTGRES_PORT=5432                     # Change this and DATABASE_URL together if 5432 is taken
 PORT=3015                              # Default: 3015
 CLOUDFLARE_API_TOKEN=your-cf-token     # For auto DNS setup
 CLOUDFLARE_ZONE_ID=your-zone-id
 S3_BUCKET_NAME=your-bucket             # For email attachments
 ```
+
+`.env.example` keeps `DATABASE_URL` on `localhost` for host-run commands like `bun run dev` and `bun run db:push`. Docker Compose injects its own internal `postgres` hostname for the containerized app and migration services.
 
 Start everything:
 
@@ -152,20 +157,22 @@ This starts PostgreSQL, runs migrations, and launches the app. Open **http://loc
 
 ### Manual Setup
 
-If you prefer running without Docker:
+If you prefer running without Docker (requires [Bun](https://bun.sh)):
 
 ```bash
 git clone https://github.com/namuh-eng/namuh-send.git
 cd namuh-send
-npm install
+bun install
 cp .env.example .env
-# Edit .env — set DATABASE_URL and DASHBOARD_KEY
-npm run db:migrate
-npm run db:seed          # Optional: creates sample data
-npm run dev              # Development (port 3015)
+# Edit .env — set DASHBOARD_KEY (required). Leave DATABASE_URL as localhost unless you're using another Postgres instance.
+bun run db:push
+bun run db:seed          # Optional: creates sample data
+bun run dev              # Development (port 3015)
 # or
-npm run build && npm start  # Production
+bun run build && bun start  # Production
 ```
+
+To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMPT=1 bun install`.
 
 ### AWS SES Sandbox
 
@@ -198,7 +205,7 @@ src/
 ├── lib/          # Core services: db, ses, s3, cloudflare
 └── types/        # TypeScript type definitions
 packages/
-└── sdk/          # Published TypeScript SDK (resend-clone)
+└── sdk/          # Published TypeScript SDK (namuh-send)
 tests/
 ├── *.test.ts     # Unit tests (Vitest)
 └── e2e/          # E2E tests (Playwright)
@@ -221,25 +228,32 @@ drizzle/          # Database migration files
 
 ## Development
 
-```bash
-# Start Postgres
-docker compose up postgres -d
-
-# Install deps + run migrations
-npm install
-npm run db:push
-npm run db:seed
-
-# Start dev server
-npm run dev
-```
+For local contributor onboarding, use the same Docker-backed path as [CONTRIBUTING.md](./CONTRIBUTING.md):
 
 ```bash
-make check       # Typecheck + lint
-make test        # Unit tests
-make test-e2e    # E2E tests (requires dev server)
-make all         # Everything
+cp .env.example .env
+make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
+make dev      # http://localhost:3015
 ```
+
+`make setup` uses the host-machine `DATABASE_URL` from `.env` (`localhost` by default). Docker Compose app and migration containers use their own internal `postgres` hostname automatically.
+`bun install` also installs the repo's versioned Git hooks automatically by setting `core.hooksPath` to `.githooks`.
+
+```bash
+bun run hooks:install  # optional manual reinstall if you used --ignore-scripts
+bun run check          # runs the same change-scoped push guardrail used on pre-push
+make check             # full repo typecheck + lint
+make test              # Unit tests
+make test-e2e          # E2E tests (requires dev server)
+make all               # Everything
+```
+
+Local guardrails:
+
+- `pre-commit` runs Biome on staged JS/TS/JSON/CSS/Markdown files for quick feedback.
+- `pre-push` runs `bun run check`, which checks only the files changed from `origin/main` and blocks the push if those changed files fail lint or typecheck.
+
+`make check` still runs the full repo validation. The push hook stays change-scoped because the current upstream branch still has unrelated legacy lint/typecheck failures outside this PR's scope.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide.
 

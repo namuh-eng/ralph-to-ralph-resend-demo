@@ -1,16 +1,13 @@
-FROM node:24-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+FROM oven/bun:1.3-alpine AS base
 
 FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build --filter @namuh/ingester
+RUN bun install --frozen-lockfile
+RUN bun run build --filter @namuh/ingester
 
 FROM base
 COPY --from=build /usr/src/app /usr/src/app
 WORKDIR /usr/src/app/packages/ingester
 EXPOSE 3016
-CMD [ "node", "dist/index.js" ]
+CMD ["bun", "dist/index.js"]
