@@ -44,7 +44,10 @@ export async function GET(
       return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
-    const subscriptions = (contact.topicSubscriptions as any[]) ?? [];
+    const subscriptions =
+      (contact.topicSubscriptions as
+        | Array<{ topicId: string; subscribed: boolean }>
+        | null) ?? [];
 
     const data = await Promise.all(
       subscriptions.map(async (sub) => {
