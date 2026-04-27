@@ -75,6 +75,10 @@ export function EmailsSendingPage({ apiKeys, emails }: EmailsSendingPageProps) {
   const [filters, setFilters] = useState<EmailFilters>(initialFilters);
 
   useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
+
+  useEffect(() => {
     const nextQuery = buildQueryString(filters);
     const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
     router.replace(nextUrl);
