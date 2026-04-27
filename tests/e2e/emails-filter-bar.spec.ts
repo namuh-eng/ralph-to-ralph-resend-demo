@@ -38,4 +38,21 @@ test.describe("Emails Sending Filter Bar", () => {
     // Button should now show "Today"
     await expect(page.getByText("Today")).toBeVisible();
   });
+
+  test("resyncs search controls when the URL search params change after mount", async ({
+    page,
+  }) => {
+    await page.goto("/emails?search=alice");
+
+    const searchInput = page.getByPlaceholder("Search...");
+    await expect(searchInput).toHaveValue("alice");
+
+    await page.evaluate(() => {
+      window.history.pushState({}, "", "/emails?search=bob");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    await expect(page).toHaveURL(/\/emails\?search=bob/);
+    await expect(searchInput).toHaveValue("bob");
+  });
 });

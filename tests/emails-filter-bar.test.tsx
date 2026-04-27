@@ -182,4 +182,46 @@ describe("EmailsSendingFilterBar", () => {
       expect.objectContaining({ dateRange: "Today" }),
     );
   });
+
+  it("resyncs its controls when initial filters change after mount", () => {
+    const { rerender } = render(
+      <EmailsSendingFilterBar
+        apiKeys={defaultApiKeys}
+        initialFilters={{
+          search: "alice@example.com",
+          dateRange: "Today",
+          status: "delivered",
+          apiKeyId: "key-1",
+        }}
+        onFiltersChange={() => {}}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText("Search...").getAttribute("value")).toBe(
+      "alice@example.com",
+    );
+    expect(screen.getByText("Today")).toBeDefined();
+    expect(screen.getByText("Delivered")).toBeDefined();
+    expect(screen.getByText("My API Key")).toBeDefined();
+
+    rerender(
+      <EmailsSendingFilterBar
+        apiKeys={defaultApiKeys}
+        initialFilters={{
+          search: "bob@example.com",
+          dateRange: "Yesterday",
+          status: "bounced",
+          apiKeyId: "key-2",
+        }}
+        onFiltersChange={() => {}}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText("Search...").getAttribute("value")).toBe(
+      "bob@example.com",
+    );
+    expect(screen.getByText("Yesterday")).toBeDefined();
+    expect(screen.getByText("Bounced")).toBeDefined();
+    expect(screen.getByText("Production Key")).toBeDefined();
+  });
 });
