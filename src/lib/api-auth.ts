@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { getCached, setCache } from "@/lib/cache/redis";
+import { deleteCache, readCache, writeCache } from "@/lib/cache/redis";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,6 +11,38 @@ export interface AuthResult {
   permission: string;
   domain: string | null;
   userId: string | null;
+}
+
+const API_KEY_AUTH_CACHE_TTL_SECONDS = 300;
+
+function getApiKeyAuthCacheKeyFromHash(tokenHash: string): string {
+  return `auth:apikey:${tokenHash}`;
+}
+
+function logApiKeyCache(
+  event: "hit" | "miss" | "unavailable" | "error" | "write" | "invalidate",
+  tokenHash: string,
+) {
+  console.info("[cache][api-key-auth]", {
+    event,
+    tokenHashPrefix: tokenHash.slice(0, 12),
+  });
+}
+
+export async function invalidateApiKeyAuthCache(
+  tokenHash: string | null | undefined,
+): Promise<void> {
+  if (!tokenHash) return;
+
+  const status = await deleteCache(getApiKeyAuthCacheKeyFromHash(tokenHash));
+  logApiKeyCache(
+    status === "deleted"
+      ? "invalidate"
+      : status === "unavailable"
+        ? "unavailable"
+        : "error",
+    tokenHash,
+  );
 }
 
 /**
@@ -29,11 +61,12 @@ export async function validateApiKey(
   if (!rawKey) return null;
 
   const hashedKey = createHash("sha256").update(rawKey).digest("hex");
-  const cacheKey = `auth:apikey:${hashedKey}`;
+  const cacheKey = getApiKeyAuthCacheKeyFromHash(hashedKey);
 
   // 1. Try Cache
-  const cached = await getCached<AuthResult>(cacheKey);
-  if (cached) return cached;
+  const cached = await readCache<AuthResult>(cacheKey);
+  logApiKeyCache(cached.status, hashedKey);
+  if (cached.status === "hit") return cached.value;
 
   // 2. Try DB
   const found = await db.query.apiKeys.findFirst({
@@ -50,7 +83,19 @@ export async function validateApiKey(
   };
 
   // 3. Set Cache (5 min TTL)
-  await setCache(cacheKey, result, 300);
+  const writeStatus = await writeCache(
+    cacheKey,
+    result,
+    API_KEY_AUTH_CACHE_TTL_SECONDS,
+  );
+  logApiKeyCache(
+    writeStatus === "written"
+      ? "write"
+      : writeStatus === "unavailable"
+        ? "unavailable"
+        : "error",
+    hashedKey,
+  );
 
   // Background update lastUsedAt to avoid blocking the request
   // Only update once per minute to avoid write amplification

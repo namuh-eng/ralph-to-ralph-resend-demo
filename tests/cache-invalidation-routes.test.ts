@@ -1,0 +1,302 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockValidateApiKey = vi.hoisted(() => vi.fn());
+const mockInvalidateApiKeyAuthCache = vi.hoisted(() => vi.fn());
+const mockGetCachedDomainById = vi.hoisted(() => vi.fn());
+const mockGetCachedDomainIdentity = vi.hoisted(() => vi.fn());
+const mockInvalidateDomainCaches = vi.hoisted(() => vi.fn());
+const mockCreateDomainIdentity = vi.hoisted(() => vi.fn());
+const mockDeleteDomainIdentity = vi.hoisted(() => vi.fn());
+const mockAutoConfigureDomain = vi.hoisted(() => vi.fn());
+const mockListDNSRecords = vi.hoisted(() => vi.fn());
+const mockDeleteDNSRecord = vi.hoisted(() => vi.fn());
+const mockQueueEvent = vi.hoisted(() => vi.fn());
+
+const VALID_DOMAIN_ID = "11111111-1111-4111-8111-111111111111";
+
+const mockDb = vi.hoisted(() => ({
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  invalidateApiKeyAuthCache: mockInvalidateApiKeyAuthCache,
+  unauthorizedResponse: () =>
+    Response.json({ error: "Missing or invalid API key" }, { status: 401 }),
+  validateApiKey: mockValidateApiKey,
+}));
+
+vi.mock("@/lib/domain-cache", () => ({
+  getCachedDomainById: mockGetCachedDomainById,
+  getCachedDomainIdentity: mockGetCachedDomainIdentity,
+  invalidateDomainCaches: mockInvalidateDomainCaches,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: mockDb,
+}));
+
+vi.mock("@/lib/ses", () => ({
+  createDomainIdentity: mockCreateDomainIdentity,
+  deleteDomainIdentity: mockDeleteDomainIdentity,
+}));
+
+vi.mock("@/lib/cloudflare", () => ({
+  autoConfigureDomain: mockAutoConfigureDomain,
+  deleteDNSRecord: mockDeleteDNSRecord,
+  listDNSRecords: mockListDNSRecords,
+}));
+
+vi.mock("@/lib/events", () => ({
+  queueEvent: mockQueueEvent,
+}));
+
+vi.mock("drizzle-orm", async () => {
+  const actual = await vi.importActual("drizzle-orm");
+  return {
+    ...actual,
+    eq: vi.fn((...args: unknown[]) => ({ op: "eq", args })),
+  };
+});
+
+describe("cache invalidation routes", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockValidateApiKey.mockResolvedValue({
+      apiKeyId: "key-1",
+      permission: "full_access",
+      domain: null,
+      userId: "user-1",
+    });
+  });
+
+  it("invalidates new api-key auth entries after create", async () => {
+    mockDb.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi
+          .fn()
+          .mockResolvedValue([{ id: "created-key", tokenHash: "hash-123" }]),
+      }),
+    });
+
+    const route = await import("@/app/api/api-keys/route");
+    const response = await route.POST(
+      new Request("http://localhost/api/api-keys", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer admin",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "Primary" }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockInvalidateApiKeyAuthCache).toHaveBeenCalledWith("hash-123");
+  });
+
+  it("invalidates domain caches after create", async () => {
+    mockCreateDomainIdentity.mockResolvedValue({
+      dkimTokens: ["a", "b", "c"],
+      status: "PENDING",
+    });
+    mockDb.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: VALID_DOMAIN_ID,
+            name: "example.com",
+            status: "not_started",
+            region: "us-east-1",
+            records: [],
+            trackOpens: false,
+            trackClicks: false,
+            trackingSubdomain: null,
+            tls: "opportunistic",
+            capabilities: [{ name: "sending", enabled: true }],
+            createdAt: new Date("2026-04-28T00:00:00.000Z"),
+          },
+        ]),
+      }),
+    });
+
+    const route = await import("@/app/api/domains/route");
+    const response = await route.POST(
+      new Request("http://localhost/api/domains", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer key",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name: "example.com" }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockInvalidateDomainCaches).toHaveBeenCalledWith({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+  });
+
+  it("invalidates cached api-key auth entries on delete", async () => {
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ tokenHash: "hash-456" }]),
+        }),
+      }),
+    });
+    mockDb.delete.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "key-1" }]),
+      }),
+    });
+
+    const route = await import("@/app/api/api-keys/[id]/route");
+    const response = await route.DELETE(new Request("http://localhost"), {
+      params: Promise.resolve({ id: "key-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockInvalidateApiKeyAuthCache).toHaveBeenCalledWith("hash-456");
+  });
+
+  it("invalidates domain caches after patch", async () => {
+    mockGetCachedDomainById.mockResolvedValue({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+      capabilities: [{ name: "sending", enabled: true }],
+    });
+    mockDb.update.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: VALID_DOMAIN_ID,
+              name: "example.com",
+            },
+          ]),
+        }),
+      }),
+    });
+
+    const route = await import("@/app/api/domains/[id]/route");
+    const response = await route.PATCH(
+      new Request("http://localhost", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ click_tracking: true }),
+      }),
+      {
+        params: Promise.resolve({ id: VALID_DOMAIN_ID }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockInvalidateDomainCaches).toHaveBeenCalledWith({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+  });
+
+  it("invalidates domain caches after auto-configure", async () => {
+    mockGetCachedDomainById.mockResolvedValue({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+    mockCreateDomainIdentity.mockResolvedValue({
+      dkimTokens: ["a", "b", "c"],
+    });
+    mockAutoConfigureDomain.mockResolvedValue({
+      records: [
+        { type: "TXT", name: "example.com", content: "v=spf1", priority: 10 },
+      ],
+      warnings: [],
+    });
+    mockDb.update.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    const route = await import("@/app/api/domains/[id]/auto-configure/route");
+    const response = await route.POST(new Request("http://localhost"), {
+      params: Promise.resolve({ id: VALID_DOMAIN_ID }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockInvalidateDomainCaches).toHaveBeenCalledWith({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+  });
+
+  it("invalidates domain caches after verify", async () => {
+    mockGetCachedDomainById.mockResolvedValue({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+      status: "pending",
+      records: [],
+    });
+    mockGetCachedDomainIdentity.mockResolvedValue({
+      verified: true,
+      dkimStatus: "SUCCESS",
+      dkimTokens: ["a"],
+    });
+    mockDb.update.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: VALID_DOMAIN_ID,
+              name: "example.com",
+              status: "verified",
+              records: [],
+              createdAt: new Date("2026-04-28T00:00:00.000Z"),
+            },
+          ]),
+        }),
+      }),
+    });
+
+    const route = await import("@/app/api/domains/[id]/verify/route");
+    const response = await route.POST(new Request("http://localhost"), {
+      params: Promise.resolve({ id: VALID_DOMAIN_ID }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockInvalidateDomainCaches).toHaveBeenCalledWith({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+    expect(mockQueueEvent).toHaveBeenCalledOnce();
+  });
+
+  it("invalidates domain caches after delete", async () => {
+    mockGetCachedDomainById.mockResolvedValue({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+    mockListDNSRecords.mockResolvedValue([]);
+    mockDb.delete.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: VALID_DOMAIN_ID }]),
+      }),
+    });
+
+    const route = await import("@/app/api/domains/[id]/route");
+    const response = await route.DELETE(new Request("http://localhost"), {
+      params: Promise.resolve({ id: VALID_DOMAIN_ID }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockInvalidateDomainCaches).toHaveBeenCalledWith({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
+    });
+  });
+});
