@@ -23,6 +23,7 @@ function makeChain<T>(rows: T[]) {
     set: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue(rows),
+    // biome-ignore lint/suspicious/noThenProperty: mocks Drizzle's thenable query builder
     then: (resolve: (value: T[]) => unknown) => Promise.resolve(resolve(rows)),
   };
 }
