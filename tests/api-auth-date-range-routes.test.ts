@@ -312,15 +312,20 @@ describe("route smoke coverage", () => {
     expect(mockGetServerSession).toHaveBeenCalledTimes(2);
   });
 
-  it("covers usage auth failure and happy path", async () => {
+  it("covers usage auth failure, session auth, and dashboard key auth", async () => {
     mockValidateDashboardKey.mockReturnValueOnce(false);
+    mockGetServerSession.mockResolvedValueOnce(null);
     const usageRoute = await import("@/app/api/usage/route");
     const unauthorized = await usageRoute.GET(
       makeNextRequest("http://localhost/api/usage"),
     );
     expect(unauthorized.status).toBe(401);
 
-    mockValidateDashboardKey.mockReturnValue(true);
+    mockValidateDashboardKey.mockReturnValueOnce(false);
+    mockGetServerSession.mockResolvedValueOnce({
+      session: { id: "session-1" },
+      user: { id: "user-1" },
+    });
     mockCountFn.mockResolvedValue(0);
     mockCountFn.mockResolvedValueOnce(42);
     mockCountFn.mockResolvedValueOnce(3);
@@ -328,19 +333,36 @@ describe("route smoke coverage", () => {
     mockCountFn.mockResolvedValueOnce(4);
     mockCountFn.mockResolvedValueOnce(2);
 
-    const response = await usageRoute.GET(
-      makeNextRequest("http://localhost/api/usage", {
-        headers: { authorization: "Bearer token" },
-      }),
+    const sessionResponse = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage"),
     );
 
-    expect(response.status).toBe(200);
-    const json = await response.json();
+    expect(sessionResponse.status).toBe(200);
+    let json = await sessionResponse.json();
     expect(json.transactional.monthlyUsed).toBe(42);
     expect(json.transactional.dailyUsed).toBe(3);
     expect(json.marketing.contactsUsed).toBe(120);
     expect(json.marketing.segmentsUsed).toBe(4);
     expect(json.team.domainsUsed).toBe(2);
+
+    mockValidateDashboardKey.mockReturnValueOnce(true);
+    mockCountFn.mockResolvedValue(0);
+    mockCountFn.mockResolvedValueOnce(7);
+    mockCountFn.mockResolvedValueOnce(1);
+    mockCountFn.mockResolvedValueOnce(8);
+    mockCountFn.mockResolvedValueOnce(2);
+    mockCountFn.mockResolvedValueOnce(1);
+
+    const dashboardKeyResponse = await usageRoute.GET(
+      makeNextRequest("http://localhost/api/usage", {
+        headers: { authorization: "Bearer token" },
+      }),
+    );
+
+    expect(dashboardKeyResponse.status).toBe(200);
+    json = await dashboardKeyResponse.json();
+    expect(json.transactional.monthlyUsed).toBe(7);
+    expect(mockGetServerSession).toHaveBeenCalledTimes(2);
   });
 
   it("covers segments get/post happy path and validation", async () => {
