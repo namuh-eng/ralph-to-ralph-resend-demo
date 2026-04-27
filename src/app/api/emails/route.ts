@@ -1,10 +1,14 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
+import {
+  normalizeAttachmentsForSend,
+  normalizeAttachmentsForStorage,
+} from "@/lib/email-attachments";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
 import { sendEmailSchema } from "@/lib/validation/emails";
 import { desc, eq, gt, lt } from "drizzle-orm";
-import { ZodError } from "zod";
+import type { ZodError } from "zod";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -118,16 +122,6 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const attachmentsForSes = (validated.attachments ?? []).flatMap((a) =>
-      typeof a.content === "string"
-        ? [{ filename: a.filename, content: a.content }]
-        : [],
-    );
-    const attachmentsForDb = (validated.attachments ?? []).map((a) => ({
-      id: crypto.randomUUID(),
-      ...a,
-    }));
-
     // Only send immediately if not scheduled
     if (!scheduledAt) {
       await sesSendEmail({
@@ -140,8 +134,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text,
         replyTo,
         headers: validated.headers as Record<string, string>,
-        attachments:
-          attachmentsForSes.length > 0 ? attachmentsForSes : undefined,
+        attachments: normalizeAttachmentsForSend(validated.attachments),
       });
     }
 
@@ -159,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text ?? "",
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
-        attachments: attachmentsForDb,
+        attachments: normalizeAttachmentsForStorage(validated.attachments),
         status: scheduledAt ? "scheduled" : "sent",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,
@@ -239,4 +232,32 @@ export async function GET(request: Request): Promise<Response> {
       err instanceof Error ? err.message : "Failed to list emails";
     return Response.json({ error: message }, { status: 500 });
   }
+}
+
+// ── DELETE /api/emails ────────────────────────────────────────────
+
+export async function DELETE(request: Request): Promise<Response> {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+
+  if (!id) {
+    return Response.json({ error: "Email id is required" }, { status: 400 });
+  }
+
+  try {
+    await db.delete(emails).where(eq(emails.id, id));
+    return Response.json({ success: true });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Failed to delete email";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+// Error fallback for Zod (kept explicit for strict typing in route handlers)
+export function formatZodError(error: ZodError): Record<string, unknown> {
+  return error.flatten();
 }

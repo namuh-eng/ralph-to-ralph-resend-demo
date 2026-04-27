@@ -1,6 +1,10 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
+import {
+  normalizeAttachmentsForSend,
+  normalizeAttachmentsForStorage,
+} from "@/lib/email-attachments";
 import { sendEmail as sesSendEmail } from "@/lib/ses";
 import { batchSendEmailSchema } from "@/lib/validation/emails";
 
@@ -60,16 +64,6 @@ export async function POST(request: Request): Promise<Response> {
             ? new Date(item.scheduled_at)
             : null;
 
-          const attachmentsForSes = (item.attachments ?? []).flatMap((a) =>
-            typeof a.content === "string"
-              ? [{ filename: a.filename, content: a.content }]
-              : [],
-          );
-          const attachmentsForDb = (item.attachments ?? []).map((a) => ({
-            id: crypto.randomUUID(),
-            ...a,
-          }));
-
           if (!scheduledAt) {
             await sesSendEmail({
               from: item.from,
@@ -80,9 +74,8 @@ export async function POST(request: Request): Promise<Response> {
               html: item.html,
               text: item.text,
               replyTo,
-              headers: item.headers as Record<string, string>,
-              attachments:
-                attachmentsForSes.length > 0 ? attachmentsForSes : undefined,
+              headers: (item.headers as Record<string, string>) ?? {},
+              attachments: normalizeAttachmentsForSend(item.attachments),
             });
           }
 
@@ -99,7 +92,7 @@ export async function POST(request: Request): Promise<Response> {
               text: item.text ?? "",
               tags: item.tags ?? [],
               headers: (item.headers as Record<string, string>) ?? {},
-              attachments: attachmentsForDb,
+              attachments: normalizeAttachmentsForStorage(item.attachments),
               status: scheduledAt ? "scheduled" : "sent",
               scheduledAt: scheduledAt,
               topicId: item.topic_id || null,
