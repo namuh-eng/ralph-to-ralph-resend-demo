@@ -153,7 +153,7 @@ Start everything:
 docker compose up -d
 ```
 
-This starts PostgreSQL, runs migrations, and launches the app. Open **http://localhost:3015**.
+This starts PostgreSQL, runs migrations, launches the app, and launches the standalone SES/SNS ingester on port `3016`. Open **http://localhost:3015** for the dashboard/API and `http://localhost:3016/health` for the ingester health endpoint.
 
 ### Manual Setup
 
@@ -214,6 +214,8 @@ The included `Dockerfile` produces an optimized multi-stage build suitable for a
 docker build -t namuh-send .
 docker run -p 3015:8080 --env-file .env namuh-send
 ```
+
+For the split-service App Runner shape, SNS cutover, and ingester log/replay runbook, see [`docs/ingester-deploy.md`](docs/ingester-deploy.md).
 
 ## Architecture
 

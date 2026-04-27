@@ -61,9 +61,10 @@ services:
       dockerfile: packages/ingester/Dockerfile
     restart: unless-stopped
     ports:
-      - "3016:3016"
+      - "${INGESTER_PORT:-3016}:3016"
     environment:
       DATABASE_URL: postgresql://namuh:${POSTGRES_PASSWORD:-namuh}@postgres:5432/namuh_send
+      PORT: 3016
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -72,6 +73,18 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3016/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   pgdata:
