@@ -1,5 +1,8 @@
 import { emailRepo } from "../db/repositories/emailRepo";
-import { emailProvider } from "./emailProvider";
+import {
+  createBackgroundJob,
+  publishBackgroundJob,
+} from "../jobs/background-jobs";
 
 export class EmailService {
   async send(params: {
@@ -26,12 +29,8 @@ export class EmailService {
       if (existing) return { id: existing.id, duplicate: true };
     }
 
-    // Only call SES if not scheduled for later
-    let providerId: string | null = null;
-    if (!params.scheduledAt) {
-      const res = await emailProvider.sendEmail(params);
-      providerId = res.id ?? null;
-    }
+    const shouldQueueNow =
+      !params.scheduledAt || params.scheduledAt <= new Date();
 
     const [record] = await emailRepo.create({
       from: params.from,
@@ -45,13 +44,33 @@ export class EmailService {
       headers: params.headers ?? {},
       attachments: params.attachments ?? [],
       tags: params.tags ?? [],
-      status: params.scheduledAt ? "scheduled" : "sent",
+      status: shouldQueueNow ? "queued" : "scheduled",
       scheduledAt: params.scheduledAt,
       topicId: params.topicId,
       idempotencyKey: params.idempotencyKey,
     });
 
-    return { id: record.id, providerId };
+    if (shouldQueueNow) {
+      try {
+        await publishBackgroundJob(
+          createBackgroundJob({
+            id: `email.send:${record.id}`,
+            type: "email.send",
+            source: "api",
+            emailId: record.id,
+          }),
+          {
+            deduplicationId: `email.send:${record.id}`,
+            groupId: "email.send",
+          },
+        );
+      } catch (error) {
+        await emailRepo.update(record.id, { status: "failed" });
+        throw error;
+      }
+    }
+
+    return { id: record.id, providerId: null };
   }
 
   async sendBatch(items: Parameters<EmailService["send"]>[0][]) {

@@ -31,9 +31,16 @@ const { data, error } = await client.emails.send({
 if (error) {
   console.error(error.message);
 } else {
-  console.log("Sent:", data.id);
+  console.log("Queued:", data.id);
 }
 ```
+
+`client.emails.send()` returns after the API persists the row and queues
+background delivery work. Poll `client.emails.get(id)` or list emails to observe
+the lifecycle: `queued` → `processing` → `sent`, followed by SES delivery events
+such as `delivered`, `bounced`, `opened`, or `clicked`. The `created_at`
+timestamp is queue time; `sent_at` is set by the worker after SES accepts the
+message.
 
 ### With React components
 
@@ -51,6 +58,8 @@ const { data } = await client.emails.send({
 ```typescript
 const { data } = await client.emails.list();
 console.log(data.data); // EmailListItem[]
+
+const queued = await client.emails.list({ status: "queued" });
 ```
 
 ## Getting an Email

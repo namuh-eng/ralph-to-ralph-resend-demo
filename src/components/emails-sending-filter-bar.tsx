@@ -40,6 +40,7 @@ const STATUS_OPTIONS: DropdownFilterOption[] = [
   { value: "delivery_delayed", label: "Delivery Delayed", color: "#EAB308" },
   { value: "failed", label: "Failed", color: "#EF4444" },
   { value: "opened", label: "Opened", color: "#3B82F6" },
+  { value: "processing", label: "Processing", color: "#EAB308" },
   { value: "scheduled", label: "Scheduled", color: "#A1A4A5" },
   { value: "sent", label: "Sent", color: "#22C55E" },
   { value: "queued", label: "Queued", color: "#A1A4A5" },

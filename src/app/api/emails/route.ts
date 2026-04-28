@@ -4,7 +4,7 @@ import { emails, templates } from "@/lib/db/schema";
 import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { sendEmailSchema } from "@/lib/validation/emails";
 import { createBackgroundJob, publishBackgroundJob } from "@namuh/core";
-import { desc, eq, gt, lt } from "drizzle-orm";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
 import type { ZodError } from "zod";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -187,6 +187,11 @@ export async function GET(request: Request): Promise<Response> {
   );
   const after = url.searchParams.get("after");
   const before = url.searchParams.get("before");
+  const status = (
+    url.searchParams.get("status") ??
+    url.searchParams.get("statuses") ??
+    ""
+  ).trim();
 
   try {
     let query = db
@@ -200,14 +205,22 @@ export async function GET(request: Request): Promise<Response> {
         replyTo: emails.replyTo,
         status: emails.status,
         scheduledAt: emails.scheduledAt,
+        sentAt: emails.sentAt,
         createdAt: emails.createdAt,
       })
       .from(emails);
 
+    const conditions = [];
+    if (status && status !== "all") {
+      conditions.push(eq(emails.status, status));
+    }
     if (after) {
-      query = query.where(gt(emails.id, after)) as typeof query;
+      conditions.push(gt(emails.id, after));
     } else if (before) {
-      query = query.where(lt(emails.id, before)) as typeof query;
+      conditions.push(lt(emails.id, before));
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
     }
 
     const results = await query
@@ -230,6 +243,7 @@ export async function GET(request: Request): Promise<Response> {
         reply_to: e.replyTo,
         last_event: e.status,
         scheduled_at: e.scheduledAt,
+        sent_at: e.sentAt,
         created_at: e.createdAt,
       })),
     });

@@ -82,6 +82,7 @@ describe("QueueWorker", () => {
     );
     expect(mockUpdateEmail).toHaveBeenNthCalledWith(2, "email-1", {
       status: "sent",
+      sentAt: expect.any(Date),
     });
   });
 

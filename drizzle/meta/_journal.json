@@ -22,6 +22,20 @@
       "when": 1776954492116,
       "tag": "0002_dazzling_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777363632830,
+      "tag": "0003_sturdy_ses_ingest",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777363632831,
+      "tag": "0004_add_email_sent_at",
+      "breakpoints": true
     }
   ]
 }

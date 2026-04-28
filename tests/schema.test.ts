@@ -46,6 +46,7 @@ describe("Database schema", () => {
       expect(cols.headers).toBeDefined();
       expect(cols.attachments).toBeDefined();
       expect(cols.scheduledAt).toBeDefined();
+      expect(cols.sentAt).toBeDefined();
       expect(cols.createdAt).toBeDefined();
       expect(cols.document).toBeDefined();
     });

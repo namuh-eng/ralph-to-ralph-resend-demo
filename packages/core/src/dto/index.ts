@@ -39,6 +39,31 @@ export interface EmailResponse {
 
 export type SendEmailResponse = EmailResponse;
 
+export type EmailStatus =
+  | "queued"
+  | "processing"
+  | "scheduled"
+  | "sent"
+  | "failed"
+  | "delivered"
+  | "delivery_delayed"
+  | "bounced"
+  | "hard_bounced"
+  | "soft_bounced"
+  | "complained"
+  | "opened"
+  | "clicked"
+  | "suppressed"
+  | "canceled"
+  | "cancelled";
+
+export interface EmailListOptions {
+  limit?: number;
+  after?: string;
+  before?: string;
+  status?: EmailStatus;
+}
+
 export interface BatchEmailResponse {
   data: EmailResponse[];
 }
@@ -51,8 +76,9 @@ export interface EmailListItem {
   cc: string[] | null;
   bcc: string[] | null;
   reply_to: string[] | null;
-  last_event: string;
+  last_event: EmailStatus;
   scheduled_at: string | null;
+  sent_at: string | null;
   created_at: string;
 }
 

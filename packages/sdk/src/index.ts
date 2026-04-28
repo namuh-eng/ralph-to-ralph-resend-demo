@@ -15,9 +15,11 @@ import type {
   DomainResponse,
   EmailDetailResponse,
   EmailListItem,
+  EmailListOptions,
   EmailListResponse,
   EmailOptions,
   EmailResponse,
+  EmailStatus,
   UpdateDomainPayload,
 } from "../../core/src/dto";
 
@@ -148,8 +150,28 @@ class Emails {
     );
   }
 
-  async list(): Promise<ApiResponse<EmailListResponse>> {
-    return this.http.request<EmailListResponse>("GET", "/api/emails");
+  async list(
+    options: EmailListOptions = {},
+  ): Promise<ApiResponse<EmailListResponse>> {
+    const params = new URLSearchParams();
+    if (options.limit !== undefined) {
+      params.set("limit", String(options.limit));
+    }
+    if (options.after) {
+      params.set("after", options.after);
+    }
+    if (options.before) {
+      params.set("before", options.before);
+    }
+    if (options.status) {
+      params.set("status", options.status);
+    }
+
+    const query = params.toString();
+    return this.http.request<EmailListResponse>(
+      "GET",
+      query ? `/api/emails?${query}` : "/api/emails",
+    );
   }
 
   async get(id: string): Promise<ApiResponse<EmailDetailResponse>> {
@@ -266,6 +288,8 @@ export type {
   ApiResponse,
   EmailOptions,
   EmailResponse,
+  EmailStatus,
+  EmailListOptions,
   BatchEmailResponse,
   EmailListItem,
   EmailListResponse,

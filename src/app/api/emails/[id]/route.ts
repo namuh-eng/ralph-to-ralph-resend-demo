@@ -34,6 +34,7 @@ export async function GET(
       reply_to: email.replyTo,
       last_event: email.status,
       scheduled_at: email.scheduledAt,
+      sent_at: email.sentAt,
       tags: email.tags,
       created_at: email.createdAt,
     });

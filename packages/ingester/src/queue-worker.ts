@@ -207,7 +207,7 @@ export class QueueWorker {
     if (email.status === "sent") {
       return { status: "skipped", reason: "already_sent" };
     }
-    if (email.status === "cancelled") {
+    if (email.status === "cancelled" || email.status === "canceled") {
       return { status: "skipped", reason: "cancelled" };
     }
     if (email.scheduledAt && email.scheduledAt > new Date()) {
@@ -230,7 +230,10 @@ export class QueueWorker {
         attachments: normalizeAttachmentsForSend(email.attachments),
       });
 
-      await emailRepo.update(email.id, { status: "sent" });
+      await emailRepo.update(email.id, {
+        status: "sent",
+        sentAt: new Date(),
+      });
       return { status: "sent" };
     } catch (error) {
       await emailRepo.update(email.id, { status: "queued" });
