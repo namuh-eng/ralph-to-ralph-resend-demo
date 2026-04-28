@@ -74,6 +74,31 @@ describe("NamuhSend SDK", () => {
     expect(options?.body).toContain("<strong>Hello</strong>");
   });
 
+  it("passes email lifecycle status filters when listing emails", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({ object: "list", has_more: false, data: [] }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new NamuhSend("re_test", {
+      baseUrl: "https://api.example.com",
+    });
+
+    await client.emails.list({ status: "queued", limit: 10 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/api/emails?limit=10&status=queued",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("treats empty successful responses as null data", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

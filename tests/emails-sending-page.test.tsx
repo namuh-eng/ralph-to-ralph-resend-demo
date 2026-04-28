@@ -127,4 +127,28 @@ describe("EmailsSendingPage", () => {
 
     expect(screen.queryByText("alice@example.com")).toBeNull();
   });
+
+  it("shows queued rows when the status query is queued", () => {
+    mockSearchParams = new URLSearchParams("status=queued");
+
+    render(
+      <EmailsSendingPage
+        apiKeys={apiKeys}
+        emails={[
+          ...emails,
+          {
+            id: "email-queued",
+            to: ["queued@example.com"],
+            lastEvent: "queued",
+            subject: "Queued email",
+            createdAt: daysAgo(0),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("queued@example.com")).toBeDefined();
+    expect(screen.queryByText("alice@example.com")).toBeNull();
+    expect(screen.queryByText("bob@example.com")).toBeNull();
+  });
 });

@@ -99,12 +99,14 @@ const client = new NamuhSend("YOUR_API_KEY", {
   baseUrl: "https://your-deployment.example.com",
 });
 
-await client.emails.send({
+const { data } = await client.emails.send({
   from: "hello@yourdomain.com",
   to: "recipient@example.com",
   subject: "Hello from Namuh Send",
   html: "<h1>It works!</h1>",
 });
+
+console.log("Queued email", data?.id);
 ```
 
 Full SDK docs: [`packages/sdk/README.md`](./packages/sdk/README.md)
@@ -217,8 +219,8 @@ Configure these variables for staging/production:
 
 Operational shape:
 
-1. App/control plane: persist intent in Postgres, publish SQS job, return `{ id }`.
-2. Ingester/worker: long-poll SQS, execute SES sends and webhook deliveries, and delete messages only after success.
+1. App/control plane: persist intent in Postgres as `queued`, publish SQS job, return `{ id }`.
+2. Ingester/worker: long-poll SQS, execute SES sends, set `sent_at` when SES accepts the message, and delete messages only after success.
 3. Scheduled sends: EventBridge should call `POST /jobs/scheduled-emails` on the ingester every minute, or publish a `scheduled-email.scan` job, to enqueue due `email.send` jobs.
 4. Webhook retries: failed webhook deliveries stay `pending` with `next_retry_at`; EventBridge can call `POST /jobs/webhooks` or publish `webhook-delivery.scan` to retry due deliveries.
 5. Retries/DLQ: configure the SQS queue redrive policy with a DLQ. Worker failures leave messages undeleted so SQS retry/redrive owns retry exhaustion.

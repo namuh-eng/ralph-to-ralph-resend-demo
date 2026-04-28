@@ -109,6 +109,28 @@ describe("EmailsSendingDataTable", () => {
     expect(formatRelativeTime(twoDaysAgo)).toBe("about 2 days ago");
   });
 
+  it("uses sentAt for the Sent column when the worker has sent the message", () => {
+    const createdAt = new Date("2026-04-28T00:00:00Z").toISOString();
+    const sentAt = new Date("2026-04-28T00:00:30Z").toISOString();
+
+    render(
+      <EmailsSendingDataTable
+        emails={[
+          {
+            id: "email-sent-at",
+            to: ["sent-at@example.com"],
+            lastEvent: "sent",
+            subject: "Sent timestamp",
+            createdAt,
+            sentAt,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTitle(new Date(sentAt).toLocaleString())).toBeTruthy();
+  });
+
   it("maps status to correct variant", () => {
     expect(getStatusVariant("delivered")).toBe("success");
     expect(getStatusVariant("sent")).toBe("success");
@@ -118,6 +140,7 @@ describe("EmailsSendingDataTable", () => {
     expect(getStatusVariant("clicked")).toBe("info");
     expect(getStatusVariant("delivery_delayed")).toBe("warning");
     expect(getStatusVariant("complained")).toBe("warning");
+    expect(getStatusVariant("processing")).toBe("warning");
     expect(getStatusVariant("queued")).toBe("default");
     expect(getStatusVariant("scheduled")).toBe("default");
     expect(getStatusVariant("canceled")).toBe("default");

@@ -43,7 +43,7 @@ bash scripts/deploy.sh <image-tag>
 
 ## Background job worker
 
-Issue #15 moves send/webhook work to AWS-native background jobs. The app publishes jobs to SQS after persisting rows; the ingester service consumes and executes them.
+Issues #15/#16 move send/webhook work to AWS-native background jobs. The app publishes jobs to SQS after persisting rows; the ingester service consumes and executes them. Email rows start as `queued`, transition through worker-owned `processing`/`sent`, and get `sent_at` only after SES accepts the message.
 
 Required production environment for both app and ingester:
 

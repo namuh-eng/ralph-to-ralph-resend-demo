@@ -146,18 +146,10 @@ describe("POST /api/emails", () => {
     const emailId = "test-email-uuid";
     mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
 
-    let callCount = 0;
-    mockDb.insert = vi.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        return {
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([{ id: emailId }]),
-          }),
-        };
-      }
-      return { values: vi.fn().mockResolvedValue(undefined) };
+    const valuesMock = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: emailId }]),
     });
+    mockDb.insert = vi.fn().mockReturnValue({ values: valuesMock });
 
     const { POST } = await import("@/app/api/emails/route");
     const req = makeRequest(
@@ -175,6 +167,12 @@ describe("POST /api/emails", () => {
     const json = await res.json();
     expect(json).toHaveProperty("id", emailId);
     expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(valuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "queued",
+      }),
+    );
+    expect(valuesMock.mock.calls[0][0]).not.toHaveProperty("sentAt");
     expect(mockPublishBackgroundJob).toHaveBeenCalledWith(
       expect.objectContaining({
         id: `email.send:${emailId}`,
@@ -187,6 +185,50 @@ describe("POST /api/emails", () => {
         groupId: "email.send",
       }),
     );
+  });
+
+  it("returns p95 under 50ms when the SES mock takes 500ms", async () => {
+    mockSendEmail.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 500)),
+    );
+
+    let id = 0;
+    mockDb.insert = vi.fn().mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockImplementation(() => {
+          id += 1;
+          return Promise.resolve([{ id: `email-${id}` }]);
+        }),
+      }),
+    }));
+
+    const { POST } = await import("@/app/api/emails/route");
+    const durations: number[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      const req = makeRequest(
+        "POST",
+        {
+          from: "sender@domain.com",
+          to: [`user-${i}@test.com`],
+          subject: "Fast queue",
+          html: "<p>Hello</p>",
+        },
+        { Authorization: "Bearer re_test123" },
+      );
+
+      const startedAt = performance.now();
+      const res = await POST(req);
+      durations.push(performance.now() - startedAt);
+      expect(res.status).toBe(200);
+    }
+
+    const sorted = durations.toSorted((a, b) => a - b);
+    const p95 =
+      sorted[Math.ceil(sorted.length * 0.95) - 1] ?? Number.POSITIVE_INFINITY;
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(p95).toBeLessThan(50);
   });
 
   it("accepts string to field and normalizes to array", async () => {
@@ -362,6 +404,7 @@ describe("GET /api/emails", () => {
         bcc: null,
         replyTo: null,
         scheduledAt: null,
+        sentAt: new Date("2024-01-01T00:00:05Z"),
       },
     ];
 
@@ -384,6 +427,38 @@ describe("GET /api/emails", () => {
     expect(json).toHaveProperty("object", "list");
     expect(json).toHaveProperty("data");
     expect(Array.isArray(json.data)).toBe(true);
+    expect(json.data[0]).toHaveProperty("sent_at", "2024-01-01T00:00:05.000Z");
+  });
+
+  it("applies status filter so queued dashboard/API views return queued rows", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([]);
+    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const mockFrom = vi.fn().mockReturnValue({
+      orderBy: mockOrderBy,
+      where: mockWhere,
+    });
+    mockDb.select = vi.fn().mockReturnValue({ from: mockFrom });
+
+    const { GET } = await import("@/app/api/emails/route");
+    const req = new Request("http://localhost:3015/api/emails?status=queued", {
+      headers: { Authorization: "Bearer re_test123" },
+    });
+
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(mockWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: "and",
+        args: [
+          expect.objectContaining({
+            op: "eq",
+            args: expect.arrayContaining(["queued"]),
+          }),
+        ],
+      }),
+    );
   });
 });
 
@@ -408,6 +483,7 @@ describe("GET /api/emails/:id", () => {
       replyTo: null,
       status: "delivered",
       scheduledAt: null,
+      sentAt: new Date("2024-01-01T00:00:05Z"),
       tags: null,
       createdAt: new Date("2024-01-01"),
       events: [
@@ -437,6 +513,7 @@ describe("GET /api/emails/:id", () => {
     expect(json).toHaveProperty("object", "email");
     expect(json).toHaveProperty("id", "email-uuid");
     expect(json).toHaveProperty("last_event", "delivered");
+    expect(json).toHaveProperty("sent_at", "2024-01-01T00:00:05.000Z");
   });
 
   it("returns 404 for non-existent email", async () => {
