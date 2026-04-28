@@ -1,4 +1,5 @@
 import app from "./index";
+import { queueWorker } from "./queue-worker";
 
 const DEFAULT_PORT = 3016;
 const DEFAULT_HOST = "0.0.0.0";
@@ -15,3 +16,11 @@ const server = Bun.serve({
 });
 
 console.log(`namuh-ingester listening on http://${hostname}:${server.port}`);
+
+if (
+  (Bun.env.BACKGROUND_WORKER_POLL ?? process.env.BACKGROUND_WORKER_POLL) ===
+  "true"
+) {
+  queueWorker.start();
+  console.log("namuh-ingester background job polling enabled");
+}

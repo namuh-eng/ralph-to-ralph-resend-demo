@@ -1,6 +1,12 @@
-import { emailEventRepo, webhookRepo } from "@namuh/core";
+import {
+  createBackgroundJob,
+  emailEventRepo,
+  publishBackgroundJob,
+  webhookRepo,
+} from "@namuh/core";
 import { Hono } from "hono";
 import { webhookDispatcher } from "./dispatcher";
+import { queueWorker } from "./queue-worker";
 import { normalizeSesEvent } from "./ses-event-normalization";
 import {
   SnsValidationError,
@@ -12,7 +18,42 @@ import {
 
 const app = new Hono();
 
+function isAuthorizedJobRequest(authHeader: string | undefined): boolean {
+  const token = process.env.INGESTER_JOB_TOKEN?.trim();
+  if (!token) return true;
+  return authHeader === `Bearer ${token}`;
+}
+
+async function runJobEndpoint<T>(
+  c: {
+    req: { header: (name: string) => string | undefined };
+    json: (data: T, status?: number) => Response;
+    text: (body: string, status?: number) => Response;
+  },
+  action: () => Promise<T>,
+) {
+  if (!isAuthorizedJobRequest(c.req.header("authorization"))) {
+    return c.text("Unauthorized", 401);
+  }
+  return c.json(await action());
+}
+
 app.get("/health", (c) => c.text("OK"));
+
+app.post("/jobs/poll", async (c) =>
+  runJobEndpoint(c, async () => await queueWorker.pollOnce()),
+);
+
+app.post("/jobs/scheduled-emails", async (c) =>
+  runJobEndpoint(c, async () => await queueWorker.processDueScheduledEmails()),
+);
+
+app.post("/jobs/webhooks", async (c) =>
+  runJobEndpoint(
+    c,
+    async () => await webhookDispatcher.dispatchPendingDeliveries(),
+  ),
+);
 
 app.post("/events/ses", async (c) => {
   try {
@@ -81,12 +122,18 @@ app.post("/events/ses", async (c) => {
           types.includes(webhookEventType))
       ) {
         const delivery = await webhookDispatcher.enqueue(hook.id, event.id);
-        webhookDispatcher.dispatchDelivery(delivery.id).catch((err) => {
-          console.error(
-            `Error dispatching webhook delivery ${delivery.id}:`,
-            err,
-          );
-        });
+        await publishBackgroundJob(
+          createBackgroundJob({
+            id: `webhook.dispatch:${delivery.id}`,
+            type: "webhook.dispatch",
+            source: "ses-ingest",
+            deliveryId: delivery.id,
+          }),
+          {
+            deduplicationId: `webhook.dispatch:${delivery.id}`,
+            groupId: "webhook.dispatch",
+          },
+        );
       }
     }
 

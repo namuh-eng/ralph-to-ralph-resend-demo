@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ── Mocks ─────────────────────────────────────────────────────────
 
 const mockSendEmail = vi.hoisted(() => vi.fn());
+const mockPublishBackgroundJob = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
 const mockDb = vi.hoisted(() => ({
   insert: vi.fn(),
@@ -12,6 +13,14 @@ const mockDb = vi.hoisted(() => ({
 
 vi.mock("@/lib/ses", () => ({
   sendEmail: mockSendEmail,
+}));
+
+vi.mock("@namuh/core", () => ({
+  createBackgroundJob: (job: Record<string, unknown>) => ({
+    ...job,
+    requestedAt: "2026-04-28T00:00:00.000Z",
+  }),
+  publishBackgroundJob: mockPublishBackgroundJob,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -97,6 +106,11 @@ describe("POST /api/emails", () => {
   beforeEach(() => {
     vi.resetModules();
     mockSendEmail.mockReset();
+    mockPublishBackgroundJob.mockReset();
+    mockPublishBackgroundJob.mockResolvedValue({
+      status: "skipped",
+      reason: "queue_url_missing",
+    });
     mockValidateApiKey.mockResolvedValue(AUTH_RESULT);
   });
 
@@ -128,7 +142,7 @@ describe("POST /api/emails", () => {
     expect(res.status).toBe(422);
   });
 
-  it("sends email and returns id on valid request", async () => {
+  it("persists and queues email delivery on valid request", async () => {
     const emailId = "test-email-uuid";
     mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
 
@@ -160,6 +174,19 @@ describe("POST /api/emails", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveProperty("id", emailId);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: `email.send:${emailId}`,
+        type: "email.send",
+        source: "api",
+        emailId,
+      }),
+      expect.objectContaining({
+        deduplicationId: `email.send:${emailId}`,
+        groupId: "email.send",
+      }),
+    );
   });
 
   it("accepts string to field and normalizes to array", async () => {
@@ -190,9 +217,11 @@ describe("POST /api/emails", () => {
     );
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledOnce();
   });
 
-  it("stores attachment ids and only sends attachments with content", async () => {
+  it("stores attachment ids and queues delivery without direct SES", async () => {
     mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
     const valuesMock = vi.fn().mockReturnValue({
       returning: vi.fn().mockResolvedValue([{ id: "email-uuid" }]),
@@ -218,11 +247,8 @@ describe("POST /api/emails", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(mockSendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attachments: [{ filename: "inline.txt", content: "aGVsbG8=" }],
-      }),
-    );
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledOnce();
     expect(valuesMock).toHaveBeenCalledWith(
       expect.objectContaining({
         attachments: [
@@ -248,6 +274,11 @@ describe("POST /api/emails/batch", () => {
   beforeEach(() => {
     vi.resetModules();
     mockSendEmail.mockReset();
+    mockPublishBackgroundJob.mockReset();
+    mockPublishBackgroundJob.mockResolvedValue({
+      status: "skipped",
+      reason: "queue_url_missing",
+    });
     mockValidateApiKey.mockResolvedValue(AUTH_RESULT);
   });
 
@@ -305,6 +336,8 @@ describe("POST /api/emails/batch", () => {
     expect(json).toHaveProperty("data");
     expect(json.data).toHaveLength(2);
     expect(json.data[0]).toHaveProperty("id");
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledTimes(2);
   });
 });
 

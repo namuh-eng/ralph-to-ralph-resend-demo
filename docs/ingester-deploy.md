@@ -40,6 +40,51 @@ INGESTER_APP_RUNNER_SERVICE=namuh-ingester \
 bash scripts/deploy.sh <image-tag>
 ```
 
+
+## Background job worker
+
+Issue #15 moves send/webhook work to AWS-native background jobs. The app publishes jobs to SQS after persisting rows; the ingester service consumes and executes them.
+
+Required production environment for both app and ingester:
+
+```bash
+BACKGROUND_JOBS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account>/namuh-send-background
+BACKGROUND_JOBS_REQUIRE_QUEUE=true
+BACKGROUND_JOBS_EVENT_BUS_NAME=namuh-send-background-jobs # optional lifecycle/event hook bus
+```
+
+Set this only on the ingester worker service when SQS is ready:
+
+```bash
+BACKGROUND_WORKER_POLL=true
+INGESTER_JOB_TOKEN=<random-bearer-token-for-eventbridge-http-targets>
+```
+
+SQS requirements:
+
+- configure a redrive policy and DLQ; worker failures leave messages undeleted so SQS owns retry exhaustion
+- use a standard queue by default; FIFO is supported if the queue URL ends in `.fifo`
+- grant the app `sqs:SendMessage` and optional `events:PutEvents`
+- grant the ingester `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `sqs:ChangeMessageVisibility`, and SES send permissions
+
+EventBridge scheduling:
+
+- call `POST /jobs/scheduled-emails` every minute to enqueue due scheduled sends
+- call `POST /jobs/webhooks` every minute to retry webhook deliveries whose `next_retry_at` has arrived
+- alternatively publish `scheduled-email.scan` and `webhook-delivery.scan` jobs into SQS
+
+Manual probes:
+
+```bash
+INGESTER_URL="https://<ingester-service-url>"
+curl -i -X POST "${INGESTER_URL}/jobs/poll" \
+  -H "Authorization: Bearer ${INGESTER_JOB_TOKEN}"
+curl -i -X POST "${INGESTER_URL}/jobs/scheduled-emails" \
+  -H "Authorization: Bearer ${INGESTER_JOB_TOKEN}"
+curl -i -X POST "${INGESTER_URL}/jobs/webhooks" \
+  -H "Authorization: Bearer ${INGESTER_JOB_TOKEN}"
+```
+
 ## SNS cutover
 
 After the ingester service is live, SES SNS should point at:
@@ -98,4 +143,7 @@ This repo change does not create or mutate external AWS resources on its own. Be
 
 - the ingester ECR repository exists
 - the ingester App Runner service has the shared RDS and Secrets Manager wiring
+- the SQS queue exists with a redrive policy and DLQ
+- EventBridge schedule/rules exist for scheduled-email and webhook retry scans
+- IAM grants app publish permissions and ingester consume/delete/change-visibility permissions
 - the SES SNS subscription has been updated to the ingester URL

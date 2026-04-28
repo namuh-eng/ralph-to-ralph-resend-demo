@@ -85,13 +85,13 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
   const updateFilters = useCallback(
     (updates: Record<string, string>) => {
       const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(updates)) {
         if (value) {
           params.set(key, value);
         } else {
           params.delete(key);
         }
-      });
+      }
       router.push(`${pathname}?${params.toString()}`);
     },
     [router, pathname, searchParams],
@@ -174,6 +174,7 @@ export function LogsListPage({ logs }: { logs: LogRow[] }) {
           className="h-9 px-4 text-[13px] font-medium bg-[rgba(176,199,217,0.145)] text-[#F0F0F0] border border-[rgba(176,199,217,0.145)] rounded-md hover:bg-[rgba(176,199,217,0.2)] transition-colors flex items-center gap-2"
         >
           <svg
+            aria-hidden="true"
             width="14"
             height="14"
             viewBox="0 0 24 24"
