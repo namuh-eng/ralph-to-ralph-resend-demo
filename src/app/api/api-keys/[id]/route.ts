@@ -1,4 +1,8 @@
-import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import {
+  invalidateApiKeyAuthCache,
+  unauthorizedResponse,
+  validateApiKey,
+} from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -49,14 +53,22 @@ export async function DELETE(
 
   const { id } = await params;
   try {
+    const [existing] = await db
+      .select({ tokenHash: apiKeys.tokenHash })
+      .from(apiKeys)
+      .where(eq(apiKeys.id, id))
+      .limit(1);
+
+    if (!existing) {
+      return Response.json({ error: "API key not found" }, { status: 404 });
+    }
+
     const [deleted] = await db
       .delete(apiKeys)
       .where(eq(apiKeys.id, id))
       .returning({ id: apiKeys.id });
 
-    if (!deleted) {
-      return Response.json({ error: "API key not found" }, { status: 404 });
-    }
+    await invalidateApiKeyAuthCache(existing.tokenHash);
 
     return new Response(null, { status: 200 });
   } catch (err) {

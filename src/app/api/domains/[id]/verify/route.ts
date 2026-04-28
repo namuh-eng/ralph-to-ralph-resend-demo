@@ -1,8 +1,12 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import {
+  getCachedDomainById,
+  getCachedDomainIdentity,
+  invalidateDomainCaches,
+} from "@/lib/domain-cache";
 import { queueEvent } from "@/lib/events";
-import { getDomainIdentity } from "@/lib/ses";
 import { verifyDomainParamsSchema } from "@/lib/validation/domains";
 import { eq } from "drizzle-orm";
 
@@ -24,15 +28,13 @@ export async function POST(
   const { id } = parsedParams.data;
 
   try {
-    const domain = await db.query.domains.findFirst({
-      where: eq(domains.id, id),
-    });
+    const domain = await getCachedDomainById(id);
 
     if (!domain) {
       return Response.json({ error: "Domain not found" }, { status: 404 });
     }
 
-    const identity = await getDomainIdentity(domain.name);
+    const identity = await getCachedDomainIdentity(domain.name);
 
     let verificationStatus:
       | "pending"
@@ -73,6 +75,13 @@ export async function POST(
       })
       .where(eq(domains.id, id))
       .returning();
+
+    if (!updated) {
+      await invalidateDomainCaches({ id, name: domain.name });
+      return Response.json({ error: "Domain not found" }, { status: 404 });
+    }
+
+    await invalidateDomainCaches({ id: updated.id, name: updated.name });
 
     if (updated.status !== previousStatus) {
       await queueEvent({

@@ -2,7 +2,12 @@ import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { autoConfigureDomain } from "@/lib/cloudflare";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
-import { createDomainIdentity, getDomainIdentity } from "@/lib/ses";
+import {
+  getCachedDomainById,
+  getCachedDomainIdentity,
+  invalidateDomainCaches,
+} from "@/lib/domain-cache";
+import { createDomainIdentity } from "@/lib/ses";
 import { autoConfigureDomainParamsSchema } from "@/lib/validation/domains";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -25,24 +30,18 @@ export async function POST(
   const { id } = parsedParams.data;
 
   try {
-    const rows = await db
-      .select()
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+    const domain = await getCachedDomainById(id);
 
-    if (rows.length === 0) {
+    if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-
-    const domain = rows[0];
 
     let dkimTokens: string[];
     try {
       const identity = await createDomainIdentity(domain.name);
       dkimTokens = identity.dkimTokens;
     } catch {
-      const existing = await getDomainIdentity(domain.name);
+      const existing = await getCachedDomainIdentity(domain.name);
       dkimTokens = existing.dkimTokens;
     }
 
@@ -67,6 +66,8 @@ export async function POST(
         status: "pending",
       })
       .where(eq(domains.id, id));
+
+    await invalidateDomainCaches({ id, name: domain.name });
 
     return NextResponse.json({
       ok: true,

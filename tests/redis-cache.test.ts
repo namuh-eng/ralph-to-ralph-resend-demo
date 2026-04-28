@@ -49,12 +49,24 @@ describe("lib/cache/redis", () => {
   });
 
   it("defaults RATE_LIMIT_BACKEND to disabled and no-ops without REDIS_URL", async () => {
-    const { getRateLimitBackend, incrCache } = await import(
-      "@/lib/cache/redis"
-    );
+    const {
+      getRateLimitBackend,
+      incrCache,
+      readCache,
+      writeCache,
+      deleteCache,
+    } = await import("@/lib/cache/redis");
 
     expect(getRateLimitBackend()).toBe("disabled");
     await expect(incrCache("ratelimit:test", 60)).resolves.toBeNull();
+    await expect(readCache("cache:key")).resolves.toEqual({
+      status: "unavailable",
+      value: null,
+    });
+    await expect(writeCache("cache:key", { ok: true }, 60)).resolves.toBe(
+      "unavailable",
+    );
+    await expect(deleteCache("cache:key")).resolves.toBe("unavailable");
     expect(mockCreateClient).not.toHaveBeenCalled();
   });
 
@@ -66,16 +78,32 @@ describe("lib/cache/redis", () => {
     mockTtl.mockResolvedValue(42);
     mockGet.mockResolvedValue('{"ok":true}');
 
-    const { getCached, getRateLimitBackend, getTtl, incrCache, setCache } =
-      await import("@/lib/cache/redis");
+    const {
+      deleteCache,
+      getCached,
+      getRateLimitBackend,
+      getTtl,
+      incrCache,
+      readCache,
+      setCache,
+      writeCache,
+    } = await import("@/lib/cache/redis");
 
     expect(getRateLimitBackend()).toBe("redis");
     await setCache("cache:key", { ok: true }, 120);
+    await expect(writeCache("cache:key", { ok: true }, 120)).resolves.toBe(
+      "written",
+    );
     await expect(getCached<{ ok: boolean }>("cache:key")).resolves.toEqual({
       ok: true,
     });
+    await expect(readCache<{ ok: boolean }>("cache:key")).resolves.toEqual({
+      status: "hit",
+      value: { ok: true },
+    });
     await expect(incrCache("ratelimit:test", 60)).resolves.toBe(3);
     await expect(getTtl("ratelimit:test")).resolves.toBe(42);
+    await expect(deleteCache("cache:key")).resolves.toBe("deleted");
 
     expect(mockCreateClient).toHaveBeenCalledWith({
       url: "rediss://cache.example:6379",
@@ -84,6 +112,7 @@ describe("lib/cache/redis", () => {
     expect(mockSet).toHaveBeenCalledWith("cache:key", '{"ok":true}', {
       EX: 120,
     });
+    expect(mockDel).toHaveBeenCalledWith("cache:key");
     expect(mockIncr).toHaveBeenCalledWith("ratelimit:test");
     expect(mockExpire).toHaveBeenCalledWith("ratelimit:test", 60, "NX");
   });

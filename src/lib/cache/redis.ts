@@ -6,6 +6,10 @@ export type RateLimitBackend = (typeof RATE_LIMIT_BACKENDS)[number];
 
 type RedisClient = RedisClientType;
 
+export type CacheReadStatus = "hit" | "miss" | "unavailable" | "error";
+export type CacheWriteStatus = "written" | "unavailable" | "error";
+export type CacheDeleteStatus = "deleted" | "unavailable" | "error";
+
 let client: RedisClient | null = null;
 let connectPromise: Promise<RedisClient | null> | null = null;
 const loggedMessages = new Set<string>();
@@ -75,15 +79,43 @@ async function getConnectedClient(): Promise<RedisClient | null> {
   return connectPromise;
 }
 
-export async function getCached<T>(key: string): Promise<T | null> {
+export async function readCache<T>(
+  key: string,
+): Promise<{ status: CacheReadStatus; value: T | null }> {
   const redisClient = await getConnectedClient();
-  if (!redisClient) return null;
+  if (!redisClient) {
+    return { status: "unavailable", value: null };
+  }
 
   try {
     const value = await redisClient.get(key);
-    return value ? (JSON.parse(value) as T) : null;
+    if (!value) {
+      return { status: "miss", value: null };
+    }
+    return { status: "hit", value: JSON.parse(value) as T };
   } catch {
-    return null;
+    return { status: "error", value: null };
+  }
+}
+
+export async function getCached<T>(key: string): Promise<T | null> {
+  const { value } = await readCache<T>(key);
+  return value;
+}
+
+export async function writeCache(
+  key: string,
+  value: unknown,
+  ttlSeconds = 300,
+): Promise<CacheWriteStatus> {
+  const redisClient = await getConnectedClient();
+  if (!redisClient) return "unavailable";
+
+  try {
+    await redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
+    return "written";
+  } catch {
+    return "error";
   }
 }
 
@@ -92,14 +124,7 @@ export async function setCache(
   value: unknown,
   ttlSeconds = 300,
 ): Promise<void> {
-  const redisClient = await getConnectedClient();
-  if (!redisClient) return;
-
-  try {
-    await redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
-  } catch {
-    // Fail silently - cache is optional
-  }
+  await writeCache(key, value, ttlSeconds);
 }
 
 export async function incrCache(
@@ -138,12 +163,17 @@ export async function getTtl(key: string): Promise<number | null> {
 }
 
 export async function invalidateCache(key: string): Promise<void> {
+  await deleteCache(key);
+}
+
+export async function deleteCache(key: string): Promise<CacheDeleteStatus> {
   const redisClient = await getConnectedClient();
-  if (!redisClient) return;
+  if (!redisClient) return "unavailable";
 
   try {
     await redisClient.del(key);
+    return "deleted";
   } catch {
-    // Fail silently
+    return "error";
   }
 }

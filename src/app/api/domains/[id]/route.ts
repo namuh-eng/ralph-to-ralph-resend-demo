@@ -2,6 +2,10 @@ import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { deleteDNSRecord, listDNSRecords } from "@/lib/cloudflare";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import {
+  getCachedDomainById,
+  invalidateDomainCaches,
+} from "@/lib/domain-cache";
 import { deleteDomainIdentity } from "@/lib/ses";
 import {
   domainRouteParamsSchema,
@@ -32,11 +36,7 @@ export async function GET(
 
   try {
     const { id } = parsedParams.data;
-    const [domain] = await db
-      .select()
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+    const domain = await getCachedDomainById(id);
 
     if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -99,6 +99,11 @@ export async function PATCH(
     const { id } = parsedParams.data;
     const validated = result.data;
     const updates: Record<string, unknown> = {};
+    const existingDomain = await getCachedDomainById(id);
+
+    if (!existingDomain) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     if (validated.click_tracking !== undefined) {
       updates.trackClicks = validated.click_tracking;
@@ -116,31 +121,20 @@ export async function PATCH(
       validated.sending_enabled !== undefined ||
       validated.receiving_enabled !== undefined
     ) {
-      const [existing] = await db
-        .select({ capabilities: domains.capabilities })
-        .from(domains)
-        .where(eq(domains.id, id))
-        .limit(1);
-
-      if (existing) {
-        const currentCaps = existing.capabilities || defaultCapabilities;
-        const newCaps = currentCaps.map((cap) => {
-          if (
-            cap.name === "sending" &&
-            validated.sending_enabled !== undefined
-          ) {
-            return { ...cap, enabled: validated.sending_enabled };
-          }
-          if (
-            cap.name === "receiving" &&
-            validated.receiving_enabled !== undefined
-          ) {
-            return { ...cap, enabled: validated.receiving_enabled };
-          }
-          return cap;
-        });
-        updates.capabilities = newCaps;
-      }
+      const currentCaps = existingDomain.capabilities || defaultCapabilities;
+      const newCaps = currentCaps.map((cap) => {
+        if (cap.name === "sending" && validated.sending_enabled !== undefined) {
+          return { ...cap, enabled: validated.sending_enabled };
+        }
+        if (
+          cap.name === "receiving" &&
+          validated.receiving_enabled !== undefined
+        ) {
+          return { ...cap, enabled: validated.receiving_enabled };
+        }
+        return cap;
+      });
+      updates.capabilities = newCaps;
     }
 
     if (validated.tls !== undefined) {
@@ -154,8 +148,11 @@ export async function PATCH(
       .returning();
 
     if (!updated) {
+      await invalidateDomainCaches({ id, name: existingDomain.name });
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    await invalidateDomainCaches({ id: updated.id, name: updated.name });
 
     return NextResponse.json({
       object: "domain",
@@ -187,12 +184,7 @@ export async function DELETE(
 
   try {
     const { id } = parsedParams.data;
-
-    const [domain] = await db
-      .select({ name: domains.name })
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+    const domain = await getCachedDomainById(id);
 
     if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -207,13 +199,13 @@ export async function DELETE(
     try {
       const records = await listDNSRecords({ name: domain.name });
       const sesRecords = records.filter(
-        (r) =>
-          r.content.includes("amazonses.com") ||
-          r.name.includes("_domainkey") ||
-          r.content.startsWith("v=spf1"),
+        (record) =>
+          record.content.includes("amazonses.com") ||
+          record.name.includes("_domainkey") ||
+          record.content.startsWith("v=spf1"),
       );
 
-      await Promise.all(sesRecords.map((r) => deleteDNSRecord(r.id)));
+      await Promise.all(sesRecords.map((record) => deleteDNSRecord(record.id)));
     } catch (cfErr) {
       console.warn(
         `Failed to cleanup Cloudflare records for ${domain.name}:`,
@@ -225,6 +217,12 @@ export async function DELETE(
       .delete(domains)
       .where(eq(domains.id, id))
       .returning({ id: domains.id });
+
+    await invalidateDomainCaches({ id, name: domain.name });
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     return NextResponse.json({
       object: "domain",

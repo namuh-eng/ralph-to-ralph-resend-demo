@@ -1,6 +1,7 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import { invalidateDomainCaches } from "@/lib/domain-cache";
 import { createDomainIdentity } from "@/lib/ses";
 import { createDomainSchema } from "@/lib/validation/domains";
 import { and, desc, lt } from "drizzle-orm";
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
         capabilities: validated.capabilities || defaultCapabilities,
       })
       .returning();
+
+    await invalidateDomainCaches({ id: row.id, name: row.name });
 
     return NextResponse.json(
       {

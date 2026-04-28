@@ -1,5 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
-import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import {
+  invalidateApiKeyAuthCache,
+  unauthorizedResponse,
+  validateApiKey,
+} from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { and, desc, lt } from "drizzle-orm";
@@ -100,6 +104,8 @@ export async function POST(request: Request): Promise<Response> {
         domain: body.domain_id ?? null,
       })
       .returning();
+
+    await invalidateApiKeyAuthCache(created.tokenHash);
 
     return Response.json(
       {

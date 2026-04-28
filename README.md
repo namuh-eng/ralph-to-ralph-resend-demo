@@ -200,6 +200,17 @@ Namuh Send now treats API rate limiting as an explicit runtime contract:
 
 For AWS ElastiCache, enable **in-transit encryption** on the replication group/serverless cache and use the TLS endpoint that AWS exposes. AWS documents both the `TransitEncryptionEnabled=true` requirement and TLS client connections to the primary/configuration endpoint.
 
+### Redis-backed auth/domain metadata cache
+
+The same `REDIS_URL` is also used for hot-path metadata caching:
+
+- API key auth lookups are cached by token hash for 5 minutes.
+- Domain DB detail lookups are cached by domain id for 5 minutes.
+- SES domain identity lookups are cached by domain name for 2 minutes.
+- API key create/delete and domain create/update/delete/verify/auto-configure flows invalidate affected cache entries immediately.
+
+Local dev stays safe if Redis is absent: requests fall back to Postgres/SES as the source of truth. In staging/production, point `REDIS_URL` at a shared TLS-enabled Redis/ElastiCache endpoint so multiple app instances see the same cache state.
+
 Quick verification after deploy:
 
 ```bash

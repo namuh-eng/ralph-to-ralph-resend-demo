@@ -205,21 +205,13 @@ describe("Domain API validation", () => {
     expect(res.status).toBe(422);
     expect(json.error).toBe("Validation failed");
     expect(json.details.fieldErrors.id).toBeDefined();
-    expect(mockDb.select).not.toHaveBeenCalled();
+    expect(mockDb.query.domains.findFirst).not.toHaveBeenCalled();
   });
 
   it("auto-configures domain when params are valid", async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
-            {
-              id: VALID_DOMAIN_ID,
-              name: "example.com",
-            },
-          ]),
-        }),
-      }),
+    mockDb.query.domains.findFirst.mockResolvedValue({
+      id: VALID_DOMAIN_ID,
+      name: "example.com",
     });
     mockCreateDomainIdentity.mockResolvedValue({
       dkimTokens: ["dkim-1", "dkim-2", "dkim-3"],

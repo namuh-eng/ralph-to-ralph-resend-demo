@@ -82,6 +82,7 @@ describe("lib/api-auth", () => {
       apiKeyId: "key-1",
       permission: "full_access",
       domain: "example.com",
+      userId: undefined,
     });
     expect(tokenHash).toHaveLength(64);
   });
