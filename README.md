@@ -202,10 +202,12 @@ docker run -p 3015:8080 --env-file .env namuh-send
 src/
 ├── app/          # Next.js App Router — pages and API routes
 ├── components/   # React components (dashboard UI)
-├── lib/          # Core services: db, ses, s3, cloudflare
-└── types/        # TypeScript type definitions
+├── lib/          # App services: auth, db, ses, s3, cloudflare, webhook signing
+└── middleware.ts # Per-route rate limiting
 packages/
-└── sdk/          # Published TypeScript SDK (namuh-send)
+├── core/         # @namuh/core — shared DB client, repositories, DTOs, webhook helpers
+├── ingester/     # @namuh/ingester — Hono webhook dispatcher + scheduled email worker
+└── sdk/          # namuh-send — public TypeScript SDK (npm)
 tests/
 ├── *.test.ts     # Unit tests (Vitest)
 └── e2e/          # E2E tests (Playwright)
@@ -219,12 +221,17 @@ drizzle/          # Database migration files
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS + Radix UI |
+| Auth | Better Auth (Google OAuth, multi-tenant) |
 | Database | PostgreSQL + Drizzle ORM |
-| Email | AWS SES |
+| Cache | Redis / ElastiCache (API key + domain lookups) |
+| Email | AWS SES v2 |
 | Storage | AWS S3 |
 | DNS | Cloudflare API |
+| Webhook ingester | Hono (`@namuh/ingester`) |
 | Tests | Vitest + Playwright |
 | Linting | Biome |
+
+**Architecture direction.** Today the control plane runs inside Next.js route handlers. We're moving to an AWS-first hybrid: Next.js for dashboard/auth/public web, a dedicated TypeScript control-plane API (Hono), and a separate data-plane ingester (Go) for SES events, retries, and webhook fan-out — backed by SQS/SNS/EventBridge, ElastiCache, and OpenTelemetry. Tracking: [#71](https://github.com/namuh-eng/namuh-send/issues/71).
 
 ## Development
 
@@ -259,10 +266,13 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide.
 
 ## Roadmap
 
+**Recently shipped**
+- Webhook signature verification (HMAC + Svix-compatible headers)
+- Email scheduling + cancellation
+- Multi-user / team support with invites
+
+**Coming next**
 - [ ] SMTP relay support (send without AWS SES)
-- [ ] Webhook signature verification
-- [ ] Email scheduling
-- [ ] Multi-user / team support
 - [ ] Built-in analytics (opens, clicks) without external dependencies
 
 ## Contributing
