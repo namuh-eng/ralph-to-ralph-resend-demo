@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockSendEmail = vi.hoisted(() => vi.fn());
 const mockPublishBackgroundJob = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
+const mockEmitCloudWatchMetric = vi.hoisted(() => vi.fn());
+const mockLogTelemetry = vi.hoisted(() => vi.fn());
+const mockRecordTelemetryError = vi.hoisted(() => vi.fn());
 const mockDb = vi.hoisted(() => ({
   insert: vi.fn(),
   select: vi.fn(),
@@ -15,13 +18,62 @@ vi.mock("@/lib/ses", () => ({
   sendEmail: mockSendEmail,
 }));
 
-vi.mock("@namuh/core", () => ({
-  createBackgroundJob: (job: Record<string, unknown>) => ({
-    ...job,
-    requestedAt: "2026-04-28T00:00:00.000Z",
-  }),
-  publishBackgroundJob: mockPublishBackgroundJob,
-}));
+vi.mock("@namuh/core", () => {
+  const testTraceparent =
+    "00-11111111111111111111111111111111-2222222222222222-01";
+  const getHeader = (
+    headers: Headers | Record<string, string | undefined> | undefined,
+    key: string,
+  ): string | null => {
+    if (!headers) return null;
+    if ("get" in headers && typeof headers.get === "function") {
+      return headers.get(key);
+    }
+    const match = Object.entries(headers).find(
+      ([headerKey]) => headerKey.toLowerCase() === key.toLowerCase(),
+    );
+    return match?.[1] ?? null;
+  };
+
+  return {
+    createBackgroundJob: (job: Record<string, unknown>) => ({
+      ...job,
+      requestedAt: "2026-04-28T00:00:00.000Z",
+    }),
+    createTelemetryContext: (input: {
+      service: string;
+      operation: string;
+      headers?: Headers | Record<string, string | undefined>;
+      carrier?: { traceparent?: string; correlationId?: string };
+    }) => ({
+      service: input.service,
+      operation: input.operation,
+      traceId: "11111111111111111111111111111111",
+      spanId: "2222222222222222",
+      parentSpanId: null,
+      sampled: true,
+      traceparent:
+        input.carrier?.traceparent ??
+        getHeader(input.headers, "traceparent") ??
+        testTraceparent,
+      correlationId:
+        input.carrier?.correlationId ??
+        getHeader(input.headers, "x-correlation-id") ??
+        "corr-test",
+    }),
+    emitCloudWatchMetric: mockEmitCloudWatchMetric,
+    getTelemetryCarrier: (context: {
+      traceparent: string;
+      correlationId: string;
+    }) => ({
+      traceparent: context.traceparent,
+      correlationId: context.correlationId,
+    }),
+    logTelemetry: mockLogTelemetry,
+    publishBackgroundJob: mockPublishBackgroundJob,
+    recordTelemetryError: mockRecordTelemetryError,
+  };
+});
 
 vi.mock("@/lib/db", () => ({
   db: mockDb,
@@ -107,6 +159,9 @@ describe("POST /api/emails", () => {
     vi.resetModules();
     mockSendEmail.mockReset();
     mockPublishBackgroundJob.mockReset();
+    mockEmitCloudWatchMetric.mockReset();
+    mockLogTelemetry.mockReset();
+    mockRecordTelemetryError.mockReset();
     mockPublishBackgroundJob.mockResolvedValue({
       status: "skipped",
       reason: "queue_url_missing",
@@ -152,6 +207,8 @@ describe("POST /api/emails", () => {
     mockDb.insert = vi.fn().mockReturnValue({ values: valuesMock });
 
     const { POST } = await import("@/app/api/emails/route");
+    const traceparent =
+      "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01";
     const req = makeRequest(
       "POST",
       {
@@ -160,10 +217,16 @@ describe("POST /api/emails", () => {
         subject: "Test Email",
         html: "<p>Hello</p>",
       },
-      { Authorization: "Bearer re_test123" },
+      {
+        Authorization: "Bearer re_test123",
+        "x-correlation-id": "corr-email-test",
+        traceparent,
+      },
     );
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(res.headers.get("x-correlation-id")).toBe("corr-email-test");
+    expect(res.headers.get("traceparent")).toBe(traceparent);
     const json = await res.json();
     expect(json).toHaveProperty("id", emailId);
     expect(mockSendEmail).not.toHaveBeenCalled();
@@ -179,6 +242,10 @@ describe("POST /api/emails", () => {
         type: "email.send",
         source: "api",
         emailId,
+        trace: {
+          correlationId: "corr-email-test",
+          traceparent,
+        },
       }),
       expect.objectContaining({
         deduplicationId: `email.send:${emailId}`,
@@ -317,6 +384,9 @@ describe("POST /api/emails/batch", () => {
     vi.resetModules();
     mockSendEmail.mockReset();
     mockPublishBackgroundJob.mockReset();
+    mockEmitCloudWatchMetric.mockReset();
+    mockLogTelemetry.mockReset();
+    mockRecordTelemetryError.mockReset();
     mockPublishBackgroundJob.mockResolvedValue({
       status: "skipped",
       reason: "queue_url_missing",

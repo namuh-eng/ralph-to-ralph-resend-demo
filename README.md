@@ -147,6 +147,7 @@ CLOUDFLARE_ZONE_ID=your-zone-id
 S3_BUCKET_NAME=your-bucket             # For email attachments
 BACKGROUND_JOBS_QUEUE_URL=...          # Optional locally; required for async production sending
 BACKGROUND_WORKER_POLL=true            # Set on the ingester worker when SQS is configured
+CLOUDWATCH_METRICS_NAMESPACE=NamuhSend  # Optional CloudWatch EMF namespace override
 ```
 
 `.env.example` keeps `DATABASE_URL` on `localhost` for host-run commands like `bun run dev` and `bun run db:push`. Docker Compose injects its own internal `postgres` hostname for the containerized app and migration services.
@@ -194,6 +195,7 @@ For production, we recommend:
 - **Secrets**: Store credentials in your cloud provider's secrets manager
 - **Rate limiting**: Use a shared Redis/ElastiCache instance instead of the disabled local default
 - **Background jobs**: Use SQS with a redrive policy/DLQ, plus EventBridge to trigger scheduled-email and webhook retry scans
+- **Observability**: Emit structured JSON logs, trace/correlation headers, and CloudWatch EMF metrics for send and worker flows
 
 ### Shared rate limiting (staging/production)
 
@@ -226,6 +228,12 @@ Operational shape:
 5. Retries/DLQ: configure the SQS queue redrive policy with a DLQ. Worker failures leave messages undeleted so SQS retry/redrive owns retry exhaustion.
 
 Local dev remains Docker-friendly if no queue is configured: publishes are logged/skipped and API calls still persist rows. To exercise the real worker locally, set `BACKGROUND_JOBS_QUEUE_URL` and `BACKGROUND_WORKER_POLL=true` on the ingester.
+
+### Observability
+
+Email accept and worker flows emit structured JSON logs with `x-correlation-id`, W3C/OpenTelemetry-compatible `traceparent`, sanitized span events, and CloudWatch EMF metrics for accept latency, send outcomes, queue depth, retries, and worker failures. Set `CLOUDWATCH_METRICS_NAMESPACE` to override the default `NamuhSend` namespace.
+
+See [`docs/observability.md`](docs/observability.md) for PII-safe logging rules, metric names, alarms, and the runbook for tracing an email from API acceptance to SES/provider result.
 
 ### Redis-backed auth/domain metadata cache
 

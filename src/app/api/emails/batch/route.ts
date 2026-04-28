@@ -3,7 +3,15 @@ import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
 import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { batchSendEmailSchema } from "@/lib/validation/emails";
-import { createBackgroundJob, publishBackgroundJob } from "@namuh/core";
+import {
+  createBackgroundJob,
+  createTelemetryContext,
+  emitCloudWatchMetric,
+  getTelemetryCarrier,
+  logTelemetry,
+  publishBackgroundJob,
+  recordTelemetryError,
+} from "@namuh/core";
 import { eq } from "drizzle-orm";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -15,23 +23,90 @@ function normalizeToArray(
   return Array.isArray(value) ? value : [value];
 }
 
+function jsonWithTelemetry(
+  body: unknown,
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  init?: ResponseInit,
+): Response {
+  const headers = new Headers(init?.headers);
+  headers.set("x-correlation-id", telemetry.correlationId);
+  headers.set("traceparent", telemetry.traceparent);
+  return Response.json(body, { ...init, headers });
+}
+
+function recordBatchMetric(
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  input: {
+    durationMs: number;
+    outcome: "accepted" | "failed" | "unauthorized" | "invalid";
+    count?: number;
+  },
+): void {
+  emitCloudWatchMetric(telemetry, {
+    metrics: [
+      { name: "EmailBatchAccepted", value: input.count ?? 0, unit: "Count" },
+      {
+        name: "EmailBatchAcceptLatency",
+        value: Math.round(input.durationMs),
+        unit: "Milliseconds",
+      },
+    ],
+    dimensions: {
+      Service: "api",
+      Operation: "email.batch_accept",
+      Outcome: input.outcome,
+    },
+  });
+}
+
 // ── POST /api/emails/batch ────────────────────────────────────────
 
 export async function POST(request: Request): Promise<Response> {
+  const telemetry = createTelemetryContext({
+    service: "api",
+    operation: "POST /api/emails/batch",
+    headers: request.headers,
+  });
+  const startedAt = performance.now();
+  logTelemetry("info", "api.request.start", telemetry, {
+    method: "POST",
+    route: "/api/emails/batch",
+  });
+
   const auth = await validateApiKey(request.headers.get("authorization"));
-  if (!auth) return unauthorizedResponse();
+  if (!auth) {
+    recordBatchMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "unauthorized",
+    });
+    const response = unauthorizedResponse();
+    response.headers.set("x-correlation-id", telemetry.correlationId);
+    response.headers.set("traceparent", telemetry.traceparent);
+    return response;
+  }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    recordBatchMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry({ error: "Invalid JSON body" }, telemetry, {
+      status: 400,
+    });
   }
 
   const result = batchSendEmailSchema.safeParse(body);
   if (!result.success) {
-    return Response.json(
+    recordBatchMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry(
       { error: "Validation failed", details: result.error.flatten() },
+      telemetry,
       { status: 422 },
     );
   }
@@ -85,6 +160,7 @@ export async function POST(request: Request): Promise<Response> {
                   type: "email.send",
                   source: "api",
                   emailId: email.id,
+                  trace: getTelemetryCarrier(telemetry),
                 }),
                 {
                   deduplicationId: `email.send:${email.id}`,
@@ -96,6 +172,12 @@ export async function POST(request: Request): Promise<Response> {
                 .update(emails)
                 .set({ status: "failed" })
                 .where(eq(emails.id, email.id));
+              recordTelemetryError(
+                telemetry,
+                "email.batch_accept.queue_publish_failed",
+                error,
+                { email_id: email.id },
+              );
               throw error;
             }
           }
@@ -106,10 +188,36 @@ export async function POST(request: Request): Promise<Response> {
       results.push(...chunkResults);
     }
 
-    return Response.json({ data: results });
+    const durationMs = performance.now() - startedAt;
+    logTelemetry("info", "email.batch_accepted", telemetry, {
+      email_count: results.length,
+      duration_ms: Math.round(durationMs),
+    });
+    recordBatchMetric(telemetry, {
+      durationMs,
+      outcome: "accepted",
+      count: results.length,
+    });
+    return jsonWithTelemetry({ data: results }, telemetry);
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to send batch emails";
-    return Response.json({ error: message }, { status: 500 });
+    recordTelemetryError(telemetry, "email.batch_accept.failed", err);
+    emitCloudWatchMetric(telemetry, {
+      metrics: [
+        { name: "EmailBatchAcceptFailed", value: 1, unit: "Count" },
+        {
+          name: "EmailBatchAcceptLatency",
+          value: Math.round(performance.now() - startedAt),
+          unit: "Milliseconds",
+        },
+      ],
+      dimensions: {
+        Service: "api",
+        Operation: "email.batch_accept",
+        Outcome: "failed",
+      },
+    });
+    return jsonWithTelemetry({ error: message }, telemetry, { status: 500 });
   }
 }
