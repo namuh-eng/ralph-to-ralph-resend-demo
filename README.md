@@ -143,6 +143,8 @@ PORT=3015                              # Default: 3015
 CLOUDFLARE_API_TOKEN=your-cf-token     # For auto DNS setup
 CLOUDFLARE_ZONE_ID=your-zone-id
 S3_BUCKET_NAME=your-bucket             # For email attachments
+BACKGROUND_JOBS_QUEUE_URL=...          # Optional locally; required for async production sending
+BACKGROUND_WORKER_POLL=true            # Set on the ingester worker when SQS is configured
 ```
 
 `.env.example` keeps `DATABASE_URL` on `localhost` for host-run commands like `bun run dev` and `bun run db:push`. Docker Compose injects its own internal `postgres` hostname for the containerized app and migration services.
@@ -189,6 +191,7 @@ For production, we recommend:
 - **Reverse proxy**: Put Nginx or Caddy in front for TLS termination
 - **Secrets**: Store credentials in your cloud provider's secrets manager
 - **Rate limiting**: Use a shared Redis/ElastiCache instance instead of the disabled local default
+- **Background jobs**: Use SQS with a redrive policy/DLQ, plus EventBridge to trigger scheduled-email and webhook retry scans
 
 ### Shared rate limiting (staging/production)
 
@@ -199,6 +202,28 @@ Namuh Send now treats API rate limiting as an explicit runtime contract:
 - `REDIS_URL` must point at a TLS-enabled Redis endpoint such as `rediss://default:<password>@<primary-endpoint>:6379`.
 
 For AWS ElastiCache, enable **in-transit encryption** on the replication group/serverless cache and use the TLS endpoint that AWS exposes. AWS documents both the `TransitEncryptionEnabled=true` requirement and TLS client connections to the primary/configuration endpoint.
+
+### AWS-native background jobs
+
+Email sending is queue-first: `POST /api/emails` validates and persists the email row, then publishes an `email.send` job instead of calling SES on the request path. The ingester service owns background job execution.
+
+Configure these variables for staging/production:
+
+- `BACKGROUND_JOBS_QUEUE_URL` — SQS queue URL used for `email.send`, `webhook.dispatch`, scheduled scan, and webhook retry scan jobs.
+- `BACKGROUND_JOBS_REQUIRE_QUEUE=true` — fail API publishing if the queue URL is missing instead of silently skipping publish. Use this in staging/production.
+- `BACKGROUND_JOBS_EVENT_BUS_NAME` — optional EventBridge bus for job lifecycle events/automation hooks.
+- `BACKGROUND_WORKER_POLL=true` — set on the ingester service to long-poll SQS and execute jobs.
+- `INGESTER_JOB_TOKEN` — optional bearer token required by ingester `/jobs/*` endpoints when EventBridge invokes them over HTTP.
+
+Operational shape:
+
+1. App/control plane: persist intent in Postgres, publish SQS job, return `{ id }`.
+2. Ingester/worker: long-poll SQS, execute SES sends and webhook deliveries, and delete messages only after success.
+3. Scheduled sends: EventBridge should call `POST /jobs/scheduled-emails` on the ingester every minute, or publish a `scheduled-email.scan` job, to enqueue due `email.send` jobs.
+4. Webhook retries: failed webhook deliveries stay `pending` with `next_retry_at`; EventBridge can call `POST /jobs/webhooks` or publish `webhook-delivery.scan` to retry due deliveries.
+5. Retries/DLQ: configure the SQS queue redrive policy with a DLQ. Worker failures leave messages undeleted so SQS retry/redrive owns retry exhaustion.
+
+Local dev remains Docker-friendly if no queue is configured: publishes are logged/skipped and API calls still persist rows. To exercise the real worker locally, set `BACKGROUND_JOBS_QUEUE_URL` and `BACKGROUND_WORKER_POLL=true` on the ingester.
 
 ### Redis-backed auth/domain metadata cache
 

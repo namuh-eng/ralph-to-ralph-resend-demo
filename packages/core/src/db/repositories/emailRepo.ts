@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, lt } from "drizzle-orm";
+import { and, desc, eq, gt, lt, lte } from "drizzle-orm";
 import { db } from "../client";
 import { emails } from "../schema";
 
@@ -27,12 +27,20 @@ export const emailRepo = {
       .returning();
   },
 
+  async findDueScheduled(options: { limit?: number; now?: Date } = {}) {
+    const { limit = 50, now = new Date() } = options;
+    return await db
+      .select()
+      .from(emails)
+      .where(and(eq(emails.status, "scheduled"), lte(emails.scheduledAt, now)))
+      .limit(limit);
+  },
+
   async list(
     options: { limit?: number; after?: string; before?: string } = {},
   ) {
     const { limit = 20, after, before } = options;
 
-    const query = db.select().from(emails);
     const conditions = [];
 
     if (after) conditions.push(gt(emails.id, after));

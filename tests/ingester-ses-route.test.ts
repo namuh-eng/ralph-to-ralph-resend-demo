@@ -5,11 +5,17 @@ const mockCreateOrIgnoreDuplicate = vi.fn();
 const mockWebhookList = vi.fn();
 const mockEnqueue = vi.fn();
 const mockDispatchDelivery = vi.fn();
+const mockPublishBackgroundJob = vi.fn();
 
 vi.mock("@namuh/core", () => ({
+  createBackgroundJob: (job: Record<string, unknown>) => ({
+    ...job,
+    requestedAt: "2026-04-28T00:00:00.000Z",
+  }),
   emailEventRepo: {
     createOrIgnoreDuplicate: mockCreateOrIgnoreDuplicate,
   },
+  publishBackgroundJob: mockPublishBackgroundJob,
   webhookRepo: {
     list: mockWebhookList,
   },
@@ -156,6 +162,10 @@ describe("SES SNS ingestion route", () => {
 
     mockEnqueue.mockResolvedValue({ id: "delivery-1" });
     mockDispatchDelivery.mockResolvedValue(undefined);
+    mockPublishBackgroundJob.mockResolvedValue({
+      status: "skipped",
+      reason: "queue_url_missing",
+    });
     mockWebhookList.mockResolvedValue({
       data: [
         {
@@ -176,7 +186,7 @@ describe("SES SNS ingestion route", () => {
     );
   });
 
-  it("verifies the SNS signature, persists a normalized event, and dispatches webhooks", async () => {
+  it("verifies the SNS signature, persists a normalized event, and queues webhook delivery", async () => {
     const persistedEvent = {
       id: "evt-1",
       emailId: "550e8400-e29b-41d4-a716-446655440000",
@@ -209,7 +219,19 @@ describe("SES SNS ingestion route", () => {
       payload: { smtpResponse: "250 ok" },
     });
     expect(mockEnqueue).toHaveBeenCalledWith("hook-1", persistedEvent.id);
-    expect(mockDispatchDelivery).toHaveBeenCalledWith("delivery-1");
+    expect(mockPublishBackgroundJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "webhook.dispatch:delivery-1",
+        type: "webhook.dispatch",
+        source: "ses-ingest",
+        deliveryId: "delivery-1",
+      }),
+      expect.objectContaining({
+        deduplicationId: "webhook.dispatch:delivery-1",
+        groupId: "webhook.dispatch",
+      }),
+    );
+    expect(mockDispatchDelivery).not.toHaveBeenCalled();
   });
 
   it("rejects invalid SNS signatures before touching persistence", async () => {
@@ -235,6 +257,7 @@ describe("SES SNS ingestion route", () => {
     expect(mockCreateOrIgnoreDuplicate).not.toHaveBeenCalled();
     expect(mockEnqueue).not.toHaveBeenCalled();
     expect(mockDispatchDelivery).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).not.toHaveBeenCalled();
   });
 
   it("acks duplicate SNS notifications without re-dispatching downstream webhooks", async () => {
@@ -264,6 +287,7 @@ describe("SES SNS ingestion route", () => {
     expect(response.status).toBe(200);
     expect(mockEnqueue).not.toHaveBeenCalled();
     expect(mockDispatchDelivery).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).not.toHaveBeenCalled();
     expect(mockWebhookList).not.toHaveBeenCalled();
   });
 

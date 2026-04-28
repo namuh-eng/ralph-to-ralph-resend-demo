@@ -1,12 +1,10 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
-import {
-  normalizeAttachmentsForSend,
-  normalizeAttachmentsForStorage,
-} from "@/lib/email-attachments";
-import { sendEmail as sesSendEmail } from "@/lib/ses";
+import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { batchSendEmailSchema } from "@/lib/validation/emails";
+import { createBackgroundJob, publishBackgroundJob } from "@namuh/core";
+import { eq } from "drizzle-orm";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -57,20 +55,7 @@ export async function POST(request: Request): Promise<Response> {
             ? new Date(item.scheduled_at)
             : null;
 
-          if (!scheduledAt) {
-            await sesSendEmail({
-              from: item.from,
-              to,
-              cc,
-              bcc,
-              subject: item.subject,
-              html: item.html,
-              text: item.text,
-              replyTo,
-              headers: (item.headers as Record<string, string>) ?? {},
-              attachments: normalizeAttachmentsForSend(item.attachments),
-            });
-          }
+          const shouldQueueNow = !scheduledAt || scheduledAt <= new Date();
 
           const [email] = await db
             .insert(emails)
@@ -86,11 +71,34 @@ export async function POST(request: Request): Promise<Response> {
               tags: item.tags ?? [],
               headers: (item.headers as Record<string, string>) ?? {},
               attachments: normalizeAttachmentsForStorage(item.attachments),
-              status: scheduledAt ? "scheduled" : "sent",
+              status: shouldQueueNow ? "queued" : "scheduled",
               scheduledAt: scheduledAt,
               topicId: item.topic_id || null,
             })
             .returning({ id: emails.id });
+
+          if (shouldQueueNow) {
+            try {
+              await publishBackgroundJob(
+                createBackgroundJob({
+                  id: `email.send:${email.id}`,
+                  type: "email.send",
+                  source: "api",
+                  emailId: email.id,
+                }),
+                {
+                  deduplicationId: `email.send:${email.id}`,
+                  groupId: "email.send",
+                },
+              );
+            } catch (error) {
+              await db
+                .update(emails)
+                .set({ status: "failed" })
+                .where(eq(emails.id, email.id));
+              throw error;
+            }
+          }
 
           return { id: email.id };
         }),

@@ -1,12 +1,9 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
-import {
-  normalizeAttachmentsForSend,
-  normalizeAttachmentsForStorage,
-} from "@/lib/email-attachments";
-import { sendEmail as sesSendEmail } from "@/lib/ses";
+import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { sendEmailSchema } from "@/lib/validation/emails";
+import { createBackgroundJob, publishBackgroundJob } from "@namuh/core";
 import { desc, eq, gt, lt } from "drizzle-orm";
 import type { ZodError } from "zod";
 
@@ -122,23 +119,9 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Only send immediately if not scheduled
-    if (!scheduledAt) {
-      await sesSendEmail({
-        from: validated.from,
-        to,
-        cc,
-        bcc,
-        subject: finalSubject,
-        html: finalHtml,
-        text: validated.text,
-        replyTo,
-        headers: validated.headers as Record<string, string>,
-        attachments: normalizeAttachmentsForSend(validated.attachments),
-      });
-    }
+    const shouldQueueNow = !scheduledAt || scheduledAt <= new Date();
 
-    // Store in DB
+    // Store in DB before publishing async work so the worker has a durable row.
     const [email] = await db
       .insert(emails)
       .values({
@@ -153,13 +136,36 @@ export async function POST(request: Request): Promise<Response> {
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
         attachments: normalizeAttachmentsForStorage(validated.attachments),
-        status: scheduledAt ? "scheduled" : "sent",
+        status: shouldQueueNow ? "queued" : "scheduled",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,
         idempotencyKey: idempotencyKey,
         userId: auth.userId, // Link to the user who owns the API key
       })
       .returning({ id: emails.id });
+
+    if (shouldQueueNow) {
+      try {
+        await publishBackgroundJob(
+          createBackgroundJob({
+            id: `email.send:${email.id}`,
+            type: "email.send",
+            source: "api",
+            emailId: email.id,
+          }),
+          {
+            deduplicationId: `email.send:${email.id}`,
+            groupId: "email.send",
+          },
+        );
+      } catch (error) {
+        await db
+          .update(emails)
+          .set({ status: "failed" })
+          .where(eq(emails.id, email.id));
+        throw error;
+      }
+    }
 
     return Response.json({ id: email.id });
   } catch (err) {

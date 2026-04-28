@@ -25,8 +25,10 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.1038.0",
     "@aws-sdk/client-s3": "^3.1019.0",
     "@aws-sdk/client-sesv2": "^3.1019.0",
+    "@aws-sdk/client-sqs": "^3.1038.0",
     "@aws-sdk/s3-request-presigner": "^3.1019.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-dialog": "^1.1.4",
