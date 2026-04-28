@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSqsSend = vi.hoisted(() => vi.fn());
 const mockEventBridgeSend = vi.hoisted(() => vi.fn());
@@ -29,10 +29,29 @@ describe("background job publisher", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    mockSqsClient.mockImplementation(() => ({ send: mockSqsSend }));
+    mockEventBridgeClient.mockImplementation(() => ({
+      send: mockEventBridgeSend,
+    }));
+    mockSendMessageCommand.mockImplementation((input) => ({
+      input,
+      type: "SendMessageCommand",
+    }));
+    mockPutEventsCommand.mockImplementation((input) => ({
+      input,
+      type: "PutEventsCommand",
+    }));
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     process.env.AWS_REGION = "us-east-1";
     process.env.BACKGROUND_JOBS_QUEUE_URL = "";
     process.env.BACKGROUND_JOBS_EVENT_BUS_NAME = "";
     process.env.BACKGROUND_JOBS_REQUIRE_QUEUE = "";
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("skips publishing when no queue URL is configured", async () => {
@@ -91,12 +110,38 @@ describe("background job publisher", () => {
     expect(mockSendMessageCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         QueueUrl: process.env.BACKGROUND_JOBS_QUEUE_URL,
-        MessageBody: JSON.stringify(job),
         DelaySeconds: 900,
+        MessageAttributes: expect.objectContaining({
+          correlationId: expect.objectContaining({
+            DataType: "String",
+            StringValue: expect.any(String),
+          }),
+          traceparent: expect.objectContaining({
+            DataType: "String",
+            StringValue: expect.stringMatching(
+              /^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$/,
+            ),
+          }),
+        }),
         MessageDeduplicationId: "delivery-1",
         MessageGroupId: "webhook.dispatch",
       }),
     );
+    const sentBody = JSON.parse(
+      mockSendMessageCommand.mock.calls[0]?.[0]?.MessageBody ?? "{}",
+    );
+    expect(sentBody).toMatchObject({
+      id: job.id,
+      type: job.type,
+      source: job.source,
+      deliveryId: "delivery-1",
+      trace: {
+        correlationId: expect.any(String),
+        traceparent: expect.stringMatching(
+          /^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$/,
+        ),
+      },
+    });
     expect(mockPutEventsCommand).toHaveBeenCalledWith({
       Entries: [
         expect.objectContaining({
@@ -121,6 +166,11 @@ describe("background job publisher", () => {
           source: "eventbridge",
           requestedAt: "2026-04-28T00:00:00.000Z",
           limit: 25,
+          trace: {
+            traceparent:
+              "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+            correlationId: "corr-1",
+          },
         }),
       ),
     ).toEqual({
@@ -129,6 +179,10 @@ describe("background job publisher", () => {
       source: "eventbridge",
       requestedAt: "2026-04-28T00:00:00.000Z",
       limit: 25,
+      trace: {
+        traceparent: "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+        correlationId: "corr-1",
+      },
     });
 
     expect(() => parseBackgroundJob("{}")).toThrow(/id/);

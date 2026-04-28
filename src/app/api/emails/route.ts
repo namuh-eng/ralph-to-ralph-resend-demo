@@ -3,7 +3,15 @@ import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
 import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { sendEmailSchema } from "@/lib/validation/emails";
-import { createBackgroundJob, publishBackgroundJob } from "@namuh/core";
+import {
+  createBackgroundJob,
+  createTelemetryContext,
+  emitCloudWatchMetric,
+  getTelemetryCarrier,
+  logTelemetry,
+  publishBackgroundJob,
+  recordTelemetryError,
+} from "@namuh/core";
 import { and, desc, eq, gt, lt } from "drizzle-orm";
 import type { ZodError } from "zod";
 
@@ -16,19 +24,79 @@ function normalizeToArray(
   return Array.isArray(value) ? value : [value];
 }
 
+function jsonWithTelemetry(
+  body: unknown,
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  init?: ResponseInit,
+): Response {
+  const headers = new Headers(init?.headers);
+  headers.set("x-correlation-id", telemetry.correlationId);
+  headers.set("traceparent", telemetry.traceparent);
+  return Response.json(body, { ...init, headers });
+}
+
+function recordAcceptMetric(
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  input: {
+    durationMs: number;
+    outcome: "queued" | "scheduled" | "failed" | "unauthorized" | "invalid";
+  },
+): void {
+  emitCloudWatchMetric(telemetry, {
+    metrics: [
+      { name: "EmailAccept", value: 1, unit: "Count" },
+      {
+        name: "EmailAcceptLatency",
+        value: Math.round(input.durationMs),
+        unit: "Milliseconds",
+      },
+    ],
+    dimensions: {
+      Service: "api",
+      Operation: "email.accept",
+      Outcome: input.outcome,
+    },
+  });
+}
+
 // ── POST /api/emails ──────────────────────────────────────────────
 
 export async function POST(request: Request): Promise<Response> {
+  const telemetry = createTelemetryContext({
+    service: "api",
+    operation: "POST /api/emails",
+    headers: request.headers,
+  });
+  const startedAt = performance.now();
+  logTelemetry("info", "api.request.start", telemetry, {
+    method: "POST",
+    route: "/api/emails",
+  });
+
   const auth = await validateApiKey(request.headers.get("authorization"));
-  if (!auth) return unauthorizedResponse();
+  if (!auth) {
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "unauthorized",
+    });
+    const response = unauthorizedResponse();
+    response.headers.set("x-correlation-id", telemetry.correlationId);
+    response.headers.set("traceparent", telemetry.traceparent);
+    return response;
+  }
 
   const idempotencyKey = request.headers.get("idempotency-key");
   if (
     idempotencyKey &&
     (idempotencyKey.length < 1 || idempotencyKey.length > 255)
   ) {
-    return Response.json(
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry(
       { error: "Invalid idempotency key length" },
+      telemetry,
       { status: 400 },
     );
   }
@@ -37,13 +105,24 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry({ error: "Invalid JSON body" }, telemetry, {
+      status: 400,
+    });
   }
 
   const result = sendEmailSchema.safeParse(body);
   if (!result.success) {
-    return Response.json(
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry(
       { error: "Validation failed", details: result.error.flatten() },
+      telemetry,
       { status: 422 },
     );
   }
@@ -56,7 +135,11 @@ export async function POST(request: Request): Promise<Response> {
       where: eq(emails.idempotencyKey, idempotencyKey),
     });
     if (existing) {
-      return Response.json({ id: existing.id }, { status: 409 });
+      recordAcceptMetric(telemetry, {
+        durationMs: performance.now() - startedAt,
+        outcome: "queued",
+      });
+      return jsonWithTelemetry({ id: existing.id }, telemetry, { status: 409 });
     }
   }
 
@@ -78,7 +161,13 @@ export async function POST(request: Request): Promise<Response> {
         where: eq(templates.id, validated.template.id),
       });
       if (!template) {
-        return Response.json({ error: "Template not found" }, { status: 404 });
+        recordAcceptMetric(telemetry, {
+          durationMs: performance.now() - startedAt,
+          outcome: "invalid",
+        });
+        return jsonWithTelemetry({ error: "Template not found" }, telemetry, {
+          status: 404,
+        });
       }
 
       // Validate required variables
@@ -94,11 +183,16 @@ export async function POST(request: Request): Promise<Response> {
 
       for (const requiredVar of requiredVars) {
         if (providedVars[requiredVar] === undefined) {
-          return Response.json(
+          recordAcceptMetric(telemetry, {
+            durationMs: performance.now() - startedAt,
+            outcome: "invalid",
+          });
+          return jsonWithTelemetry(
             {
               error: "Validation failed",
               message: `Missing required template variable: ${requiredVar}`,
             },
+            telemetry,
             { status: 422 },
           );
         }
@@ -152,6 +246,7 @@ export async function POST(request: Request): Promise<Response> {
             type: "email.send",
             source: "api",
             emailId: email.id,
+            trace: getTelemetryCarrier(telemetry),
           }),
           {
             deduplicationId: `email.send:${email.id}`,
@@ -163,14 +258,35 @@ export async function POST(request: Request): Promise<Response> {
           .update(emails)
           .set({ status: "failed" })
           .where(eq(emails.id, email.id));
+        recordTelemetryError(
+          telemetry,
+          "email.accept.queue_publish_failed",
+          error,
+          {
+            email_id: email.id,
+          },
+        );
         throw error;
       }
     }
 
-    return Response.json({ id: email.id });
+    const outcome = shouldQueueNow ? "queued" : "scheduled";
+    const durationMs = performance.now() - startedAt;
+    logTelemetry("info", "email.accepted", telemetry, {
+      email_id: email.id,
+      status: outcome,
+      duration_ms: Math.round(durationMs),
+    });
+    recordAcceptMetric(telemetry, { durationMs, outcome });
+    return jsonWithTelemetry({ id: email.id }, telemetry);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to send email";
-    return Response.json({ error: message }, { status: 500 });
+    recordTelemetryError(telemetry, "email.accept.failed", err);
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "failed",
+    });
+    return jsonWithTelemetry({ error: message }, telemetry, { status: 500 });
   }
 }
 

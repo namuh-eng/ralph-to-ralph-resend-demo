@@ -1,7 +1,12 @@
 import {
   createBackgroundJob,
+  createTelemetryContext,
   emailEventRepo,
+  emitCloudWatchMetric,
+  getTelemetryCarrier,
+  logTelemetry,
   publishBackgroundJob,
+  recordTelemetryError,
   webhookRepo,
 } from "@namuh/core";
 import { Hono } from "hono";
@@ -56,6 +61,16 @@ app.post("/jobs/webhooks", async (c) =>
 );
 
 app.post("/events/ses", async (c) => {
+  const telemetry = createTelemetryContext({
+    service: "ingester",
+    operation: "POST /events/ses",
+    headers: {
+      traceparent: c.req.header("traceparent"),
+      tracestate: c.req.header("tracestate"),
+      "x-correlation-id": c.req.header("x-correlation-id"),
+    },
+  });
+
   try {
     const body = await c.req.json();
     const snsType = c.req.header("x-amz-sns-message-type");
@@ -64,15 +79,16 @@ app.post("/events/ses", async (c) => {
     await verifySnsSignature(snsMessage);
 
     if (snsMessage.Type === "SubscriptionConfirmation") {
-      console.log(
-        "SNS Subscription Confirmation URL:",
-        snsMessage.SubscribeURL,
-      );
+      logTelemetry("info", "ses.sns.subscription_confirmation", telemetry, {
+        sns_message_id: snsMessage.MessageId,
+      });
       return c.text("OK");
     }
 
     if (snsMessage.Type === "UnsubscribeConfirmation") {
-      console.warn("Received SNS UnsubscribeConfirmation for SES endpoint");
+      logTelemetry("warn", "ses.sns.unsubscribe_confirmation", telemetry, {
+        sns_message_id: snsMessage.MessageId,
+      });
       return c.text("OK");
     }
 
@@ -81,21 +97,26 @@ app.post("/events/ses", async (c) => {
     const eventType = sesMessage.eventType;
     const normalizedEvent = normalizeSesEvent(eventType);
 
-    console.log(`Received SES event ${eventType} for message ${sesId}`);
+    logTelemetry("info", "ses.event.received", telemetry, {
+      ses_message_id: sesId,
+      ses_event_type: eventType,
+    });
 
     if (!normalizedEvent) {
-      console.warn(
-        `Unsupported SES event type ${eventType} for message ${sesId}`,
-      );
+      logTelemetry("warn", "ses.event.unsupported", telemetry, {
+        ses_message_id: sesId,
+        ses_event_type: eventType,
+      });
       return c.text("OK");
     }
 
     const emailId = extractEmailId(sesMessage);
 
     if (!emailId) {
-      console.warn(
-        `Skipping SES event ${eventType} for ${sesId}: missing X-Entity-ID`,
-      );
+      logTelemetry("warn", "ses.event.missing_email_id", telemetry, {
+        ses_message_id: sesId,
+        ses_event_type: eventType,
+      });
       return c.text("OK");
     }
 
@@ -107,9 +128,22 @@ app.post("/events/ses", async (c) => {
     });
 
     if (!created) {
-      console.log(`Ignoring duplicate SNS message ${snsMessage.MessageId}`);
+      logTelemetry("info", "ses.event.duplicate", telemetry, {
+        sns_message_id: snsMessage.MessageId,
+        email_id: emailId,
+      });
       return c.text("OK");
     }
+
+    emitCloudWatchMetric(telemetry, {
+      metrics: [{ name: "SesEventIngested", value: 1, unit: "Count" }],
+      dimensions: {
+        Service: "ingester",
+        Operation: "ses.ingest",
+        EventType: event.type,
+        Outcome: "created",
+      },
+    });
 
     const { data: hooks } = await webhookRepo.list({ limit: 100 });
     for (const hook of hooks) {
@@ -128,6 +162,7 @@ app.post("/events/ses", async (c) => {
             type: "webhook.dispatch",
             source: "ses-ingest",
             deliveryId: delivery.id,
+            trace: getTelemetryCarrier(telemetry),
           }),
           {
             deduplicationId: `webhook.dispatch:${delivery.id}`,
@@ -140,11 +175,19 @@ app.post("/events/ses", async (c) => {
     return c.text("OK");
   } catch (error) {
     if (error instanceof SnsValidationError) {
-      console.warn(error.message);
+      recordTelemetryError(telemetry, "ses.sns.validation_failed", error);
       return new Response(error.message, { status: error.status });
     }
 
-    console.error("Unhandled SES ingestion error", error);
+    recordTelemetryError(telemetry, "ses.ingest.failed", error);
+    emitCloudWatchMetric(telemetry, {
+      metrics: [{ name: "SesEventIngestFailed", value: 1, unit: "Count" }],
+      dimensions: {
+        Service: "ingester",
+        Operation: "ses.ingest",
+        Outcome: "failed",
+      },
+    });
     return new Response("Internal Server Error", { status: 500 });
   }
 });

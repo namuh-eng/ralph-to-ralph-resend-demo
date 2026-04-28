@@ -3,6 +3,16 @@ import {
   PutEventsCommand,
 } from "@aws-sdk/client-eventbridge";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import {
+  type TelemetryCarrier,
+  createTelemetryContext,
+  emitCloudWatchMetric,
+  finishTelemetrySpan,
+  getTelemetryCarrier,
+  logTelemetry,
+  recordTelemetryError,
+  startTelemetrySpan,
+} from "../observability/telemetry";
 
 const MAX_SQS_DELAY_SECONDS = 900;
 const BACKGROUND_JOB_EVENT_SOURCE = "namuh-send.background-jobs";
@@ -27,6 +37,7 @@ interface BaseBackgroundJob {
   requestedAt: string;
   source: BackgroundJobSource;
   attempt?: number;
+  trace?: TelemetryCarrier;
 }
 
 export interface EmailSendJob extends BaseBackgroundJob {
@@ -103,6 +114,12 @@ function requiresQueue(options: PublishBackgroundJobOptions): boolean {
   );
 }
 
+function serviceForJobSource(source: BackgroundJobSource): string {
+  if (source === "api") return "api";
+  if (source === "ses-ingest") return "ingester";
+  return "worker";
+}
+
 function getSqsClient(): SQSClient {
   if (!sqsClient) {
     sqsClient = new SQSClient({ region: getRegion() });
@@ -142,51 +159,142 @@ export async function publishBackgroundJob(
   job: BackgroundJob,
   options: PublishBackgroundJobOptions = {},
 ): Promise<PublishBackgroundJobResult> {
+  const telemetry = createTelemetryContext({
+    service: serviceForJobSource(job.source),
+    operation: "background_job.publish",
+    carrier: job.trace,
+  });
+  const publishSpan = startTelemetrySpan(telemetry, {
+    operation: "queue.publish",
+    attributes: {
+      job_id: job.id,
+      job_type: job.type,
+      job_source: job.source,
+    },
+  });
   const queueUrl = getQueueUrl();
 
   if (!queueUrl) {
     if (requiresQueue(options)) {
-      throw new Error("BACKGROUND_JOBS_QUEUE_URL is required to publish jobs");
+      const error = new Error(
+        "BACKGROUND_JOBS_QUEUE_URL is required to publish jobs",
+      );
+      recordTelemetryError(
+        publishSpan.context,
+        "queue.publish.missing_queue",
+        error,
+        {
+          job_id: job.id,
+          job_type: job.type,
+        },
+      );
+      emitQueuePublishMetric(publishSpan.context, 0, job, "failed");
+      finishTelemetrySpan(publishSpan, { status: "error" });
+      throw error;
     }
-    console.info("[jobs] queue URL missing; skipping background job publish", {
-      jobId: job.id,
-      jobType: job.type,
+
+    logTelemetry("warn", "queue.publish.skipped", publishSpan.context, {
+      job_id: job.id,
+      job_type: job.type,
+      reason: "queue_url_missing",
     });
+    emitQueuePublishMetric(publishSpan.context, 0, job, "skipped");
+    finishTelemetrySpan(publishSpan, { status: "skipped" });
     return { status: "skipped", reason: "queue_url_missing" };
   }
 
-  const fifo = isFifoQueue(queueUrl);
-  const message = await getSqsClient().send(
-    new SendMessageCommand({
-      QueueUrl: queueUrl,
-      MessageBody: JSON.stringify(job),
-      DelaySeconds: sanitizeDelaySeconds(options.delaySeconds),
-      MessageAttributes: {
-        jobId: { DataType: "String", StringValue: job.id },
-        jobType: { DataType: "String", StringValue: job.type },
-        source: { DataType: "String", StringValue: job.source },
+  try {
+    const fifo = isFifoQueue(queueUrl);
+    const tracedJob = {
+      ...job,
+      trace: getTelemetryCarrier(publishSpan.context),
+    };
+    const message = await getSqsClient().send(
+      new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: JSON.stringify(tracedJob),
+        DelaySeconds: sanitizeDelaySeconds(options.delaySeconds),
+        MessageAttributes: {
+          jobId: { DataType: "String", StringValue: job.id },
+          jobType: { DataType: "String", StringValue: job.type },
+          source: { DataType: "String", StringValue: job.source },
+          correlationId: {
+            DataType: "String",
+            StringValue: publishSpan.context.correlationId,
+          },
+          traceparent: {
+            DataType: "String",
+            StringValue: publishSpan.context.traceparent,
+          },
+        },
+        ...(fifo
+          ? {
+              MessageDeduplicationId: options.deduplicationId ?? job.id,
+              MessageGroupId: options.groupId ?? job.type,
+            }
+          : {}),
+      }),
+    );
+
+    const eventId = await publishBackgroundJobEvent(
+      tracedJob,
+      message.MessageId,
+      publishSpan.context,
+    );
+    const durationMs = finishTelemetrySpan(publishSpan, {
+      status: "ok",
+      attributes: {
+        job_id: job.id,
+        job_type: job.type,
+        message_id: message.MessageId ?? null,
       },
-      ...(fifo
-        ? {
-            MessageDeduplicationId: options.deduplicationId ?? job.id,
-            MessageGroupId: options.groupId ?? job.type,
-          }
-        : {}),
-    }),
-  );
+    });
+    emitQueuePublishMetric(publishSpan.context, durationMs, job, "published");
 
-  const eventId = await publishBackgroundJobEvent(job, message.MessageId);
+    return {
+      status: "published",
+      messageId: message.MessageId ?? null,
+      eventId,
+    };
+  } catch (error) {
+    recordTelemetryError(publishSpan.context, "queue.publish.failed", error, {
+      job_id: job.id,
+      job_type: job.type,
+    });
+    finishTelemetrySpan(publishSpan, { status: "error" });
+    emitQueuePublishMetric(publishSpan.context, 0, job, "failed");
+    throw error;
+  }
+}
 
-  return {
-    status: "published",
-    messageId: message.MessageId ?? null,
-    eventId,
-  };
+function emitQueuePublishMetric(
+  context: TelemetryCarrier,
+  durationMs: number,
+  job: BackgroundJob,
+  outcome: "published" | "skipped" | "failed",
+): void {
+  emitCloudWatchMetric(context, {
+    metrics: [
+      { name: "QueuePublish", value: 1, unit: "Count" },
+      {
+        name: "QueuePublishLatency",
+        value: Math.round(durationMs),
+        unit: "Milliseconds",
+      },
+    ],
+    dimensions: {
+      Service: serviceForJobSource(job.source),
+      Operation: "queue.publish",
+      JobType: job.type,
+      Outcome: outcome,
+    },
+  });
 }
 
 async function publishBackgroundJobEvent(
   job: BackgroundJob,
   messageId: string | undefined,
+  context: TelemetryCarrier,
 ): Promise<string | null> {
   const eventBusName = getEventBusName();
   if (!eventBusName) return null;
@@ -206,10 +314,10 @@ async function publishBackgroundJobEvent(
     );
     return result.Entries?.[0]?.EventId ?? null;
   } catch (error) {
-    console.warn("[jobs] failed to publish EventBridge job event", {
-      jobId: job.id,
-      jobType: job.type,
-      error: error instanceof Error ? error.message : String(error),
+    recordTelemetryError(context, "queue.eventbridge_publish_failed", error, {
+      job_id: job.id,
+      job_type: job.type,
+      message_id: messageId ?? null,
     });
     return null;
   }
@@ -235,6 +343,7 @@ export function parseBackgroundJob(raw: string): BackgroundJob {
         requestedAt,
         source,
         ...(attempt !== undefined ? { attempt } : {}),
+        ...optionalTrace(parsed),
         emailId: getRequiredString(parsed, "emailId"),
       };
     case "scheduled-email.scan":
@@ -244,6 +353,7 @@ export function parseBackgroundJob(raw: string): BackgroundJob {
         requestedAt,
         source,
         ...(attempt !== undefined ? { attempt } : {}),
+        ...optionalTrace(parsed),
         ...optionalLimit(parsed),
       };
     case "webhook.dispatch":
@@ -253,6 +363,7 @@ export function parseBackgroundJob(raw: string): BackgroundJob {
         requestedAt,
         source,
         ...(attempt !== undefined ? { attempt } : {}),
+        ...optionalTrace(parsed),
         deliveryId: getRequiredString(parsed, "deliveryId"),
       };
     case "webhook-delivery.scan":
@@ -262,6 +373,7 @@ export function parseBackgroundJob(raw: string): BackgroundJob {
         requestedAt,
         source,
         ...(attempt !== undefined ? { attempt } : {}),
+        ...optionalTrace(parsed),
         ...optionalLimit(parsed),
       };
     default:
@@ -272,6 +384,29 @@ export function parseBackgroundJob(raw: string): BackgroundJob {
 function optionalLimit(value: Record<string, unknown>): { limit?: number } {
   const limit = getOptionalNumber(value, "limit");
   return limit === undefined ? {} : { limit };
+}
+
+function optionalTrace(value: Record<string, unknown>): {
+  trace?: TelemetryCarrier;
+} {
+  const trace = value.trace;
+  if (!isRecord(trace)) return {};
+
+  const traceparent =
+    typeof trace.traceparent === "string" ? trace.traceparent : null;
+  const correlationId =
+    typeof trace.correlationId === "string" ? trace.correlationId : null;
+  if (!traceparent || !correlationId) return {};
+
+  return {
+    trace: {
+      traceparent,
+      correlationId,
+      ...(typeof trace.tracestate === "string"
+        ? { tracestate: trace.tracestate }
+        : {}),
+    },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

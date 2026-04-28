@@ -7,11 +7,30 @@ const mockSendEmail = vi.hoisted(() => vi.fn());
 const mockPublishBackgroundJob = vi.hoisted(() => vi.fn());
 const mockDispatchDelivery = vi.hoisted(() => vi.fn());
 const mockDispatchPendingDeliveries = vi.hoisted(() => vi.fn());
+const mockEmitCloudWatchMetric = vi.hoisted(() => vi.fn());
+const mockLogTelemetry = vi.hoisted(() => vi.fn());
+const mockRecordTelemetryError = vi.hoisted(() => vi.fn());
 
 vi.mock("@namuh/core", () => ({
   createBackgroundJob: (job: Record<string, unknown>) => ({
     ...job,
     requestedAt: "2026-04-28T00:00:00.000Z",
+  }),
+  createTelemetryContext: (input: {
+    service: string;
+    operation: string;
+    carrier?: { traceparent?: string; correlationId?: string };
+  }) => ({
+    service: input.service,
+    operation: input.operation,
+    traceId: "11111111111111111111111111111111",
+    spanId: "2222222222222222",
+    parentSpanId: null,
+    sampled: true,
+    traceparent:
+      input.carrier?.traceparent ??
+      "00-11111111111111111111111111111111-2222222222222222-01",
+    correlationId: input.carrier?.correlationId ?? "corr-worker-test",
   }),
   emailProvider: {
     sendEmail: mockSendEmail,
@@ -21,8 +40,28 @@ vi.mock("@namuh/core", () => ({
     findDueScheduled: mockFindDueScheduled,
     update: mockUpdateEmail,
   },
+  emitCloudWatchMetric: mockEmitCloudWatchMetric,
+  finishTelemetrySpan: () => 12,
+  getTelemetryCarrier: (context: {
+    traceparent: string;
+    correlationId: string;
+  }) => ({
+    traceparent: context.traceparent,
+    correlationId: context.correlationId,
+  }),
+  logTelemetry: mockLogTelemetry,
   parseBackgroundJob: (raw: string) => JSON.parse(raw),
   publishBackgroundJob: mockPublishBackgroundJob,
+  recordTelemetryError: mockRecordTelemetryError,
+  startTelemetrySpan: (context: {
+    service: string;
+    operation: string;
+    traceparent: string;
+    correlationId: string;
+  }) => ({
+    context,
+    startedAt: 0,
+  }),
 }));
 
 vi.mock("../packages/ingester/src/dispatcher", () => ({
@@ -109,6 +148,17 @@ describe("QueueWorker", () => {
     });
 
     expect(mockPublishBackgroundJob).toHaveBeenCalledTimes(2);
+    expect(mockPublishBackgroundJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "email.send:email-1",
+        trace: expect.objectContaining({
+          correlationId: "corr-worker-test",
+          traceparent:
+            "00-11111111111111111111111111111111-2222222222222222-01",
+        }),
+      }),
+      expect.any(Object),
+    );
     expect(mockUpdateEmail).toHaveBeenCalledWith("email-1", {
       status: "queued",
     });

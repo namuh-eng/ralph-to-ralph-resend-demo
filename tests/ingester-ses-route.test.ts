@@ -6,20 +6,69 @@ const mockWebhookList = vi.fn();
 const mockEnqueue = vi.fn();
 const mockDispatchDelivery = vi.fn();
 const mockPublishBackgroundJob = vi.fn();
+const mockEmitCloudWatchMetric = vi.fn();
+const mockLogTelemetry = vi.fn();
+const mockRecordTelemetryError = vi.fn();
 
-vi.mock("@namuh/core", () => ({
-  createBackgroundJob: (job: Record<string, unknown>) => ({
-    ...job,
-    requestedAt: "2026-04-28T00:00:00.000Z",
-  }),
-  emailEventRepo: {
-    createOrIgnoreDuplicate: mockCreateOrIgnoreDuplicate,
-  },
-  publishBackgroundJob: mockPublishBackgroundJob,
-  webhookRepo: {
-    list: mockWebhookList,
-  },
-}));
+vi.mock("@namuh/core", () => {
+  const testTraceparent =
+    "00-11111111111111111111111111111111-2222222222222222-01";
+  const getHeader = (
+    headers: Record<string, string | undefined> | undefined,
+    key: string,
+  ): string | null => {
+    if (!headers) return null;
+    const match = Object.entries(headers).find(
+      ([headerKey]) => headerKey.toLowerCase() === key.toLowerCase(),
+    );
+    return match?.[1] ?? null;
+  };
+
+  return {
+    createBackgroundJob: (job: Record<string, unknown>) => ({
+      ...job,
+      requestedAt: "2026-04-28T00:00:00.000Z",
+    }),
+    createTelemetryContext: (input: {
+      service: string;
+      operation: string;
+      headers?: Record<string, string | undefined>;
+      carrier?: { traceparent?: string; correlationId?: string };
+    }) => ({
+      service: input.service,
+      operation: input.operation,
+      traceId: "11111111111111111111111111111111",
+      spanId: "2222222222222222",
+      parentSpanId: null,
+      sampled: true,
+      traceparent:
+        input.carrier?.traceparent ??
+        getHeader(input.headers, "traceparent") ??
+        testTraceparent,
+      correlationId:
+        input.carrier?.correlationId ??
+        getHeader(input.headers, "x-correlation-id") ??
+        "corr-ingester-test",
+    }),
+    emailEventRepo: {
+      createOrIgnoreDuplicate: mockCreateOrIgnoreDuplicate,
+    },
+    emitCloudWatchMetric: mockEmitCloudWatchMetric,
+    getTelemetryCarrier: (context: {
+      traceparent: string;
+      correlationId: string;
+    }) => ({
+      traceparent: context.traceparent,
+      correlationId: context.correlationId,
+    }),
+    logTelemetry: mockLogTelemetry,
+    publishBackgroundJob: mockPublishBackgroundJob,
+    recordTelemetryError: mockRecordTelemetryError,
+    webhookRepo: {
+      list: mockWebhookList,
+    },
+  };
+});
 
 vi.mock("hono", () => {
   type Handler = (context: {
@@ -175,6 +224,9 @@ describe("SES SNS ingestion route", () => {
         },
       ],
     });
+    mockEmitCloudWatchMetric.mockReset();
+    mockLogTelemetry.mockReset();
+    mockRecordTelemetryError.mockReset();
 
     vi.stubGlobal(
       "fetch",
@@ -207,6 +259,8 @@ describe("SES SNS ingestion route", () => {
       headers: {
         "content-type": "application/json",
         "x-amz-sns-message-type": "Notification",
+        "x-correlation-id": "corr-ses-test",
+        traceparent: "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
       },
       body: JSON.stringify(envelope),
     });
@@ -225,6 +279,11 @@ describe("SES SNS ingestion route", () => {
         type: "webhook.dispatch",
         source: "ses-ingest",
         deliveryId: "delivery-1",
+        trace: {
+          correlationId: "corr-ses-test",
+          traceparent:
+            "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+        },
       }),
       expect.objectContaining({
         deduplicationId: "webhook.dispatch:delivery-1",

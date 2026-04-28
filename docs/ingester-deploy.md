@@ -51,6 +51,7 @@ Required production environment for both app and ingester:
 BACKGROUND_JOBS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account>/namuh-send-background
 BACKGROUND_JOBS_REQUIRE_QUEUE=true
 BACKGROUND_JOBS_EVENT_BUS_NAME=namuh-send-background-jobs # optional lifecycle/event hook bus
+CLOUDWATCH_METRICS_NAMESPACE=NamuhSend # optional EMF namespace override
 ```
 
 Set this only on the ingester worker service when SQS is ready:
@@ -94,6 +95,10 @@ https://<ingester-service-url>/events/ses
 ```
 
 Do not leave SES pointed at the Next.js app URL once the split is active.
+
+## Observability
+
+The app and ingester emit structured JSON logs, W3C/OpenTelemetry-compatible trace context, and CloudWatch EMF metrics for queue depth, worker failures, retry count, send latency, send outcomes, and SES ingest results. Use `docs/observability.md` for metric names, PII-safe logging rules, and the full API-to-provider tracing runbook.
 
 ## Tail ingester logs
 
