@@ -1,53 +1,63 @@
-import { getTtl, incrCache } from "@/lib/cache/redis";
+import {
+  getRateLimitBackend,
+  getTtl,
+  incrCache,
+  isRedisConfigured,
+} from "@/lib/cache/redis";
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
-// Fallback in-memory rate limiter if Redis is unavailable
-const hits = new Map<string, { count: number; resetAt: number }>();
+type RateCheckResult =
+  | { allowed: true }
+  | { allowed: false; retryAfter: number; status: 429 }
+  | { allowed: false; error: string; status: 503 };
+
+const RATE_LIMIT_BACKEND_UNAVAILABLE_ERROR =
+  "Rate limiting is temporarily unavailable.";
+let hasLoggedRateLimitConfigError = false;
 
 async function checkRate(
   key: string,
   maxRequests: number,
   windowMs: number,
-): Promise<{ allowed: true } | { allowed: false; retryAfter: number }> {
-  const redisKey = `ratelimit:${key}`;
-  const count = await incrCache(redisKey, Math.ceil(windowMs / 1000));
-
-  if (count !== null) {
-    if (count <= maxRequests) {
-      return { allowed: true };
+): Promise<RateCheckResult> {
+  if (!isRedisConfigured()) {
+    if (!hasLoggedRateLimitConfigError) {
+      hasLoggedRateLimitConfigError = true;
+      console.error(
+        "[rate-limit] RATE_LIMIT_BACKEND=redis requires REDIS_URL to be set.",
+      );
     }
-    const ttl = await getTtl(redisKey);
-    return { allowed: false, retryAfter: ttl || Math.ceil(windowMs / 1000) };
+    return {
+      allowed: false,
+      error: RATE_LIMIT_BACKEND_UNAVAILABLE_ERROR,
+      status: 503,
+    };
   }
 
-  // Fallback to in-memory
-  const now = Date.now();
-  const entry = hits.get(key);
+  const redisKey = `ratelimit:${key}`;
+  const windowSeconds = Math.ceil(windowMs / 1000);
+  const count = await incrCache(redisKey, windowSeconds);
 
-  if (!entry || now >= entry.resetAt) {
-    hits.set(key, { count: 1, resetAt: now + windowMs });
+  if (count === null) {
+    return {
+      allowed: false,
+      error: RATE_LIMIT_BACKEND_UNAVAILABLE_ERROR,
+      status: 503,
+    };
+  }
+
+  if (count <= maxRequests) {
     return { allowed: true };
   }
 
-  if (entry.count < maxRequests) {
-    entry.count++;
-    return { allowed: true };
-  }
-
+  const ttl = await getTtl(redisKey);
   return {
     allowed: false,
-    retryAfter: Math.ceil((entry.resetAt - now) / 1000),
+    retryAfter: ttl && ttl > 0 ? ttl : windowSeconds,
+    status: 429,
   };
 }
-
-// Clean up stale entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of hits) {
-    if (now >= entry.resetAt) hits.delete(key);
-  }
-}, 300_000);
 
 // Rate limit tiers by route pattern
 function getLimits(
@@ -101,6 +111,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const backend = getRateLimitBackend();
+  const responseHeaders = new Headers({ "X-RateLimit-Backend": backend });
+
+  if (backend === "disabled") {
+    return NextResponse.next({ headers: responseHeaders });
+  }
+
   const rawIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
   const ip = /^[\d.a-fA-F:]+$/.test(rawIp) ? rawIp : "unknown";
@@ -112,15 +129,26 @@ export async function middleware(request: NextRequest) {
 
   if (!result.allowed) {
     return NextResponse.json(
-      { error: "Rate limit exceeded. Try again later." },
       {
-        status: 429,
-        headers: { "Retry-After": String(result.retryAfter) },
+        error:
+          result.status === 429
+            ? "Rate limit exceeded. Try again later."
+            : result.error,
+      },
+      {
+        status: result.status,
+        headers:
+          result.status === 429
+            ? {
+                "Retry-After": String(result.retryAfter),
+                "X-RateLimit-Backend": backend,
+              }
+            : { "X-RateLimit-Backend": backend },
       },
     );
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ headers: responseHeaders });
 }
 
 export const config = {

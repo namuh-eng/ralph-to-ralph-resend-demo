@@ -26,7 +26,13 @@ export async function GET(
       );
     }
 
-    const attachments = (email.attachments as any[]) ?? [];
+    const attachments =
+      (email.attachments as Array<{
+        id: string;
+        filename: string;
+        contentType: string;
+        size: number;
+      }>) ?? [];
 
     return NextResponse.json({
       object: "list",

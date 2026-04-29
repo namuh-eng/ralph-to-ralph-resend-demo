@@ -5,18 +5,25 @@ import {
   unauthorizedResponse,
   validateDashboardKey,
 } from "@/lib/api-auth";
+import {
+  DASHBOARD_METRICS_CACHE_TTL_SECONDS,
+  getMetricsAggregateCacheKey,
+  readDashboardAggregateCache,
+  writeDashboardAggregateCache,
+} from "@/lib/cache/dashboard-aggregates";
+import { getDateRangeBounds } from "@/lib/date-range";
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
-import { and, gte, inArray, like, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
-const RANGE_MAP: Record<string, number> = {
-  today: 0,
-  yesterday: 1,
-  last_3_days: 3,
-  last_7_days: 7,
-  last_15_days: 15,
-  last_30_days: 30,
+const RANGE_TO_PRESET: Record<string, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  last_3_days: "Last 3 days",
+  last_7_days: "Last 7 days",
+  last_15_days: "Last 15 days",
+  last_30_days: "Last 30 days",
 };
 
 // Map event type filter values to email status values
@@ -33,25 +40,11 @@ const EVENT_TYPE_TO_STATUS: Record<string, string[]> = {
   suppressed: ["suppressed"],
 };
 
-function getDateRange(range: string): Date {
-  const now = new Date();
-  const days = RANGE_MAP[range] ?? 15;
-  if (range === "yesterday") {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 1);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  if (range === "today") {
-    const d = new Date(now);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  const d = new Date(now);
-  d.setDate(d.getDate() - days);
-  d.setHours(0, 0, 0, 0);
-  return d;
+function getMetricsDateRange(range: string): { start: Date; end: Date } {
+  return getDateRangeBounds(RANGE_TO_PRESET[range] || "Last 15 days");
 }
+
+const senderDomainSql = sql<string>`substring(${emails.from} from '@([^>]+)')`;
 
 // Dashboard-only internal endpoint
 export async function GET(request: NextRequest) {
@@ -67,16 +60,25 @@ export async function GET(request: NextRequest) {
     const range = searchParams.get("range") || "last_15_days";
     const domain = searchParams.get("domain");
     const eventType = searchParams.get("event_type");
+    const cacheKey = getMetricsAggregateCacheKey({ range, domain, eventType });
 
-    const startDate = getDateRange(range);
-
-    // Build conditions
-    const conditions = [gte(emails.createdAt, startDate)];
-    if (domain) {
-      conditions.push(like(emails.from, `%@${domain}%`));
+    const cached = await readDashboardAggregateCache<unknown>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "x-opensend-cache": "hit" },
+      });
     }
 
-    // Query aggregated stats
+    const { start, end } = getMetricsDateRange(range);
+
+    const conditions = [
+      gte(emails.createdAt, start),
+      lte(emails.createdAt, end),
+    ];
+    if (domain) {
+      conditions.push(eq(senderDomainSql, domain));
+    }
+
     const result = await db
       .select({
         total: sql<number>`count(*)::int`,
@@ -114,7 +116,6 @@ export async function GET(request: NextRequest) {
         ? Math.round((stats.complained / totalEmails) * 10000) / 100
         : 0;
 
-    // Build daily chart query — optionally filtered by event type
     const dailyConditions = [...conditions];
     if (eventType && eventType !== "all" && EVENT_TYPE_TO_STATUS[eventType]) {
       const statuses = EVENT_TYPE_TO_STATUS[eventType];
@@ -136,7 +137,6 @@ export async function GET(request: NextRequest) {
       count: r.count,
     }));
 
-    // Daily bounce rate data (percentage per day)
     const dailyBounceRows = await db
       .select({
         date: sql<string>`to_char(${emails.createdAt}::date, 'YYYY-MM-DD')`,
@@ -153,7 +153,6 @@ export async function GET(request: NextRequest) {
       rate: r.total > 0 ? Math.round((r.bounced / r.total) * 10000) / 100 : 0,
     }));
 
-    // Daily complain rate data (percentage per day)
     const dailyComplainRows = await db
       .select({
         date: sql<string>`to_char(${emails.createdAt}::date, 'YYYY-MM-DD')`,
@@ -171,16 +170,15 @@ export async function GET(request: NextRequest) {
         r.total > 0 ? Math.round((r.complained / r.total) * 10000) / 100 : 0,
     }));
 
-    // Per-domain breakdown
     const domainBreakdownRows = await db
       .select({
-        domain: sql<string>`substring(${emails.from} from '@([^>]+)')`,
+        domain: senderDomainSql,
         total: sql<number>`count(*)::int`,
         delivered: sql<number>`count(*) filter (where ${emails.status} = 'delivered')::int`,
       })
       .from(emails)
       .where(and(...conditions))
-      .groupBy(sql`substring(${emails.from} from '@([^>]+)')`)
+      .groupBy(senderDomainSql)
       .orderBy(sql`count(*) desc`);
 
     const domainBreakdown = domainBreakdownRows
@@ -192,15 +190,12 @@ export async function GET(request: NextRequest) {
           r.total > 0 ? Math.round((r.delivered / r.total) * 10000) / 100 : 0,
       }));
 
-    // Get unique domain names for the filter
-    const domains = domainBreakdown.map((d) => d.domain);
-
-    return NextResponse.json({
+    const payload = {
       totalEmails,
       deliverabilityRate,
       bounceRate,
       complainRate,
-      domains,
+      domains: domainBreakdown.map((d) => d.domain),
       dailyData,
       domainBreakdown,
       bounceBreakdown: {
@@ -212,6 +207,16 @@ export async function GET(request: NextRequest) {
       complained: stats.complained,
       dailyComplainData,
       lastUpdated: new Date().toISOString(),
+    };
+
+    await writeDashboardAggregateCache(
+      cacheKey,
+      payload,
+      DASHBOARD_METRICS_CACHE_TTL_SECONDS,
+    );
+
+    return NextResponse.json(payload, {
+      headers: { "x-opensend-cache": "miss" },
     });
   } catch (error) {
     console.error("Failed to fetch metrics:", error);

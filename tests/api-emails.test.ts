@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ── Mocks ─────────────────────────────────────────────────────────
 
 const mockSendEmail = vi.hoisted(() => vi.fn());
+const mockPublishBackgroundJob = vi.hoisted(() => vi.fn());
 const mockValidateApiKey = vi.hoisted(() => vi.fn());
+const mockEmitCloudWatchMetric = vi.hoisted(() => vi.fn());
+const mockLogTelemetry = vi.hoisted(() => vi.fn());
+const mockRecordTelemetryError = vi.hoisted(() => vi.fn());
 const mockDb = vi.hoisted(() => ({
   insert: vi.fn(),
   select: vi.fn(),
@@ -13,6 +17,63 @@ const mockDb = vi.hoisted(() => ({
 vi.mock("@/lib/ses", () => ({
   sendEmail: mockSendEmail,
 }));
+
+vi.mock("@opensend/core", () => {
+  const testTraceparent =
+    "00-11111111111111111111111111111111-2222222222222222-01";
+  const getHeader = (
+    headers: Headers | Record<string, string | undefined> | undefined,
+    key: string,
+  ): string | null => {
+    if (!headers) return null;
+    if ("get" in headers && typeof headers.get === "function") {
+      return headers.get(key);
+    }
+    const match = Object.entries(headers).find(
+      ([headerKey]) => headerKey.toLowerCase() === key.toLowerCase(),
+    );
+    return match?.[1] ?? null;
+  };
+
+  return {
+    createBackgroundJob: (job: Record<string, unknown>) => ({
+      ...job,
+      requestedAt: "2026-04-28T00:00:00.000Z",
+    }),
+    createTelemetryContext: (input: {
+      service: string;
+      operation: string;
+      headers?: Headers | Record<string, string | undefined>;
+      carrier?: { traceparent?: string; correlationId?: string };
+    }) => ({
+      service: input.service,
+      operation: input.operation,
+      traceId: "11111111111111111111111111111111",
+      spanId: "2222222222222222",
+      parentSpanId: null,
+      sampled: true,
+      traceparent:
+        input.carrier?.traceparent ??
+        getHeader(input.headers, "traceparent") ??
+        testTraceparent,
+      correlationId:
+        input.carrier?.correlationId ??
+        getHeader(input.headers, "x-correlation-id") ??
+        "corr-test",
+    }),
+    emitCloudWatchMetric: mockEmitCloudWatchMetric,
+    getTelemetryCarrier: (context: {
+      traceparent: string;
+      correlationId: string;
+    }) => ({
+      traceparent: context.traceparent,
+      correlationId: context.correlationId,
+    }),
+    logTelemetry: mockLogTelemetry,
+    publishBackgroundJob: mockPublishBackgroundJob,
+    recordTelemetryError: mockRecordTelemetryError,
+  };
+});
 
 vi.mock("@/lib/db", () => ({
   db: mockDb,
@@ -97,6 +158,14 @@ describe("POST /api/emails", () => {
   beforeEach(() => {
     vi.resetModules();
     mockSendEmail.mockReset();
+    mockPublishBackgroundJob.mockReset();
+    mockEmitCloudWatchMetric.mockReset();
+    mockLogTelemetry.mockReset();
+    mockRecordTelemetryError.mockReset();
+    mockPublishBackgroundJob.mockResolvedValue({
+      status: "skipped",
+      reason: "queue_url_missing",
+    });
     mockValidateApiKey.mockResolvedValue(AUTH_RESULT);
   });
 
@@ -128,24 +197,18 @@ describe("POST /api/emails", () => {
     expect(res.status).toBe(422);
   });
 
-  it("sends email and returns id on valid request", async () => {
+  it("persists and queues email delivery on valid request", async () => {
     const emailId = "test-email-uuid";
     mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
 
-    let callCount = 0;
-    mockDb.insert = vi.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        return {
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([{ id: emailId }]),
-          }),
-        };
-      }
-      return { values: vi.fn().mockResolvedValue(undefined) };
+    const valuesMock = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: emailId }]),
     });
+    mockDb.insert = vi.fn().mockReturnValue({ values: valuesMock });
 
     const { POST } = await import("@/app/api/emails/route");
+    const traceparent =
+      "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01";
     const req = makeRequest(
       "POST",
       {
@@ -154,12 +217,85 @@ describe("POST /api/emails", () => {
         subject: "Test Email",
         html: "<p>Hello</p>",
       },
-      { Authorization: "Bearer re_test123" },
+      {
+        Authorization: "Bearer re_test123",
+        "x-correlation-id": "corr-email-test",
+        traceparent,
+      },
     );
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(res.headers.get("x-correlation-id")).toBe("corr-email-test");
+    expect(res.headers.get("traceparent")).toBe(traceparent);
     const json = await res.json();
     expect(json).toHaveProperty("id", emailId);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(valuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "queued",
+      }),
+    );
+    expect(valuesMock.mock.calls[0][0]).not.toHaveProperty("sentAt");
+    expect(mockPublishBackgroundJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: `email.send:${emailId}`,
+        type: "email.send",
+        source: "api",
+        emailId,
+        trace: {
+          correlationId: "corr-email-test",
+          traceparent,
+        },
+      }),
+      expect.objectContaining({
+        deduplicationId: `email.send:${emailId}`,
+        groupId: "email.send",
+      }),
+    );
+  });
+
+  it("returns p95 under 50ms when the SES mock takes 500ms", async () => {
+    mockSendEmail.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 500)),
+    );
+
+    let id = 0;
+    mockDb.insert = vi.fn().mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockImplementation(() => {
+          id += 1;
+          return Promise.resolve([{ id: `email-${id}` }]);
+        }),
+      }),
+    }));
+
+    const { POST } = await import("@/app/api/emails/route");
+    const durations: number[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      const req = makeRequest(
+        "POST",
+        {
+          from: "sender@domain.com",
+          to: [`user-${i}@test.com`],
+          subject: "Fast queue",
+          html: "<p>Hello</p>",
+        },
+        { Authorization: "Bearer re_test123" },
+      );
+
+      const startedAt = performance.now();
+      const res = await POST(req);
+      durations.push(performance.now() - startedAt);
+      expect(res.status).toBe(200);
+    }
+
+    const sorted = durations.toSorted((a, b) => a - b);
+    const p95 =
+      sorted[Math.ceil(sorted.length * 0.95) - 1] ?? Number.POSITIVE_INFINITY;
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(p95).toBeLessThan(50);
   });
 
   it("accepts string to field and normalizes to array", async () => {
@@ -190,6 +326,54 @@ describe("POST /api/emails", () => {
     );
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledOnce();
+  });
+
+  it("stores attachment ids and queues delivery without direct SES", async () => {
+    mockSendEmail.mockResolvedValue({ id: "ses-msg-id" });
+    const valuesMock = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: "email-uuid" }]),
+    });
+    mockDb.insert = vi.fn().mockReturnValue({ values: valuesMock });
+
+    const { POST } = await import("@/app/api/emails/route");
+    const req = makeRequest(
+      "POST",
+      {
+        from: "sender@domain.com",
+        to: ["single@test.com"],
+        subject: "Test",
+        html: "<p>Hi</p>",
+        attachments: [
+          { filename: "inline.txt", content: "aGVsbG8=" },
+          { filename: "remote.txt", path: "https://example.com/file.txt" },
+        ],
+      },
+      { Authorization: "Bearer re_test123" },
+    );
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledOnce();
+    expect(valuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({
+            id: expect.any(String),
+            filename: "inline.txt",
+            content: "aGVsbG8=",
+          }),
+          expect.objectContaining({
+            id: expect.any(String),
+            filename: "remote.txt",
+            path: "https://example.com/file.txt",
+          }),
+        ],
+      }),
+    );
   });
 });
 
@@ -199,6 +383,14 @@ describe("POST /api/emails/batch", () => {
   beforeEach(() => {
     vi.resetModules();
     mockSendEmail.mockReset();
+    mockPublishBackgroundJob.mockReset();
+    mockEmitCloudWatchMetric.mockReset();
+    mockLogTelemetry.mockReset();
+    mockRecordTelemetryError.mockReset();
+    mockPublishBackgroundJob.mockResolvedValue({
+      status: "skipped",
+      reason: "queue_url_missing",
+    });
     mockValidateApiKey.mockResolvedValue(AUTH_RESULT);
   });
 
@@ -214,9 +406,10 @@ describe("POST /api/emails/batch", () => {
       Authorization: "Bearer re_test123",
     });
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     const json = await res.json();
-    expect(json.error).toContain("100");
+    expect(json.error).toBe("Validation failed");
+    expect(json.details.formErrors[0]).toContain("100");
   });
 
   it("sends batch and returns array of ids", async () => {
@@ -255,6 +448,8 @@ describe("POST /api/emails/batch", () => {
     expect(json).toHaveProperty("data");
     expect(json.data).toHaveLength(2);
     expect(json.data[0]).toHaveProperty("id");
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockPublishBackgroundJob).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -279,6 +474,7 @@ describe("GET /api/emails", () => {
         bcc: null,
         replyTo: null,
         scheduledAt: null,
+        sentAt: new Date("2024-01-01T00:00:05Z"),
       },
     ];
 
@@ -301,6 +497,38 @@ describe("GET /api/emails", () => {
     expect(json).toHaveProperty("object", "list");
     expect(json).toHaveProperty("data");
     expect(Array.isArray(json.data)).toBe(true);
+    expect(json.data[0]).toHaveProperty("sent_at", "2024-01-01T00:00:05.000Z");
+  });
+
+  it("applies status filter so queued dashboard/API views return queued rows", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([]);
+    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const mockFrom = vi.fn().mockReturnValue({
+      orderBy: mockOrderBy,
+      where: mockWhere,
+    });
+    mockDb.select = vi.fn().mockReturnValue({ from: mockFrom });
+
+    const { GET } = await import("@/app/api/emails/route");
+    const req = new Request("http://localhost:3015/api/emails?status=queued", {
+      headers: { Authorization: "Bearer re_test123" },
+    });
+
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(mockWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: "and",
+        args: [
+          expect.objectContaining({
+            op: "eq",
+            args: expect.arrayContaining(["queued"]),
+          }),
+        ],
+      }),
+    );
   });
 });
 
@@ -325,6 +553,7 @@ describe("GET /api/emails/:id", () => {
       replyTo: null,
       status: "delivered",
       scheduledAt: null,
+      sentAt: new Date("2024-01-01T00:00:05Z"),
       tags: null,
       createdAt: new Date("2024-01-01"),
       events: [
@@ -354,6 +583,7 @@ describe("GET /api/emails/:id", () => {
     expect(json).toHaveProperty("object", "email");
     expect(json).toHaveProperty("id", "email-uuid");
     expect(json).toHaveProperty("last_event", "delivered");
+    expect(json).toHaveProperty("sent_at", "2024-01-01T00:00:05.000Z");
   });
 
   it("returns 404 for non-existent email", async () => {

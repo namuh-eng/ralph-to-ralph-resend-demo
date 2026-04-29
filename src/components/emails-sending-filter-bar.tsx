@@ -21,6 +21,15 @@ interface EmailsSendingFilterBarProps {
   onFiltersChange: (filters: EmailFilters) => void;
 }
 
+function getFilters(initialFilters?: Partial<EmailFilters>): EmailFilters {
+  return {
+    search: initialFilters?.search ?? "",
+    dateRange: initialFilters?.dateRange ?? "Last 15 days",
+    status: initialFilters?.status ?? "",
+    apiKeyId: initialFilters?.apiKeyId ?? "",
+  };
+}
+
 const STATUS_OPTIONS: DropdownFilterOption[] = [
   { value: "", label: "All Statuses" },
   { value: "bounced", label: "Bounced", color: "#EF4444" },
@@ -31,6 +40,7 @@ const STATUS_OPTIONS: DropdownFilterOption[] = [
   { value: "delivery_delayed", label: "Delivery Delayed", color: "#EAB308" },
   { value: "failed", label: "Failed", color: "#EF4444" },
   { value: "opened", label: "Opened", color: "#3B82F6" },
+  { value: "processing", label: "Processing", color: "#EAB308" },
   { value: "scheduled", label: "Scheduled", color: "#A1A4A5" },
   { value: "sent", label: "Sent", color: "#22C55E" },
   { value: "queued", label: "Queued", color: "#A1A4A5" },
@@ -42,12 +52,9 @@ export function EmailsSendingFilterBar({
   initialFilters,
   onFiltersChange,
 }: EmailsSendingFilterBarProps) {
-  const [filters, setFilters] = useState<EmailFilters>({
-    search: initialFilters?.search ?? "",
-    dateRange: initialFilters?.dateRange ?? "Last 15 days",
-    status: initialFilters?.status ?? "",
-    apiKeyId: initialFilters?.apiKeyId ?? "",
-  });
+  const [filters, setFilters] = useState<EmailFilters>(
+    getFilters(initialFilters),
+  );
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -57,6 +64,15 @@ export function EmailsSendingFilterBar({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+      searchTimeout.current = null;
+    }
+
+    setFilters(getFilters(initialFilters));
+  }, [initialFilters]);
 
   const updateFilters = (
     overrides: Partial<EmailFilters>,

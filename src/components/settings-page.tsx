@@ -6,8 +6,35 @@ import { TeamTab } from "@/components/settings-team";
 import { type UsageData, UsageTab } from "@/components/settings-usage";
 import { useEffect, useState } from "react";
 
+function isUsageData(value: unknown): value is UsageData {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<UsageData> & Record<string, unknown>;
+
+  return (
+    typeof candidate.transactional === "object" &&
+    candidate.transactional !== null &&
+    typeof candidate.transactional.monthlyUsed === "number" &&
+    typeof candidate.transactional.monthlyLimit === "number" &&
+    typeof candidate.transactional.dailyUsed === "number" &&
+    typeof candidate.transactional.dailyLimit === "number" &&
+    typeof candidate.marketing === "object" &&
+    candidate.marketing !== null &&
+    typeof candidate.marketing.contactsUsed === "number" &&
+    typeof candidate.marketing.contactsLimit === "number" &&
+    typeof candidate.marketing.segmentsUsed === "number" &&
+    typeof candidate.marketing.segmentsLimit === "number" &&
+    candidate.marketing.broadcastsLimit === "Unlimited" &&
+    typeof candidate.team === "object" &&
+    candidate.team !== null &&
+    typeof candidate.team.domainsUsed === "number" &&
+    typeof candidate.team.domainsLimit === "number" &&
+    typeof candidate.team.rateLimit === "number"
+  );
+}
+
 const SMTP_CREDENTIALS = [
-  { label: "Host", value: "smtp.namuh-send.com" },
+  { label: "Host", value: "smtp.opensend.com" },
   { label: "Port", value: "465" },
   { label: "Username", value: "resend" },
   { label: "Password", value: "YOUR_API_KEY" },
@@ -37,16 +64,19 @@ export function SettingsPage() {
   const [usage, setUsage] = useState<UsageData>(DEFAULT_USAGE);
 
   useEffect(() => {
-    if (activeTab === "usage") {
-      const apiKey =
-        typeof window !== "undefined" ? localStorage.getItem("api_key") : null;
-      const authHeaders: Record<string, string> = {};
-      if (apiKey) authHeaders.Authorization = `Bearer ${apiKey}`;
-      fetch("/api/usage", { headers: authHeaders })
-        .then((r) => r.json())
-        .then((data) => setUsage(data))
-        .catch(() => {});
-    }
+    if (activeTab !== "usage") return;
+
+    fetch("/api/usage")
+      .then(async (response) => {
+        if (!response.ok) return null;
+
+        const data: unknown = await response.json();
+        return isUsageData(data) ? data : null;
+      })
+      .then((data) => {
+        if (data) setUsage(data);
+      })
+      .catch(() => {});
   }, [activeTab]);
 
   return (
@@ -122,7 +152,7 @@ export function SettingsPage() {
               EXAMPLE CONFIGURATION
             </p>
             <pre className="text-[13px] text-[#F0F0F0] font-mono whitespace-pre-wrap">
-              {`SMTP_HOST=smtp.namuh-send.com
+              {`SMTP_HOST=smtp.opensend.com
 SMTP_PORT=465
 SMTP_USER=resend
 SMTP_PASS=re_YOUR_API_KEY`}
@@ -178,7 +208,7 @@ SMTP_PASS=re_YOUR_API_KEY`}
                   Successfully unsubscribed
                 </div>
                 <p className="text-gray-400 text-xs mt-6">
-                  Powered by Namuh Send
+                  Powered by Opensend
                 </p>
               </div>
             </div>

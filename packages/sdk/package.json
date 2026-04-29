@@ -1,9 +1,15 @@
 {
-  "name": "namuh-send",
+  "name": "opensend",
   "version": "1.0.0",
-  "description": "TypeScript SDK for the Namuh Send email API",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "TypeScript SDK for the Opensend email API",
+  "main": "dist/sdk/src/index.js",
+  "types": "dist/sdk/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/sdk/src/index.d.ts",
+      "default": "./dist/sdk/src/index.js"
+    }
+  },
   "files": ["dist"],
   "scripts": {
     "build": "tsc",

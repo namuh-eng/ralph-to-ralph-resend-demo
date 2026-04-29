@@ -1,14 +1,14 @@
 <p align="center">
-  <h1 align="center">Namuh Send</h1>
+  <h1 align="center">Opensend</h1>
   <p align="center">
     Open-source email infrastructure for developers.
     <br />
     Send transactional emails, manage domains, build broadcasts — all self-hosted.
   </p>
   <p align="center">
-    <a href="https://github.com/namuh-eng/namuh-send/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-ELv2-blue" alt="License" /></a>
-    <a href="https://github.com/namuh-eng/namuh-send/stargazers"><img src="https://img.shields.io/github/stars/namuh-eng/namuh-send?style=social" alt="GitHub Stars" /></a>
-    <a href="https://github.com/namuh-eng/namuh-send/issues"><img src="https://img.shields.io/github/issues/namuh-eng/namuh-send" alt="Issues" /></a>
+    <a href="https://github.com/namuh-eng/opensend/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-ELv2-blue" alt="License" /></a>
+    <a href="https://github.com/namuh-eng/opensend/stargazers"><img src="https://img.shields.io/github/stars/namuh-eng/opensend?style=social" alt="GitHub Stars" /></a>
+    <a href="https://github.com/namuh-eng/opensend/issues"><img src="https://img.shields.io/github/issues/namuh-eng/opensend" alt="Issues" /></a>
   </p>
 </p>
 
@@ -21,14 +21,14 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshot-dashboard.png" alt="Namuh Send Dashboard" width="800" />
+  <img src="docs/assets/screenshot-dashboard.png" alt="Opensend Dashboard" width="800" />
 </p>
 
 ---
 
-## What is Namuh Send?
+## What is Opensend?
 
-Namuh Send is a **self-hostable email platform** that gives you the same developer experience as Resend — REST API, TypeScript SDK, React email templates, domain verification, webhooks, and a full dashboard — running on your own infrastructure.
+Opensend is a **self-hostable email platform** that gives you the same developer experience as Resend — REST API, TypeScript SDK, React email templates, domain verification, webhooks, and a full dashboard — running on your own infrastructure.
 
 **Use it if you want:**
 - Full control over your email infrastructure
@@ -38,11 +38,11 @@ Namuh Send is a **self-hostable email platform** that gives you the same develop
 
 ## One-Click Deploy
 
-The fastest way to get Namuh Send running:
+The fastest way to get Opensend running:
 
 ```bash
-git clone https://github.com/namuh-eng/namuh-send.git
-cd namuh-send
+git clone https://github.com/namuh-eng/opensend.git
+cd opensend
 cp .env.example .env
 # Edit .env — set DASHBOARD_KEY (required); AWS credentials are only needed for real email sending
 docker compose up -d
@@ -55,7 +55,7 @@ That's it. Open **http://localhost:3015** and enter your dashboard key.
 ## Features
 
 - **REST API** — Send emails via a simple POST request with API key auth
-- **TypeScript SDK** — [`namuh-send`](./packages/sdk) npm package with full type safety
+- **TypeScript SDK** — [`opensend`](./packages/sdk) npm package with full type safety
 - **React Email Templates** — Pass React components via the SDK's `react` prop
 - **Domain Verification** — DKIM, SPF, DMARC auto-configured via Cloudflare DNS
 - **API Key Management** — `full_access` and `sending_access` permission scopes
@@ -79,7 +79,7 @@ curl -X POST http://localhost:3015/api/emails \
   -d '{
     "from": "hello@yourdomain.com",
     "to": ["recipient@example.com"],
-    "subject": "Hello from Namuh Send",
+    "subject": "Hello from Opensend",
     "html": "<h1>It works!</h1>"
   }'
 ```
@@ -89,22 +89,24 @@ Open `http://localhost:3015/docs` for the full local API reference.
 ### TypeScript SDK
 
 ```bash
-bun add namuh-send
+bun add opensend
 ```
 
 ```typescript
-import { NamuhSend } from "namuh-send";
+import { Opensend } from "opensend";
 
-const client = new NamuhSend("YOUR_API_KEY", {
-  baseUrl: "http://localhost:3015",
+const client = new Opensend("YOUR_API_KEY", {
+  baseUrl: "https://your-deployment.example.com",
 });
 
-await client.emails.send({
+const { data } = await client.emails.send({
   from: "hello@yourdomain.com",
   to: "recipient@example.com",
-  subject: "Hello from Namuh Send",
+  subject: "Hello from Opensend",
   html: "<h1>It works!</h1>",
 });
+
+console.log("Queued email", data?.id);
 ```
 
 Full SDK docs: [`packages/sdk/README.md`](./packages/sdk/README.md)
@@ -120,8 +122,8 @@ Full SDK docs: [`packages/sdk/README.md`](./packages/sdk/README.md)
 ### Docker Compose (recommended)
 
 ```bash
-git clone https://github.com/namuh-eng/namuh-send.git
-cd namuh-send
+git clone https://github.com/namuh-eng/opensend.git
+cd opensend
 cp .env.example .env
 ```
 
@@ -137,12 +139,15 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret
 AWS_REGION=us-east-1
 
 # Optional
-POSTGRES_PASSWORD=your-db-password     # Default: namuh
+POSTGRES_PASSWORD=your-db-password     # Default: opensend
 POSTGRES_PORT=5432                     # Change this and DATABASE_URL together if 5432 is taken
 PORT=3015                              # Default: 3015
 CLOUDFLARE_API_TOKEN=your-cf-token     # For auto DNS setup
 CLOUDFLARE_ZONE_ID=your-zone-id
 S3_BUCKET_NAME=your-bucket             # For email attachments
+BACKGROUND_JOBS_QUEUE_URL=...          # Optional locally; required for async production sending
+BACKGROUND_WORKER_POLL=true            # Set on the ingester worker when SQS is configured
+CLOUDWATCH_METRICS_NAMESPACE=Opensend  # Optional CloudWatch EMF namespace override
 ```
 
 `.env.example` keeps `DATABASE_URL` on `localhost` for host-run commands like `bun run dev` and `bun run db:push`. Docker Compose injects its own internal `postgres` hostname for the containerized app and migration services.
@@ -153,15 +158,15 @@ Start everything:
 docker compose up -d
 ```
 
-This starts PostgreSQL, runs migrations, and launches the app. Open **http://localhost:3015**.
+This starts PostgreSQL, runs migrations, launches the app, and launches the standalone SES/SNS ingester on port `3016`. Open **http://localhost:3015** for the dashboard/API and `http://localhost:3016/health` for the ingester health endpoint.
 
 ### Manual Setup
 
 If you prefer running without Docker (requires [Bun](https://bun.sh)):
 
 ```bash
-git clone https://github.com/namuh-eng/namuh-send.git
-cd namuh-send
+git clone https://github.com/namuh-eng/opensend.git
+cd opensend
 bun install
 cp .env.example .env
 # Edit .env — set DASHBOARD_KEY (required). Leave DATABASE_URL as localhost unless you're using another Postgres instance.
@@ -178,7 +183,7 @@ To suppress the optional GitHub star prompt during install, use `SKIP_STAR_PROMP
 
 New AWS accounts start in SES **sandbox mode** — emails can only be sent to verified addresses. To send to anyone:
 
-1. Verify a sender domain in the Namuh Send dashboard
+1. Verify a sender domain in the Opensend dashboard
 2. Request production access in [AWS SES Console](https://console.aws.amazon.com/ses/) → Account dashboard → Request production access
 
 ### Production Deployment
@@ -188,13 +193,75 @@ For production, we recommend:
 - **Database**: Use a managed PostgreSQL (AWS RDS, Supabase, Neon, etc.) instead of the Docker Compose Postgres
 - **Reverse proxy**: Put Nginx or Caddy in front for TLS termination
 - **Secrets**: Store credentials in your cloud provider's secrets manager
+- **Rate limiting**: Use a shared Redis/ElastiCache instance instead of the disabled local default
+- **Background jobs**: Use SQS with a redrive policy/DLQ, plus EventBridge to trigger scheduled-email and webhook retry scans
+- **Observability**: Emit structured JSON logs, trace/correlation headers, and CloudWatch EMF metrics for send and worker flows
+
+### Shared rate limiting (staging/production)
+
+Opensend now treats API rate limiting as an explicit runtime contract:
+
+- `RATE_LIMIT_BACKEND=disabled` skips API rate limiting entirely. This is the default for local single-process development only.
+- `RATE_LIMIT_BACKEND=redis` enables the middleware-backed shared limiter. If Redis is misconfigured or unavailable, API requests fail with `503` instead of silently falling back to per-process memory.
+- `REDIS_URL` must point at a TLS-enabled Redis endpoint such as `rediss://default:<password>@<primary-endpoint>:6379`.
+
+For AWS ElastiCache, enable **in-transit encryption** on the replication group/serverless cache and use the TLS endpoint that AWS exposes. AWS documents both the `TransitEncryptionEnabled=true` requirement and TLS client connections to the primary/configuration endpoint.
+
+### AWS-native background jobs
+
+Email sending is queue-first: `POST /api/emails` validates and persists the email row, then publishes an `email.send` job instead of calling SES on the request path. The ingester service owns background job execution.
+
+Configure these variables for staging/production:
+
+- `BACKGROUND_JOBS_QUEUE_URL` — SQS queue URL used for `email.send`, `webhook.dispatch`, scheduled scan, and webhook retry scan jobs.
+- `BACKGROUND_JOBS_REQUIRE_QUEUE=true` — fail API publishing if the queue URL is missing instead of silently skipping publish. Use this in staging/production.
+- `BACKGROUND_JOBS_EVENT_BUS_NAME` — optional EventBridge bus for job lifecycle events/automation hooks.
+- `BACKGROUND_WORKER_POLL=true` — set on the ingester service to long-poll SQS and execute jobs.
+- `INGESTER_JOB_TOKEN` — optional bearer token required by ingester `/jobs/*` endpoints when EventBridge invokes them over HTTP.
+
+Operational shape:
+
+1. App/control plane: persist intent in Postgres as `queued`, publish SQS job, return `{ id }`.
+2. Ingester/worker: long-poll SQS, execute SES sends, set `sent_at` when SES accepts the message, and delete messages only after success.
+3. Scheduled sends: EventBridge should call `POST /jobs/scheduled-emails` on the ingester every minute, or publish a `scheduled-email.scan` job, to enqueue due `email.send` jobs.
+4. Webhook retries: failed webhook deliveries stay `pending` with `next_retry_at`; EventBridge can call `POST /jobs/webhooks` or publish `webhook-delivery.scan` to retry due deliveries.
+5. Retries/DLQ: configure the SQS queue redrive policy with a DLQ. Worker failures leave messages undeleted so SQS retry/redrive owns retry exhaustion.
+
+Local dev remains Docker-friendly if no queue is configured: publishes are logged/skipped and API calls still persist rows. To exercise the real worker locally, set `BACKGROUND_JOBS_QUEUE_URL` and `BACKGROUND_WORKER_POLL=true` on the ingester.
+
+### Observability
+
+Email accept and worker flows emit structured JSON logs with `x-correlation-id`, W3C/OpenTelemetry-compatible `traceparent`, sanitized span events, and CloudWatch EMF metrics for accept latency, send outcomes, queue depth, retries, and worker failures. Set `CLOUDWATCH_METRICS_NAMESPACE` to override the default `Opensend` namespace.
+
+See [`docs/observability.md`](docs/observability.md) for PII-safe logging rules, metric names, alarms, and the runbook for tracing an email from API acceptance to SES/provider result.
+
+### Redis-backed auth/domain metadata cache
+
+The same `REDIS_URL` is also used for hot-path metadata caching:
+
+- API key auth lookups are cached by token hash for 5 minutes.
+- Domain DB detail lookups are cached by domain id for 5 minutes.
+- SES domain identity lookups are cached by domain name for 2 minutes.
+- API key create/delete and domain create/update/delete/verify/auto-configure flows invalidate affected cache entries immediately.
+
+Local dev stays safe if Redis is absent: requests fall back to Postgres/SES as the source of truth. In staging/production, point `REDIS_URL` at a shared TLS-enabled Redis/ElastiCache endpoint so multiple app instances see the same cache state.
+
+Quick verification after deploy:
+
+```bash
+curl -i http://localhost:3015/api/auth/verify \
+  -H 'x-forwarded-for: 203.0.113.10'
+# Expect: X-RateLimit-Backend: redis when enabled
+```
 
 The included `Dockerfile` produces an optimized multi-stage build suitable for any container platform (AWS App Runner, Google Cloud Run, Fly.io, Railway, etc.):
 
 ```bash
-docker build -t namuh-send .
-docker run -p 3015:8080 --env-file .env namuh-send
+docker build -t opensend .
+docker run -p 3015:8080 --env-file .env opensend
 ```
+
+For the split-service App Runner shape, SNS cutover, and ingester log/replay runbook, see [`docs/ingester-deploy.md`](docs/ingester-deploy.md).
 
 ## Architecture
 
@@ -205,7 +272,7 @@ src/
 ├── lib/          # Core services: db, ses, s3, cloudflare
 └── types/        # TypeScript type definitions
 packages/
-└── sdk/          # Published TypeScript SDK (namuh-send)
+└── sdk/          # Published TypeScript SDK (opensend)
 tests/
 ├── *.test.ts     # Unit tests (Vitest)
 └── e2e/          # E2E tests (Playwright)
@@ -271,7 +338,7 @@ We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup ins
 
 ## License
 
-[Elastic License 2.0](./LICENSE) — free to use, modify, and self-host. The only restriction: you cannot offer Namuh Send as a hosted email service to third parties.
+[Elastic License 2.0](./LICENSE) — free to use, modify, and self-host. The only restriction: you cannot offer Opensend as a hosted email service to third parties.
 
 ---
 

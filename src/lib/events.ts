@@ -13,7 +13,7 @@ export type SystemEventType =
 
 export interface QueueEventOptions {
   type: SystemEventType;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   emailId?: string;
 }
 

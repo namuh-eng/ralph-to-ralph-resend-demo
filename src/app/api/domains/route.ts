@@ -1,47 +1,47 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import { invalidateDomainCaches } from "@/lib/domain-cache";
 import { createDomainIdentity } from "@/lib/ses";
+import { createDomainSchema } from "@/lib/validation/domains";
 import { and, desc, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-const VALID_REGIONS = ["us-east-1", "eu-west-1", "sa-east-1", "ap-northeast-1"];
+const defaultCapabilities = [
+  { name: "sending", enabled: true },
+  { name: "receiving", enabled: false },
+];
 
 export async function POST(request: Request) {
   const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
+  let body: unknown;
   try {
-    const body = await request.json();
-    const { name, region = "us-east-1" } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json(
-        { error: "Domain name is required" },
-        { status: 400 },
-      );
-    }
+  const result = createDomainSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: result.error.flatten() },
+      { status: 422 },
+    );
+  }
 
-    const domainName = name.trim().toLowerCase();
+  try {
+    const validated = result.data;
+    const domainName = validated.name.toLowerCase();
 
-    if (!VALID_REGIONS.includes(region)) {
-      return NextResponse.json(
-        {
-          error: `Invalid region. Must be one of: ${VALID_REGIONS.join(", ")}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    // 1. Initialize Domain Identity in SES to get DKIM tokens
     const identity = await createDomainIdentity(domainName);
 
-    // 2. Build DNS records for the response
     const dkimRecords = identity.dkimTokens.map((token) => ({
       type: "CNAME",
       name: `${token}._domainkey.${domainName}`,
       value: `${token}.dkim.amazonses.com`,
-      status: "pending",
+      status: "pending" as const,
       ttl: "Auto",
     }));
 
@@ -49,41 +49,39 @@ export async function POST(request: Request) {
       type: "TXT",
       name: domainName,
       value: "v=spf1 include:amazonses.com ~all",
-      status: "pending",
+      status: "pending" as const,
       ttl: "Auto",
     };
 
     const mxRecord = {
       type: "MX",
       name: domainName,
-      value: `feedback-smtp.${region}.amazonses.com`,
-      status: "pending",
+      value: `feedback-smtp.${validated.region}.amazonses.com`,
+      status: "pending" as const,
       ttl: "Auto",
       priority: 10,
     };
 
     const allRecords = [...dkimRecords, spfRecord, mxRecord];
 
-    // 3. Store in DB
     const [row] = await db
       .insert(domains)
       .values({
         name: domainName,
-        region,
+        region: validated.region,
         status: "not_started",
         dkimTokens: identity.dkimTokens,
         records: allRecords,
-        customReturnPath: body.custom_return_path || null,
-        trackOpens: body.open_tracking ?? false,
-        trackClicks: body.click_tracking ?? false,
-        trackingSubdomain: body.tracking_subdomain || null,
-        tls: body.tls || "opportunistic",
-        capabilities: body.capabilities || [
-          { name: "sending", enabled: true },
-          { name: "receiving", enabled: false },
-        ],
+        customReturnPath: validated.custom_return_path || null,
+        trackOpens: validated.open_tracking ?? false,
+        trackClicks: validated.click_tracking ?? false,
+        trackingSubdomain: validated.tracking_subdomain || null,
+        tls: validated.tls,
+        capabilities: validated.capabilities || defaultCapabilities,
       })
       .returning();
+
+    await invalidateDomainCaches({ id: row.id, name: row.name });
 
     return NextResponse.json(
       {

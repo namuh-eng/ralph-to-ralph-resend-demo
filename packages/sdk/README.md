@@ -1,19 +1,19 @@
-# namuh-send
+# opensend
 
-TypeScript SDK for the Namuh Send email API.
+TypeScript SDK for the Opensend email API.
 
 ## Installation
 
 ```bash
-bun add namuh-send
+bun add opensend
 ```
 
 ## Getting Started
 
 ```typescript
-import { NamuhSend } from "namuh-send";
+import { Opensend } from "opensend";
 
-const client = new NamuhSend("re_your_api_key", {
+const client = new Opensend("re_your_api_key", {
   baseUrl: "https://your-deployment.example.com",
 });
 ```
@@ -31,9 +31,16 @@ const { data, error } = await client.emails.send({
 if (error) {
   console.error(error.message);
 } else {
-  console.log("Sent:", data.id);
+  console.log("Queued:", data.id);
 }
 ```
+
+`client.emails.send()` returns after the API persists the row and queues
+background delivery work. Poll `client.emails.get(id)` or list emails to observe
+the lifecycle: `queued` → `processing` → `sent`, followed by SES delivery events
+such as `delivered`, `bounced`, `opened`, or `clicked`. The `created_at`
+timestamp is queue time; `sent_at` is set by the worker after SES accepts the
+message.
 
 ### With React components
 
@@ -51,6 +58,8 @@ const { data } = await client.emails.send({
 ```typescript
 const { data } = await client.emails.list();
 console.log(data.data); // EmailListItem[]
+
+const queued = await client.emails.list({ status: "queued" });
 ```
 
 ## Getting an Email
@@ -92,8 +101,8 @@ await client.apiKeys.delete("key-id");
 ## Contacts
 
 ```typescript
-// Create contacts
-await client.contacts.create({ emails: ["user@example.com"] });
+// Create a contact
+await client.contacts.create({ email: "user@example.com" });
 
 // List contacts
 const { data } = await client.contacts.list();
@@ -116,4 +125,15 @@ if (error) {
 
 // data is guaranteed non-null here
 console.log(data.id);
+```
+
+## Configuration
+
+The SDK is publish-ready and does not assume a local dev server. Pass your
+deployment origin explicitly:
+
+```typescript
+const client = new Opensend("re_your_api_key", {
+  baseUrl: "https://api.your-deployment.example.com",
+});
 ```

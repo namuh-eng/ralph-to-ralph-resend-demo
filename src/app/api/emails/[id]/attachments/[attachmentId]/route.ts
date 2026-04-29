@@ -24,7 +24,14 @@ export async function GET(
       return NextResponse.json({ error: "Email not found" }, { status: 404 });
     }
 
-    const attachments = (email.attachments as any[]) ?? [];
+    const attachments =
+      (email.attachments as Array<{
+        id?: string;
+        filename: string;
+        contentType?: string;
+        s3Key?: string;
+        path?: string;
+      }>) ?? [];
     const attachment = attachments.find(
       (a, index) => (a.id || `att-${index}`) === attachmentId,
     );

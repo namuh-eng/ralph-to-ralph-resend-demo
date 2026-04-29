@@ -1,10 +1,19 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { emails, templates } from "@/lib/db/schema";
-import { sendEmail as sesSendEmail } from "@/lib/ses";
+import { normalizeAttachmentsForStorage } from "@/lib/email-attachments";
 import { sendEmailSchema } from "@/lib/validation/emails";
-import { desc, eq, gt, lt } from "drizzle-orm";
-import { ZodError } from "zod";
+import {
+  createBackgroundJob,
+  createTelemetryContext,
+  emitCloudWatchMetric,
+  getTelemetryCarrier,
+  logTelemetry,
+  publishBackgroundJob,
+  recordTelemetryError,
+} from "@opensend/core";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
+import type { ZodError } from "zod";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -15,19 +24,79 @@ function normalizeToArray(
   return Array.isArray(value) ? value : [value];
 }
 
+function jsonWithTelemetry(
+  body: unknown,
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  init?: ResponseInit,
+): Response {
+  const headers = new Headers(init?.headers);
+  headers.set("x-correlation-id", telemetry.correlationId);
+  headers.set("traceparent", telemetry.traceparent);
+  return Response.json(body, { ...init, headers });
+}
+
+function recordAcceptMetric(
+  telemetry: ReturnType<typeof createTelemetryContext>,
+  input: {
+    durationMs: number;
+    outcome: "queued" | "scheduled" | "failed" | "unauthorized" | "invalid";
+  },
+): void {
+  emitCloudWatchMetric(telemetry, {
+    metrics: [
+      { name: "EmailAccept", value: 1, unit: "Count" },
+      {
+        name: "EmailAcceptLatency",
+        value: Math.round(input.durationMs),
+        unit: "Milliseconds",
+      },
+    ],
+    dimensions: {
+      Service: "api",
+      Operation: "email.accept",
+      Outcome: input.outcome,
+    },
+  });
+}
+
 // ── POST /api/emails ──────────────────────────────────────────────
 
 export async function POST(request: Request): Promise<Response> {
+  const telemetry = createTelemetryContext({
+    service: "api",
+    operation: "POST /api/emails",
+    headers: request.headers,
+  });
+  const startedAt = performance.now();
+  logTelemetry("info", "api.request.start", telemetry, {
+    method: "POST",
+    route: "/api/emails",
+  });
+
   const auth = await validateApiKey(request.headers.get("authorization"));
-  if (!auth) return unauthorizedResponse();
+  if (!auth) {
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "unauthorized",
+    });
+    const response = unauthorizedResponse();
+    response.headers.set("x-correlation-id", telemetry.correlationId);
+    response.headers.set("traceparent", telemetry.traceparent);
+    return response;
+  }
 
   const idempotencyKey = request.headers.get("idempotency-key");
   if (
     idempotencyKey &&
     (idempotencyKey.length < 1 || idempotencyKey.length > 255)
   ) {
-    return Response.json(
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry(
       { error: "Invalid idempotency key length" },
+      telemetry,
       { status: 400 },
     );
   }
@@ -36,13 +105,24 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry({ error: "Invalid JSON body" }, telemetry, {
+      status: 400,
+    });
   }
 
   const result = sendEmailSchema.safeParse(body);
   if (!result.success) {
-    return Response.json(
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "invalid",
+    });
+    return jsonWithTelemetry(
       { error: "Validation failed", details: result.error.flatten() },
+      telemetry,
       { status: 422 },
     );
   }
@@ -55,7 +135,11 @@ export async function POST(request: Request): Promise<Response> {
       where: eq(emails.idempotencyKey, idempotencyKey),
     });
     if (existing) {
-      return Response.json({ id: existing.id }, { status: 409 });
+      recordAcceptMetric(telemetry, {
+        durationMs: performance.now() - startedAt,
+        outcome: "queued",
+      });
+      return jsonWithTelemetry({ id: existing.id }, telemetry, { status: 409 });
     }
   }
 
@@ -77,7 +161,13 @@ export async function POST(request: Request): Promise<Response> {
         where: eq(templates.id, validated.template.id),
       });
       if (!template) {
-        return Response.json({ error: "Template not found" }, { status: 404 });
+        recordAcceptMetric(telemetry, {
+          durationMs: performance.now() - startedAt,
+          outcome: "invalid",
+        });
+        return jsonWithTelemetry({ error: "Template not found" }, telemetry, {
+          status: 404,
+        });
       }
 
       // Validate required variables
@@ -93,11 +183,16 @@ export async function POST(request: Request): Promise<Response> {
 
       for (const requiredVar of requiredVars) {
         if (providedVars[requiredVar] === undefined) {
-          return Response.json(
+          recordAcceptMetric(telemetry, {
+            durationMs: performance.now() - startedAt,
+            outcome: "invalid",
+          });
+          return jsonWithTelemetry(
             {
               error: "Validation failed",
               message: `Missing required template variable: ${requiredVar}`,
             },
+            telemetry,
             { status: 422 },
           );
         }
@@ -118,34 +213,9 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const attachmentsForSes = (validated.attachments ?? []).flatMap((a) =>
-      typeof a.content === "string"
-        ? [{ filename: a.filename, content: a.content }]
-        : [],
-    );
-    const attachmentsForDb = (validated.attachments ?? []).map((a) => ({
-      id: crypto.randomUUID(),
-      ...a,
-    }));
+    const shouldQueueNow = !scheduledAt || scheduledAt <= new Date();
 
-    // Only send immediately if not scheduled
-    if (!scheduledAt) {
-      await sesSendEmail({
-        from: validated.from,
-        to,
-        cc,
-        bcc,
-        subject: finalSubject,
-        html: finalHtml,
-        text: validated.text,
-        replyTo,
-        headers: validated.headers as Record<string, string>,
-        attachments:
-          attachmentsForSes.length > 0 ? attachmentsForSes : undefined,
-      });
-    }
-
-    // Store in DB
+    // Store in DB before publishing async work so the worker has a durable row.
     const [email] = await db
       .insert(emails)
       .values({
@@ -159,8 +229,8 @@ export async function POST(request: Request): Promise<Response> {
         text: validated.text ?? "",
         tags: validated.tags ?? [],
         headers: (validated.headers as Record<string, string>) ?? {},
-        attachments: attachmentsForDb,
-        status: scheduledAt ? "scheduled" : "sent",
+        attachments: normalizeAttachmentsForStorage(validated.attachments),
+        status: shouldQueueNow ? "queued" : "scheduled",
         scheduledAt: scheduledAt,
         topicId: validated.topic_id || null,
         idempotencyKey: idempotencyKey,
@@ -168,10 +238,55 @@ export async function POST(request: Request): Promise<Response> {
       })
       .returning({ id: emails.id });
 
-    return Response.json({ id: email.id });
+    if (shouldQueueNow) {
+      try {
+        await publishBackgroundJob(
+          createBackgroundJob({
+            id: `email.send:${email.id}`,
+            type: "email.send",
+            source: "api",
+            emailId: email.id,
+            trace: getTelemetryCarrier(telemetry),
+          }),
+          {
+            deduplicationId: `email.send:${email.id}`,
+            groupId: "email.send",
+          },
+        );
+      } catch (error) {
+        await db
+          .update(emails)
+          .set({ status: "failed" })
+          .where(eq(emails.id, email.id));
+        recordTelemetryError(
+          telemetry,
+          "email.accept.queue_publish_failed",
+          error,
+          {
+            email_id: email.id,
+          },
+        );
+        throw error;
+      }
+    }
+
+    const outcome = shouldQueueNow ? "queued" : "scheduled";
+    const durationMs = performance.now() - startedAt;
+    logTelemetry("info", "email.accepted", telemetry, {
+      email_id: email.id,
+      status: outcome,
+      duration_ms: Math.round(durationMs),
+    });
+    recordAcceptMetric(telemetry, { durationMs, outcome });
+    return jsonWithTelemetry({ id: email.id }, telemetry);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to send email";
-    return Response.json({ error: message }, { status: 500 });
+    recordTelemetryError(telemetry, "email.accept.failed", err);
+    recordAcceptMetric(telemetry, {
+      durationMs: performance.now() - startedAt,
+      outcome: "failed",
+    });
+    return jsonWithTelemetry({ error: message }, telemetry, { status: 500 });
   }
 }
 
@@ -188,6 +303,11 @@ export async function GET(request: Request): Promise<Response> {
   );
   const after = url.searchParams.get("after");
   const before = url.searchParams.get("before");
+  const status = (
+    url.searchParams.get("status") ??
+    url.searchParams.get("statuses") ??
+    ""
+  ).trim();
 
   try {
     let query = db
@@ -201,14 +321,22 @@ export async function GET(request: Request): Promise<Response> {
         replyTo: emails.replyTo,
         status: emails.status,
         scheduledAt: emails.scheduledAt,
+        sentAt: emails.sentAt,
         createdAt: emails.createdAt,
       })
       .from(emails);
 
+    const conditions = [];
+    if (status && status !== "all") {
+      conditions.push(eq(emails.status, status));
+    }
     if (after) {
-      query = query.where(gt(emails.id, after)) as typeof query;
+      conditions.push(gt(emails.id, after));
     } else if (before) {
-      query = query.where(lt(emails.id, before)) as typeof query;
+      conditions.push(lt(emails.id, before));
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
     }
 
     const results = await query
@@ -231,6 +359,7 @@ export async function GET(request: Request): Promise<Response> {
         reply_to: e.replyTo,
         last_event: e.status,
         scheduled_at: e.scheduledAt,
+        sent_at: e.sentAt,
         created_at: e.createdAt,
       })),
     });
@@ -239,4 +368,32 @@ export async function GET(request: Request): Promise<Response> {
       err instanceof Error ? err.message : "Failed to list emails";
     return Response.json({ error: message }, { status: 500 });
   }
+}
+
+// ── DELETE /api/emails ────────────────────────────────────────────
+
+export async function DELETE(request: Request): Promise<Response> {
+  const auth = await validateApiKey(request.headers.get("authorization"));
+  if (!auth) return unauthorizedResponse();
+
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+
+  if (!id) {
+    return Response.json({ error: "Email id is required" }, { status: 400 });
+  }
+
+  try {
+    await db.delete(emails).where(eq(emails.id, id));
+    return Response.json({ success: true });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Failed to delete email";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+// Error fallback for Zod (kept explicit for strict typing in route handlers)
+export function formatZodError(error: ZodError): Record<string, unknown> {
+  return error.flatten();
 }

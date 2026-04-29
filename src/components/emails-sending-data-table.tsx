@@ -9,6 +9,7 @@ export interface EmailListItem {
   lastEvent: string;
   subject: string;
   createdAt: string;
+  sentAt?: string | null;
 }
 
 interface EmailsSendingDataTableProps {
@@ -30,6 +31,7 @@ export function getStatusVariant(
       return "info";
     case "delivery_delayed":
     case "complained":
+    case "processing":
       return "warning";
     default:
       return "default";
@@ -119,6 +121,8 @@ function EmailRow({
   email,
   primaryTo,
 }: { email: EmailListItem; primaryTo: string }) {
+  const displayedTimestamp = email.sentAt ?? email.createdAt;
+
   return (
     <tr className="border-b border-[rgba(176,199,217,0.145)] hover:bg-[rgba(24,25,28,0.5)] transition-colors">
       <td className="px-3 py-2 text-[14px] text-[#F0F0F0]">
@@ -147,9 +151,9 @@ function EmailRow({
       <td className="px-3 py-2 text-[14px] text-[#F0F0F0]">{email.subject}</td>
       <td
         className="px-3 py-2 text-[14px] text-[#A1A4A5]"
-        title={new Date(email.createdAt).toLocaleString()}
+        title={new Date(displayedTimestamp).toLocaleString()}
       >
-        {formatRelativeTime(email.createdAt)}
+        {formatRelativeTime(displayedTimestamp)}
       </td>
       <td className="w-10 px-3 py-2 relative">
         <RowActions />

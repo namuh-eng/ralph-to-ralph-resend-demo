@@ -1,4 +1,4 @@
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, lte, or } from "drizzle-orm";
 import { db } from "../client";
 import { webhookDeliveries } from "../schema";
 
@@ -48,16 +48,25 @@ export const webhookDeliveryRepo = {
     return { data, hasMore };
   },
 
-  async findPendingRetries() {
+  async findDispatchable(options: { limit?: number; now?: Date } = {}) {
+    const { limit = 25, now = new Date() } = options;
+
     return await db
       .select()
       .from(webhookDeliveries)
       .where(
         and(
           eq(webhookDeliveries.status, "pending"),
-          lt(webhookDeliveries.nextRetryAt, new Date()),
+          or(
+            isNull(webhookDeliveries.nextRetryAt),
+            lte(webhookDeliveries.nextRetryAt, now),
+          ),
         ),
       )
-      .orderBy(desc(webhookDeliveries.createdAt));
+      .orderBy(
+        asc(webhookDeliveries.nextRetryAt),
+        asc(webhookDeliveries.createdAt),
+      )
+      .limit(limit);
   },
 };

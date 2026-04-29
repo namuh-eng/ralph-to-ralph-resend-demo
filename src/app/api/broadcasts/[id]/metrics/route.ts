@@ -1,20 +1,33 @@
 import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
+import {
+  BROADCAST_METRICS_CACHE_TTL_SECONDS,
+  getBroadcastMetricsCacheKey,
+  readDashboardAggregateCache,
+  writeDashboardAggregateCache,
+} from "@/lib/cache/dashboard-aggregates";
 import { db } from "@/lib/db";
 import { broadcasts, emails } from "@/lib/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await validateApiKey(_request.headers.get("authorization"));
+  const auth = await validateApiKey(request.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
   try {
     const { id } = await params;
+    const cacheKey = getBroadcastMetricsCacheKey(id);
 
-    // Verify broadcast exists
+    const cached = await readDashboardAggregateCache<unknown>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "x-opensend-cache": "hit" },
+      });
+    }
+
     const [broadcast] = await db
       .select({ id: broadcasts.id })
       .from(broadcasts)
@@ -27,12 +40,6 @@ export async function GET(
         { status: 404 },
       );
     }
-
-    // Query aggregated stats from emails table linked by tags or headers?
-    // Current schema doesn't have a direct link from email to broadcast,
-    // but the broadcast implementation likely tags them or includes a header.
-    // For now, assume we're looking for emails where a tag "broadcast_id" matches.
-    // (If this isn't how it's linked, we'll need to update the send logic too)
 
     const condition = sql`${emails.tags} @> ${[{ name: "broadcast_id", value: id }]}`;
 
@@ -59,7 +66,7 @@ export async function GET(
 
     const total = stats.total;
 
-    return NextResponse.json({
+    const payload = {
       object: "broadcast_metrics",
       broadcast_id: id,
       total,
@@ -72,6 +79,16 @@ export async function GET(
       open_rate: total > 0 ? (stats.opened / total) * 100 : 0,
       click_rate: total > 0 ? (stats.clicked / total) * 100 : 0,
       bounce_rate: total > 0 ? (stats.bounced / total) * 100 : 0,
+    };
+
+    await writeDashboardAggregateCache(
+      cacheKey,
+      payload,
+      BROADCAST_METRICS_CACHE_TTL_SECONDS,
+    );
+
+    return NextResponse.json(payload, {
+      headers: { "x-opensend-cache": "miss" },
     });
   } catch (error) {
     console.error("Failed to fetch broadcast metrics:", error);

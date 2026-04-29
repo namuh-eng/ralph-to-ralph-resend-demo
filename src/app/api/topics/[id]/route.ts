@@ -52,7 +52,12 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const updateData: Record<string, any> = {};
+    const updateData: {
+      name?: string;
+      description?: string | null;
+      defaultSubscription?: "opt_in" | "opt_out";
+      visibility?: "public" | "private";
+    } = {};
     if (body.name !== undefined) updateData.name = body.name.trim();
     if (body.description !== undefined)
       updateData.description = body.description?.trim() || null;

@@ -2,9 +2,22 @@ import { unauthorizedResponse, validateApiKey } from "@/lib/api-auth";
 import { deleteDNSRecord, listDNSRecords } from "@/lib/cloudflare";
 import { db } from "@/lib/db";
 import { domains } from "@/lib/db/schema";
+import {
+  getCachedDomainById,
+  invalidateDomainCaches,
+} from "@/lib/domain-cache";
 import { deleteDomainIdentity } from "@/lib/ses";
+import {
+  domainRouteParamsSchema,
+  updateDomainSchema,
+} from "@/lib/validation/domains";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+
+const defaultCapabilities = [
+  { name: "sending", enabled: true },
+  { name: "receiving", enabled: false },
+];
 
 export async function GET(
   _req: Request,
@@ -13,13 +26,17 @@ export async function GET(
   const auth = await validateApiKey(_req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
+  const parsedParams = domainRouteParamsSchema.safeParse(await params);
+  if (!parsedParams.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsedParams.error.flatten() },
+      { status: 422 },
+    );
+  }
+
   try {
-    const { id } = await params;
-    const [domain] = await db
-      .select()
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+    const { id } = parsedParams.data;
+    const domain = await getCachedDomainById(id);
 
     if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -55,62 +72,73 @@ export async function PATCH(
   const auth = await validateApiKey(req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
+  let body: unknown;
   try {
-    const { id } = await params;
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const result = updateDomainSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: result.error.flatten() },
+      { status: 422 },
+    );
+  }
+
+  const parsedParams = domainRouteParamsSchema.safeParse(await params);
+  if (!parsedParams.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsedParams.error.flatten() },
+      { status: 422 },
+    );
+  }
+
+  try {
+    const { id } = parsedParams.data;
+    const validated = result.data;
     const updates: Record<string, unknown> = {};
+    const existingDomain = await getCachedDomainById(id);
 
-    if (body.click_tracking !== undefined)
-      updates.trackClicks = body.click_tracking;
-    if (body.open_tracking !== undefined)
-      updates.trackOpens = body.open_tracking;
-    if (body.tracking_subdomain !== undefined)
-      updates.trackingSubdomain = body.tracking_subdomain;
+    if (!existingDomain) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-    // Support both 'capabilities' array and individual boolean toggles
-    if (body.capabilities !== undefined) {
-      updates.capabilities = body.capabilities;
+    if (validated.click_tracking !== undefined) {
+      updates.trackClicks = validated.click_tracking;
+    }
+    if (validated.open_tracking !== undefined) {
+      updates.trackOpens = validated.open_tracking;
+    }
+    if (validated.tracking_subdomain !== undefined) {
+      updates.trackingSubdomain = validated.tracking_subdomain;
+    }
+
+    if (validated.capabilities !== undefined) {
+      updates.capabilities = validated.capabilities;
     } else if (
-      body.sending_enabled !== undefined ||
-      body.receiving_enabled !== undefined
+      validated.sending_enabled !== undefined ||
+      validated.receiving_enabled !== undefined
     ) {
-      // Fetch current capabilities to merge
-      const [existing] = await db
-        .select({ capabilities: domains.capabilities })
-        .from(domains)
-        .where(eq(domains.id, id))
-        .limit(1);
-
-      if (existing) {
-        const currentCaps = existing.capabilities || [
-          { name: "sending", enabled: true },
-          { name: "receiving", enabled: false },
-        ];
-        const newCaps = currentCaps.map((cap) => {
-          if (cap.name === "sending" && body.sending_enabled !== undefined) {
-            return { ...cap, enabled: body.sending_enabled };
-          }
-          if (
-            cap.name === "receiving" &&
-            body.receiving_enabled !== undefined
-          ) {
-            return { ...cap, enabled: body.receiving_enabled };
-          }
-          return cap;
-        });
-        updates.capabilities = newCaps;
-      }
+      const currentCaps = existingDomain.capabilities || defaultCapabilities;
+      const newCaps = currentCaps.map((cap) => {
+        if (cap.name === "sending" && validated.sending_enabled !== undefined) {
+          return { ...cap, enabled: validated.sending_enabled };
+        }
+        if (
+          cap.name === "receiving" &&
+          validated.receiving_enabled !== undefined
+        ) {
+          return { ...cap, enabled: validated.receiving_enabled };
+        }
+        return cap;
+      });
+      updates.capabilities = newCaps;
     }
 
-    if (body.tls !== undefined) {
-      const val = body.tls;
-      if (val === "opportunistic" || val === "enforced") {
-        updates.tls = val;
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "No valid fields" }, { status: 400 });
+    if (validated.tls !== undefined) {
+      updates.tls = validated.tls;
     }
 
     const [updated] = await db
@@ -120,8 +148,11 @@ export async function PATCH(
       .returning();
 
     if (!updated) {
+      await invalidateDomainCaches({ id, name: existingDomain.name });
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    await invalidateDomainCaches({ id: updated.id, name: updated.name });
 
     return NextResponse.json({
       object: "domain",
@@ -143,38 +174,38 @@ export async function DELETE(
   const auth = await validateApiKey(_req.headers.get("authorization"));
   if (!auth) return unauthorizedResponse();
 
-  try {
-    const { id } = await params;
+  const parsedParams = domainRouteParamsSchema.safeParse(await params);
+  if (!parsedParams.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsedParams.error.flatten() },
+      { status: 422 },
+    );
+  }
 
-    const [domain] = await db
-      .select({ name: domains.name })
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+  try {
+    const { id } = parsedParams.data;
+    const domain = await getCachedDomainById(id);
 
     if (!domain) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Cleanup SES identity
     try {
       await deleteDomainIdentity(domain.name);
     } catch (sesErr) {
       console.warn(`Failed to delete SES identity for ${domain.name}:`, sesErr);
-      // Continue even if SES cleanup fails
     }
 
-    // Cleanup Cloudflare DNS records (if configured)
     try {
       const records = await listDNSRecords({ name: domain.name });
       const sesRecords = records.filter(
-        (r) =>
-          r.content.includes("amazonses.com") ||
-          r.name.includes("_domainkey") ||
-          r.content.startsWith("v=spf1"),
+        (record) =>
+          record.content.includes("amazonses.com") ||
+          record.name.includes("_domainkey") ||
+          record.content.startsWith("v=spf1"),
       );
 
-      await Promise.all(sesRecords.map((r) => deleteDNSRecord(r.id)));
+      await Promise.all(sesRecords.map((record) => deleteDNSRecord(record.id)));
     } catch (cfErr) {
       console.warn(
         `Failed to cleanup Cloudflare records for ${domain.name}:`,
@@ -186,6 +217,12 @@ export async function DELETE(
       .delete(domains)
       .where(eq(domains.id, id))
       .returning({ id: domains.id });
+
+    await invalidateDomainCaches({ id, name: domain.name });
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     return NextResponse.json({
       object: "domain",

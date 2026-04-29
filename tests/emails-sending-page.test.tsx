@@ -38,6 +38,10 @@ afterEach(() => {
   mockSearchParams = new URLSearchParams();
 });
 
+function daysAgo(days: number): string {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 describe("EmailsSendingPage", () => {
   const apiKeys = [
     { id: "key-1", name: "Production Key" },
@@ -50,7 +54,14 @@ describe("EmailsSendingPage", () => {
       to: ["alice@example.com"],
       lastEvent: "delivered",
       subject: "Welcome email",
-      createdAt: "2026-03-29T10:00:00Z",
+      createdAt: daysAgo(1),
+    },
+    {
+      id: "email-2",
+      to: ["bob@example.com"],
+      lastEvent: "bounced",
+      subject: "Follow-up email",
+      createdAt: daysAgo(2),
     },
   ];
 
@@ -87,5 +98,57 @@ describe("EmailsSendingPage", () => {
         "/emails?search=alice&status=delivered&apiKeyId=key-1&dateRange=Today",
       );
     });
+  });
+
+  it("resyncs the filter bar and table when search params change after mount", async () => {
+    mockSearchParams = new URLSearchParams("search=alice&status=delivered");
+
+    const { rerender } = render(
+      <EmailsSendingPage apiKeys={apiKeys} emails={emails} />,
+    );
+
+    expect(screen.getByPlaceholderText("Search...").getAttribute("value")).toBe(
+      "alice",
+    );
+    expect(screen.getByRole("button", { name: /Delivered/i })).toBeDefined();
+    expect(screen.getByText("alice@example.com")).toBeDefined();
+    expect(screen.queryByText("bob@example.com")).toBeNull();
+
+    mockSearchParams = new URLSearchParams("search=bob&status=bounced");
+    rerender(<EmailsSendingPage apiKeys={apiKeys} emails={emails} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText("Search...").getAttribute("value"),
+      ).toBe("bob");
+      expect(screen.getByRole("button", { name: /Bounced/i })).toBeDefined();
+      expect(screen.getByText("bob@example.com")).toBeDefined();
+    });
+
+    expect(screen.queryByText("alice@example.com")).toBeNull();
+  });
+
+  it("shows queued rows when the status query is queued", () => {
+    mockSearchParams = new URLSearchParams("status=queued");
+
+    render(
+      <EmailsSendingPage
+        apiKeys={apiKeys}
+        emails={[
+          ...emails,
+          {
+            id: "email-queued",
+            to: ["queued@example.com"],
+            lastEvent: "queued",
+            subject: "Queued email",
+            createdAt: daysAgo(0),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("queued@example.com")).toBeDefined();
+    expect(screen.queryByText("alice@example.com")).toBeNull();
+    expect(screen.queryByText("bob@example.com")).toBeNull();
   });
 });

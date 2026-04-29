@@ -18,21 +18,29 @@ export default function AuthPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-sm font-semibold text-white mx-auto mb-4">
-            n
+            o
           </div>
           <h1 className="text-xl font-semibold text-[#F0F0F0]">
-            Sign in to namuh
+            Sign in to Opensend
           </h1>
           <p className="text-[13px] text-[#A1A4A5] mt-1">
             Continue with your Google account
           </p>
         </div>
         <button
+          type="button"
           onClick={signIn}
           disabled={loading}
           className="w-full px-4 py-2.5 text-[14px] font-medium text-black bg-white hover:bg-gray-200 disabled:opacity-50 rounded-md transition-colors flex items-center justify-center gap-2"
         >
-          <svg width="18" height="18" viewBox="0 0 18 18">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            role="img"
+            aria-label="Google Logo"
+          >
+            <title>Google Logo</title>
             <path
               fill="#4285F4"
               d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"

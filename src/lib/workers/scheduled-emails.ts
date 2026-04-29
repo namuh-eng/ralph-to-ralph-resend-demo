@@ -1,68 +1,56 @@
 import { db } from "@/lib/db";
 import { emails } from "@/lib/db/schema";
-import { sendEmail } from "@/lib/ses";
+import { createBackgroundJob, publishBackgroundJob } from "@opensend/core";
 import { and, eq, lte } from "drizzle-orm";
 
 /**
  * processScheduledEmails
  *
- * Scans for emails with status 'scheduled' where scheduledAt is in the past.
- * Sends them via SES and updates status to 'sent'.
+ * Scans for emails with status 'scheduled' where scheduledAt is in the past
+ * and publishes durable background jobs for worker-owned SES delivery.
  *
- * Note: In a production environment, this should run in a dedicated worker process
- * or as a serverless cron job (e.g. AWS Lambda + EventBridge).
+ * Production should run this from the ingester/worker service, triggered by
+ * EventBridge on a short interval. Local development can call this helper or
+ * POST /jobs/scheduled-emails on the ingester service.
  */
 export async function processScheduledEmails() {
   const now = new Date();
 
-  // 1. Find pending scheduled emails
   const pending = await db
     .select()
     .from(emails)
     .where(and(eq(emails.status, "scheduled"), lte(emails.scheduledAt, now)))
-    .limit(50); // Process in batches
+    .limit(50);
 
-  if (pending.length === 0) return { processed: 0 };
+  if (pending.length === 0) return { processed: 0, enqueued: 0 };
 
-  let sentCount = 0;
-  let errorCount = 0;
+  let enqueued = 0;
 
   for (const email of pending) {
-    try {
-      // 2. Perform the send
-      await sendEmail({
-        from: email.from,
-        to: email.to as string[],
-        cc: email.cc as string[],
-        bcc: email.bcc as string[],
-        replyTo: email.replyTo as string[],
-        subject: email.subject,
-        html: email.html ?? undefined,
-        text: email.text ?? undefined,
-        headers: email.headers as Record<string, string>,
-        attachments: (email.attachments as any[])?.map((a) => ({
-          filename: a.filename,
-          content: a.content || "", // Simple string content for now
-        })),
-      });
+    const result = await publishBackgroundJob(
+      createBackgroundJob({
+        id: `email.send:${email.id}`,
+        type: "email.send",
+        source: "scheduled-scan",
+        emailId: email.id,
+      }),
+      {
+        deduplicationId: `email.send:${email.id}`,
+        groupId: "email.send",
+      },
+    );
 
-      // 3. Mark as sent
+    if (result.status === "published") {
       await db
         .update(emails)
-        .set({ status: "sent" })
+        .set({ status: "queued" })
         .where(eq(emails.id, email.id));
-
-      sentCount++;
-    } catch (err) {
-      console.error(`Failed to send scheduled email ${email.id}:`, err);
-      errorCount++;
-      // In the future: update status to 'failed' or increment retry count
+      enqueued++;
     }
   }
 
   return {
     processed: pending.length,
-    sent: sentCount,
-    errors: errorCount,
+    enqueued,
   };
 }

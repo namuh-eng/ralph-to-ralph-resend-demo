@@ -23,7 +23,12 @@ export async function GET(
       return NextResponse.json({ error: "Email not found" }, { status: 404 });
     }
 
-    const attachments = (email.attachments as any[]) ?? [];
+    const attachments =
+      (email.attachments as Array<{
+        id?: string;
+        filename: string;
+        content_type?: string;
+      }>) ?? [];
 
     return NextResponse.json({
       object: "list",
