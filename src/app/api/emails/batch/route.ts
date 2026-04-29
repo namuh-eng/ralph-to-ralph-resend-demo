@@ -98,6 +98,13 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
+  if (Array.isArray(body) && body.length > 100) {
+    return Response.json(
+      { error: "Batch size cannot exceed 100 emails" },
+      { status: 400 },
+    );
+  }
+
   const result = batchSendEmailSchema.safeParse(body);
   if (!result.success) {
     recordBatchMetric(telemetry, {
