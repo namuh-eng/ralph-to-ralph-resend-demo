@@ -262,7 +262,7 @@ class Contacts {
   }
 }
 
-class NamuhSend {
+class Opensend {
   public readonly emails: Emails;
   public readonly domains: Domains;
   public readonly apiKeys: ApiKeys;
@@ -282,7 +282,7 @@ class NamuhSend {
   }
 }
 
-export { NamuhSend };
+export { Opensend };
 export type {
   SDKOptions,
   ApiResponse,

@@ -3,7 +3,7 @@ import {
   signWebhookPayload,
   webhookDeliveryRepo,
   webhookRepo,
-} from "@namuh/core";
+} from "@opensend/core";
 
 const DEFAULT_RETRY_DELAYS_SECONDS = [10, 60, 300, 1800, 7200, 21600, 86400];
 const DEFAULT_TIMEOUT_MS = 5_000;

@@ -59,7 +59,7 @@ describe("postinstall-star", () => {
     // Tests that want the skip behavior set the var explicitly via `env`.
     const {
       SKIP_STAR_PROMPT: _skip,
-      NAMUH_SEND_SKIP_STAR_PROMPT: _nskip,
+      OPENSEND_SKIP_STAR_PROMPT: _nskip,
       ...inherited
     } = process.env;
     try {
@@ -94,10 +94,10 @@ describe("postinstall-star", () => {
     expect(result.stdout).toBe("");
   });
 
-  it("exits 0 when NAMUH_SEND_SKIP_STAR_PROMPT=1", () => {
+  it("exits 0 when OPENSEND_SKIP_STAR_PROMPT=1", () => {
     const result = run({
       env: {
-        NAMUH_SEND_SKIP_STAR_PROMPT: "1",
+        OPENSEND_SKIP_STAR_PROMPT: "1",
         __FORCE_INTERACTIVE: "1",
         GH_CMD: fakeGhOk,
       },

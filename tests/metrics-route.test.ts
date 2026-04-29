@@ -187,7 +187,7 @@ describe("metrics route filters", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("x-namuh-cache")).toBe("miss");
+    expect(response.headers.get("x-opensend-cache")).toBe("miss");
 
     const firstWhere = whereArgs[0] as {
       kind: string;
@@ -309,7 +309,7 @@ describe("metrics route filters", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("x-namuh-cache")).toBe("hit");
+    expect(response.headers.get("x-opensend-cache")).toBe("hit");
     expect(mockSelect).not.toHaveBeenCalled();
     expect(mockWriteDashboardAggregateCache).not.toHaveBeenCalled();
 

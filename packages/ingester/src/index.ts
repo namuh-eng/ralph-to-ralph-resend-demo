@@ -8,7 +8,7 @@ import {
   publishBackgroundJob,
   recordTelemetryError,
   webhookRepo,
-} from "@namuh/core";
+} from "@opensend/core";
 import { Hono } from "hono";
 import { webhookDispatcher } from "./dispatcher";
 import { queueWorker } from "./queue-worker";

@@ -36,7 +36,7 @@ Override names when the real production service or repository names differ from 
 APP_ECR_REPO=resend-clone \
 APP_RUNNER_SERVICE=resend-clone \
 INGESTER_ECR_REPO=resend-clone-ingester \
-INGESTER_APP_RUNNER_SERVICE=namuh-ingester \
+INGESTER_APP_RUNNER_SERVICE=opensend-ingester \
 bash scripts/deploy.sh <image-tag>
 ```
 
@@ -48,10 +48,10 @@ Issues #15/#16 move send/webhook work to AWS-native background jobs. The app pub
 Required production environment for both app and ingester:
 
 ```bash
-BACKGROUND_JOBS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account>/namuh-send-background
+BACKGROUND_JOBS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account>/opensend-background
 BACKGROUND_JOBS_REQUIRE_QUEUE=true
-BACKGROUND_JOBS_EVENT_BUS_NAME=namuh-send-background-jobs # optional lifecycle/event hook bus
-CLOUDWATCH_METRICS_NAMESPACE=NamuhSend # optional EMF namespace override
+BACKGROUND_JOBS_EVENT_BUS_NAME=opensend-background-jobs # optional lifecycle/event hook bus
+CLOUDWATCH_METRICS_NAMESPACE=Opensend # optional EMF namespace override
 ```
 
 Set this only on the ingester worker service when SQS is ready:
@@ -105,7 +105,7 @@ The app and ingester emit structured JSON logs, W3C/OpenTelemetry-compatible tra
 1. Resolve the service id:
 
 ```bash
-SERVICE_NAME=namuh-ingester
+SERVICE_NAME=opensend-ingester
 aws apprunner list-services \
   --region us-east-1 \
   --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceId | [0]" \
@@ -115,7 +115,7 @@ aws apprunner list-services \
 2. Find the CloudWatch log group that App Runner created:
 
 ```bash
-SERVICE_NAME=namuh-ingester
+SERVICE_NAME=opensend-ingester
 aws logs describe-log-groups \
   --region us-east-1 \
   --log-group-name-prefix "/aws/apprunner/${SERVICE_NAME}"
@@ -124,7 +124,7 @@ aws logs describe-log-groups \
 3. Tail the application log group:
 
 ```bash
-LOG_GROUP="/aws/apprunner/namuh-ingester/<service-id>/application"
+LOG_GROUP="/aws/apprunner/opensend-ingester/<service-id>/application"
 aws logs tail "${LOG_GROUP}" --region us-east-1 --since 10m --follow
 ```
 
