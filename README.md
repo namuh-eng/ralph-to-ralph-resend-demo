@@ -50,21 +50,24 @@ docker compose up -d
 
 That's it. Open **http://localhost:3015** and enter your dashboard key.
 
-> The `migrate` service runs database migrations automatically on first boot.
+> The `migrate` service runs database migrations automatically on first boot. Compose also launches the standalone ingester on port `3016` (`http://localhost:3016/health`) for SES/SNS events and background workers.
 
 ## Features
 
-- **REST API** — Send emails via a simple POST request with API key auth
+- **REST API** — Send emails via a simple POST request with API key auth, including a `/api/emails/batch` endpoint for bulk sends
 - **TypeScript SDK** — [`opensend`](./packages/sdk) npm package with full type safety
 - **React Email Templates** — Pass React components via the SDK's `react` prop
 - **Domain Verification** — DKIM, SPF, DMARC auto-configured via Cloudflare DNS
 - **API Key Management** — `full_access` and `sending_access` permission scopes
 - **Broadcasts** — Block editor with slash commands, audience targeting, review panel
 - **Templates** — Create, edit, publish with variable substitution (`{{name}}`)
-- **Audience** — Contacts, segments, topics, custom properties
-- **Webhooks** — Register endpoints for 17 event types (delivered, bounced, opened, etc.)
-- **Metrics** — Delivery, open, click, bounce rates with date range filtering
+- **Audience** — Contacts, segments, topics, custom properties, plus CSV import
+- **Inbound Email** — Receive replies through `/api/emails/receiving`
+- **Webhooks** — Register endpoints with HMAC-signed, Svix-compatible delivery for `email.sent`, `email.delivered`, and `email.bounced` events (event list is free-form, so additional types can be added without schema changes)
+- **Multi-tenant Auth** — Better Auth with Google OAuth, organization invites via `/api/invites`
+- **Metrics & Usage** — Delivery, open, click, bounce rates with date range filtering, plus per-tenant usage at `/api/usage`
 - **Logs** — Full send/delivery/event audit trail
+- **Health Check** — `/api/health` for uptime probes
 - **API Docs** — Auto-generated interactive docs at `/docs`
 - **Dashboard** — 10-page admin UI with dark mode
 
@@ -254,42 +257,55 @@ curl -i http://localhost:3015/api/auth/verify \
 # Expect: X-RateLimit-Backend: redis when enabled
 ```
 
-The included `Dockerfile` produces an optimized multi-stage build suitable for any container platform (AWS App Runner, Google Cloud Run, Fly.io, Railway, etc.):
+The included `Dockerfile` produces an optimized multi-stage build suitable for any container platform (AWS ECS Fargate, Google Cloud Run, Fly.io, Railway, etc.):
 
 ```bash
 docker build -t opensend .
 docker run -p 3015:8080 --env-file .env opensend
 ```
 
-For the split-service App Runner shape, SNS cutover, and ingester log/replay runbook, see [`docs/ingester-deploy.md`](docs/ingester-deploy.md).
+The team production deployment runs on **AWS ECS Fargate** behind an ALB with the app and the standalone ingester as separate services. For the split-service runbook, SNS cutover, and ingester log/replay instructions, see [`docs/ingester-deploy.md`](docs/ingester-deploy.md). Note: that doc is mid-migration from App Runner to Fargate — see [issue #128](https://github.com/namuh-eng/opensend/issues/128) for the rewrite.
 
 ## Architecture
 
+Opensend is a Bun workspace monorepo. The Next.js app and a standalone Hono ingester service share a typed core package.
+
 ```
-src/
-├── app/          # Next.js App Router — pages and API routes
-├── components/   # React components (dashboard UI)
-├── lib/          # Core services: db, ses, s3, cloudflare
-└── types/        # TypeScript type definitions
+src/                 # Next.js app (App Router)
+├── app/             # Pages, dashboard segment, API routes
+├── components/      # React UI
+├── lib/             # auth, api-auth, db, ses, s3, cloudflare,
+│                    # webhook-signing, cache, crypto, templates,
+│                    # validation, workers, events, domain-cache,
+│                    # email-attachments, date-range
+└── middleware.ts    # Per-route rate limiting
+
 packages/
-└── sdk/          # Published TypeScript SDK (opensend)
-tests/
-├── *.test.ts     # Unit tests (Vitest)
-└── e2e/          # E2E tests (Playwright)
-drizzle/          # Database migration files
+├── core/            # @opensend/core — shared DB client, repos, DTOs, webhook helpers
+├── ingester/        # @opensend/ingester — Hono service for SES/SNS events,
+│                    #   scheduled-email worker, webhook retry scan (port 3016)
+└── sdk/             # opensend — published TypeScript SDK
+
+tests/               # Vitest unit tests
+tests/e2e/           # Playwright E2E tests
+drizzle/             # Generated migration SQL
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS + Radix UI |
+| Auth | Better Auth (multi-tenant, Google OAuth) |
 | Database | PostgreSQL + Drizzle ORM |
-| Email | AWS SES |
+| Email | AWS SES v2 |
 | Storage | AWS S3 |
 | DNS | Cloudflare API |
+| Ingester | Hono on Bun (standalone service) |
+| Background Jobs | AWS SQS + EventBridge |
+| Cache / Rate Limit | Redis (TLS) |
 | Tests | Vitest + Playwright |
 | Linting | Biome |
 
@@ -326,11 +342,12 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide.
 
 ## Roadmap
 
+- [x] Webhook signature verification (Svix-compatible HMAC headers)
+- [x] Email scheduling (EventBridge → SQS scheduled-email scan)
+- [x] Team support (multi-tenant auth + organization invites)
 - [ ] SMTP relay support (send without AWS SES)
-- [ ] Webhook signature verification
-- [ ] Email scheduling
-- [ ] Multi-user / team support
-- [ ] Built-in analytics (opens, clicks) without external dependencies
+- [ ] Built-in open/click analytics without external dependencies
+- [ ] Additional webhook event types (opened, clicked, complained, delivery_delayed)
 
 ## Contributing
 

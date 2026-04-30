@@ -17,21 +17,19 @@ export default async function DomainDetailPage({
   const { id } = await params;
 
   type DomainRow = typeof domains.$inferSelect;
-  let domain: DomainRow;
+  let rows: DomainRow[];
   try {
-    const rows = await db
-      .select()
-      .from(domains)
-      .where(eq(domains.id, id))
-      .limit(1);
+    rows = await db.select().from(domains).where(eq(domains.id, id)).limit(1);
+  } catch (error) {
+    console.error("[domains/[id]] query failed", { id, error });
+    throw error;
+  }
 
-    if (rows.length === 0) {
-      notFound();
-    }
-    domain = rows[0];
-  } catch {
+  if (rows.length === 0) {
+    console.warn("[domains/[id]] no row for id", { id });
     notFound();
   }
+  const domain = rows[0];
 
   const events: DomainEvent[] = [];
   events.push({
