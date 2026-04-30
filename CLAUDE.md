@@ -67,7 +67,6 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 - **AWS CLI** is pre-configured via `~/.aws/credentials`. `aws` commands and `@aws-sdk/*` packages work out of the box. Use `us-east-1` for SES.
 - `.env` keys (see `.env.example` for the contributor-facing set):
   - `DATABASE_URL` — Postgres connection string
-  - `DASHBOARD_KEY` — master dashboard gate key
   - `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ZONE_ID` — DNS management
   - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` — SES + S3
   - `S3_BUCKET_NAME` — email attachment storage
