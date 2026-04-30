@@ -5,7 +5,7 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 
 - Repo: `github.com/namuh-eng/opensend`
 - License: Elastic License 2.0 (ELv2)
-- Primary deploy: Docker Compose (Dockerfile is multi-stage and runs on App Runner, Cloud Run, Fly, Railway, etc.)
+- Primary deploy: Docker Compose for self-hosters; team production runs on **AWS ECS Fargate** (the multi-stage Dockerfile also runs on Cloud Run, Fly, Railway, etc.)
 
 ## Tech Stack
 - **Framework**: Next.js 16 (App Router, Turbopack) — pre-installed, do not change

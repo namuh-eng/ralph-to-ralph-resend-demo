@@ -5,7 +5,7 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 
 - Repo: `github.com/namuh-eng/opensend`
 - License: Elastic License 2.0 (ELv2)
-- Primary deploy: Docker Compose (Dockerfile is multi-stage and runs on App Runner, Cloud Run, Fly, Railway, etc.)
+- Primary deploy: Docker Compose for self-hosters; team production runs on **AWS ECS Fargate** (the multi-stage Dockerfile also runs on Cloud Run, Fly, Railway, etc.)
 
 ## Tech Stack
 - **Framework**: Next.js 16 (App Router, Turbopack) — pre-installed, do not change
@@ -78,7 +78,7 @@ Open-source, self-hostable email platform. REST API, TypeScript SDK, React email
 - **Never hardcode** passwords, tokens, or API keys in scripts or source.
 - **Contributors / local dev**: use `.env` (gitignored).
 - **Team production**: secrets live in **AWS Secrets Manager** (region `us-east-1`). Ask Jaeyun or Ashley for the current secret IDs and access.
-- **Shared service wiring**: both the app and the ingester must receive the same database/credential secrets; keep the actual secret IDs external to the repo and inject them through App Runner configuration.
+- **Shared service wiring**: both the app and the ingester must receive the same database/credential secrets; keep the actual secret IDs external to the repo and inject them through the ECS task definition (`secrets` block, referenced via Secrets Manager ARN).
 - Retrieve at runtime:
   ```bash
   aws secretsmanager get-secret-value --secret-id <id> --region us-east-1 --query SecretString --output text

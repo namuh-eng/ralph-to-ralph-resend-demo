@@ -7,6 +7,7 @@ COPY package.json bun.lock ./
 COPY packages ./packages
 RUN bun install --frozen-lockfile --ignore-scripts
 
+
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
