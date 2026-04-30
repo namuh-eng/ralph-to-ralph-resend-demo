@@ -93,7 +93,7 @@ Team prod runs on **ECS Fargate**, not App Runner. App Runner deployment is depr
   - `<product>.namuh.co` → app/dashboard target group (port 8080)
   - `api.<product>.namuh.co` → app target group (same service handles `/api/*`)
   - `events.<product>.namuh.co` → ingester target group (port 3016)
-- **ACM cert** has SANs for `namuh.co`, `*.namuh.co`, `*.opensend.namuh.co`, `*.openlinear.namuh.co`, `*.openmintlify.namuh.co`. Add new SANs and re-validate when adding products.
+- **ACM cert** has SANs for `namuh.co`, `*.namuh.co`, `*.opensend.namuh.co`. Add new SANs and re-validate when adding products.
 - **DNS authoritative on Cloudflare**, NOT Route53. Zone `namuh.co` ID = `182dba68b02c180d4eb127eb0b025284`. Always use the Cloudflare API for namuh.co records. Do not create Route53 hosted zones for it.
 - **Deploy**: `bash scripts/deploy.sh [app|ingester|all]` — builds, pushes to ECR, force-redeploys ECS service, waits until stable.
 - **ECR repos**: `<product>-app`, `<product>-ingester`. **ECS services**: `<product>-app`, `<product>-ingester`. **Log groups**: `/ecs/<product>-app`, `/ecs/<product>-ingester`.
