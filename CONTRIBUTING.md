@@ -10,7 +10,7 @@ Thanks for your interest in contributing to Opensend!
 git clone https://github.com/namuh-eng/opensend.git
 cd opensend
 cp .env.example .env
-make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
+make setup    # starts Postgres, installs deps, pushes schema, seeds DB
 make dev      # http://localhost:3015
 ```
 
@@ -43,7 +43,7 @@ If you install dependencies with `--ignore-scripts`, run `bun run hooks:install`
 <details>
 <summary>Manual setup (without make setup)</summary>
 
-1. Copy `.env.example` to `.env` and set `DASHBOARD_KEY` (see the file for a generation command).
+1. Copy `.env.example` to `.env`.
 2. Start Postgres: `docker compose up postgres -d` (or point `DATABASE_URL` at your own instance). If port `5432` is already taken, change both `POSTGRES_PORT` and the port inside `DATABASE_URL` in `.env`.
 3. Push schema and seed: `bun run db:push && bun run db:seed`
 4. Start dev server: `bun run dev`

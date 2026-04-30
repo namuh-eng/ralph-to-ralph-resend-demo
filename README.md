@@ -44,11 +44,11 @@ The fastest way to get Opensend running:
 git clone https://github.com/namuh-eng/opensend.git
 cd opensend
 cp .env.example .env
-# Edit .env — set DASHBOARD_KEY (required); AWS credentials are only needed for real email sending
+# Edit .env — AWS credentials are only needed for real email sending
 docker compose up -d
 ```
 
-That's it. Open **http://localhost:3015** and enter your dashboard key.
+That's it. Open **http://localhost:3015** and sign in with Google (configure `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`).
 
 > The `migrate` service runs database migrations automatically on first boot.
 
@@ -130,9 +130,6 @@ cp .env.example .env
 Edit `.env` with your configuration:
 
 ```bash
-# Required
-DASHBOARD_KEY=your-secret-key          # Generate: node -e "console.log(crypto.randomUUID())"
-
 # Required for sending emails
 AWS_ACCESS_KEY_ID=your-aws-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret
@@ -169,7 +166,7 @@ git clone https://github.com/namuh-eng/opensend.git
 cd opensend
 bun install
 cp .env.example .env
-# Edit .env — set DASHBOARD_KEY (required). Leave DATABASE_URL as localhost unless you're using another Postgres instance.
+# Edit .env — leave DATABASE_URL as localhost unless you're using another Postgres instance.
 bun run db:push
 bun run db:seed          # Optional: creates sample data
 bun run dev              # Development (port 3015)
@@ -299,7 +296,7 @@ For local contributor onboarding, use the same Docker-backed path as [CONTRIBUTI
 
 ```bash
 cp .env.example .env
-make setup    # ensures DASHBOARD_KEY exists, starts Postgres, installs deps, pushes schema, seeds DB
+make setup    # starts Postgres, installs deps, pushes schema, seeds DB
 make dev      # http://localhost:3015
 ```
 
