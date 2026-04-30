@@ -1,4 +1,4 @@
-// ABOUTME: Static deployment tests for the app + ingester App Runner split
+// ABOUTME: Static deployment tests for the app + ingester ECS Fargate split
 // ABOUTME: Verifies repo-visible Docker, compose, deploy script, and runbook wiring
 
 import { existsSync, readFileSync } from "node:fs";
@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const root = join(__dirname, "..");
 
-describe("deploy-001: App Runner deployment configuration", () => {
+describe("deploy-001: ECS Fargate deployment configuration", () => {
   it("next.config.js has standalone output for Docker deployment", () => {
     const config = readFileSync(join(root, "next.config.js"), "utf-8");
     expect(config).toContain('output: "standalone"');
@@ -29,20 +29,16 @@ describe("deploy-001: App Runner deployment configuration", () => {
     expect(dockerfile).toContain("ENV PORT=8080");
   });
 
-  it("deploy script updates both App Runner services to the requested image tag", () => {
+  it("deploy script builds, pushes, and force-redeploys ECS services", () => {
     const scriptPath = join(root, "scripts", "deploy.sh");
     expect(existsSync(scriptPath)).toBe(true);
     const script = readFileSync(scriptPath, "utf-8");
-    expect(script).toContain('deploy_service "${APP_RUNNER_SERVICE}"');
-    expect(script).toContain('deploy_service "${INGESTER_APP_RUNNER_SERVICE}"');
-    expect(script).toContain("aws apprunner update-service");
-    expect(script).toContain("Service.SourceConfiguration");
-    expect(script).toContain(
-      'image_repository["ImageIdentifier"] = os.environ["IMAGE_IDENTIFIER"]',
-    );
-    expect(script).toContain(
-      'image_configuration["Port"] = os.environ["PORT"]',
-    );
+    expect(script).toContain("aws ecr get-login-password");
+    expect(script).toContain("buildx build");
+    expect(script).toContain("linux/amd64");
+    expect(script).toContain("aws ecs update-service");
+    expect(script).toContain("--force-new-deployment");
+    expect(script).toContain("aws ecs wait services-stable");
   });
 
   it("package.json has build scripts for the app and ingester", () => {

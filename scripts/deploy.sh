@@ -1,171 +1,150 @@
-#!/bin/bash
-# ABOUTME: Deploy script for AWS App Runner via ECR
-# ABOUTME: Builds Docker image, pushes to ECR, creates/updates App Runner service
+#!/usr/bin/env bash
+# ABOUTME: Build, push, and redeploy opensend on AWS ECS Fargate.
+# ABOUTME: Idempotent. Run anytime to ship the current branch to prod.
+#
+# Usage:
+#   bash scripts/deploy.sh                  # both app and ingester
+#   bash scripts/deploy.sh app              # just the app
+#   bash scripts/deploy.sh ingester         # just the ingester
+#
+# Requires: docker (with buildx), aws CLI, AWS creds with ECR + ECS permissions.
+# Assumes infra has been bootstrapped (see scripts/aws-bootstrap.sh).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-AWS_REGION="us-east-1"
-AWS_ACCOUNT_ID="699486076867"
-IMAGE_TAG="${1:-latest}"
+AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text 2>/dev/null || true)}"
+if [[ -z "${AWS_ACCOUNT_ID:-}" ]]; then
+  echo "AWS_ACCOUNT_ID not set and 'aws sts get-caller-identity' failed." >&2
+  echo "Run 'aws configure' or export AWS_ACCOUNT_ID." >&2
+  exit 1
+fi
+PRODUCT="${PRODUCT:-opensend}"
+CLUSTER="${ECS_CLUSTER:-namuh}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+PLATFORM="${PLATFORM:-linux/amd64}"
 
-APP_ECR_REPO="${APP_ECR_REPO:-resend-clone}"
-APP_RUNNER_SERVICE="${APP_RUNNER_SERVICE:-resend-clone}"
+ECR_BASE="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+APP_REPO="${PRODUCT}-app"
+APP_SERVICE="${PRODUCT}-app"
 APP_DOCKERFILE="${APP_DOCKERFILE:-Dockerfile}"
-APP_PORT="${APP_PORT:-8080}"
+APP_TARGET="${APP_TARGET:-runner}"
 
-INGESTER_ECR_REPO="${INGESTER_ECR_REPO:-${APP_ECR_REPO}-ingester}"
-INGESTER_APP_RUNNER_SERVICE="${INGESTER_APP_RUNNER_SERVICE:-opensend-ingester}"
-INGESTER_DOCKERFILE="${INGESTER_DOCKERFILE:-packages/ingester/Dockerfile}"
-INGESTER_PORT="${INGESTER_PORT:-3016}"
+ING_REPO="${PRODUCT}-ingester"
+ING_SERVICE="${PRODUCT}-ingester"
+ING_DOCKERFILE="${ING_DOCKERFILE:-packages/ingester/Dockerfile}"
 
-function ecr_uri() {
-  local repo="$1"
-  echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${repo}"
+color() { printf "\033[1;%sm%s\033[0m\n" "$1" "$2"; }
+info()  { color 36 "$*"; }
+ok()    { color 32 "$*"; }
+warn()  { color 33 "$*"; }
+err()   { color 31 "$*" >&2; }
+
+ecr_login() {
+  info "→ ECR login (${AWS_REGION})"
+  aws ecr get-login-password --region "${AWS_REGION}" \
+    | docker login --username AWS --password-stdin "${ECR_BASE}" >/dev/null
+  ok "  logged in"
 }
 
-function build_create_source_configuration() {
-  local image_identifier="$1"
-  local port="$2"
-  cat <<JSON
-{
-  "AuthenticationConfiguration": {
-    "AccessRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/AppRunnerECRAccessRole"
-  },
-  "ImageRepository": {
-    "ImageIdentifier": "${image_identifier}",
-    "ImageRepositoryType": "ECR",
-    "ImageConfiguration": {
-      "Port": "${port}",
-      "RuntimeEnvironmentVariables": {
-        "HOST": "0.0.0.0",
-        "NODE_ENV": "production",
-        "PORT": "${port}"
-      }
-    }
-  }
-}
-JSON
+build_and_push() {
+  local repo="$1" dockerfile="$2" target="${3:-}"
+  local image="${ECR_BASE}/${repo}:${IMAGE_TAG}"
+
+  info "→ Build & push ${repo}"
+  echo "  image:      ${image}"
+  echo "  dockerfile: ${dockerfile}"
+  echo "  platform:   ${PLATFORM}"
+  [[ -n "${target}" ]] && echo "  target:     ${target}"
+
+  local args=(buildx build --platform "${PLATFORM}" -f "${dockerfile}" -t "${image}" --push)
+  [[ -n "${target}" ]] && args+=(--target "${target}")
+  args+=(.)
+
+  docker "${args[@]}"
+  ok "  pushed ${image}"
 }
 
-INSTANCE_CONFIGURATION=$(cat <<'JSON'
-{
-  "Cpu": "1024",
-  "Memory": "2048"
-}
-JSON
-)
-
-function require_ecr_repository() {
-  local repo="$1"
-  if ! aws ecr describe-repositories \
+redeploy() {
+  local service="$1"
+  info "→ Force redeploy ECS service: ${service}"
+  aws ecs update-service \
+    --cluster "${CLUSTER}" \
+    --service "${service}" \
+    --force-new-deployment \
     --region "${AWS_REGION}" \
-    --repository-names "${repo}" \
-    >/dev/null 2>&1; then
-    echo "Missing ECR repository: ${repo}" >&2
-    echo "Create it first or override ${repo} via environment variables." >&2
-    exit 1
-  fi
+    --query 'service.deployments[0].{status:status,desired:desiredCount}' \
+    --output table
 }
 
-function deploy_service() {
-  local service_name="$1"
-  local repo="$2"
-  local dockerfile="$3"
-  local port="$4"
-  local image_identifier
-  image_identifier="$(ecr_uri "${repo}"):${IMAGE_TAG}"
-
-  echo "=== Deploying ${service_name} ==="
-  echo "Region: ${AWS_REGION}"
-  echo "Image: ${image_identifier}"
-
-  require_ecr_repository "${repo}"
-
-  echo "→ Building Docker image..."
-  docker build -f "${dockerfile}" -t "${repo}:${IMAGE_TAG}" .
-
-  echo "→ Pushing to ECR..."
-  docker tag "${repo}:${IMAGE_TAG}" "${image_identifier}"
-  docker push "${image_identifier}"
-
-  echo "→ Checking App Runner service..."
-  local service_arn
-  service_arn=$(aws apprunner list-services --region "${AWS_REGION}" \
-    --query "ServiceSummaryList[?ServiceName=='${service_name}'].ServiceArn | [0]" \
-    --output text 2>/dev/null || echo "None")
-
-  if [ "${service_arn}" = "None" ] || [ -z "${service_arn}" ]; then
-    echo "→ Creating App Runner service..."
-    aws apprunner create-service \
-      --region "${AWS_REGION}" \
-      --service-name "${service_name}" \
-      --source-configuration "$(build_create_source_configuration "${image_identifier}" "${port}")" \
-      --instance-configuration "${INSTANCE_CONFIGURATION}"
-
-    echo "✓ App Runner service created. It may take a few minutes to deploy."
+wait_stable() {
+  local service="$1"
+  info "→ Wait for ${service} to stabilize (this can take a few minutes)"
+  if aws ecs wait services-stable \
+    --cluster "${CLUSTER}" \
+    --services "${service}" \
+    --region "${AWS_REGION}"; then
+    ok "  ${service} is stable"
   else
-    echo "→ Updating App Runner service (${service_arn})..."
-    local current_source_configuration
-    current_source_configuration=$(aws apprunner describe-service \
+    err "  ${service} did not stabilize. Recent events:"
+    aws ecs describe-services \
+      --cluster "${CLUSTER}" \
+      --services "${service}" \
       --region "${AWS_REGION}" \
-      --service-arn "${service_arn}" \
-      --query 'Service.SourceConfiguration' \
-      --output json)
-
-    local updated_source_configuration
-    updated_source_configuration=$(CURRENT_SOURCE_CONFIGURATION="${current_source_configuration}" IMAGE_IDENTIFIER="${image_identifier}" PORT="${port}" python3 - <<'PY'
-import json
-import os
-
-source_configuration = json.loads(os.environ["CURRENT_SOURCE_CONFIGURATION"])
-image_repository = source_configuration.get("ImageRepository")
-if not image_repository:
-    raise SystemExit("Existing App Runner service is not configured with an image repository")
-image_repository["ImageIdentifier"] = os.environ["IMAGE_IDENTIFIER"]
-
-image_configuration = image_repository.get("ImageConfiguration") or {}
-image_configuration["Port"] = os.environ["PORT"]
-runtime_environment = image_configuration.get("RuntimeEnvironmentVariables") or {}
-runtime_environment["HOST"] = "0.0.0.0"
-runtime_environment["NODE_ENV"] = "production"
-runtime_environment["PORT"] = os.environ["PORT"]
-image_configuration["RuntimeEnvironmentVariables"] = runtime_environment
-image_repository["ImageConfiguration"] = image_configuration
-print(json.dumps(source_configuration, separators=(",", ":")))
-PY
-)
-
-    aws apprunner update-service \
-      --region "${AWS_REGION}" \
-      --service-arn "${service_arn}" \
-      --source-configuration "${updated_source_configuration}"
-
-    echo "✓ Service update started."
+      --query 'services[0].events[0:5].message' \
+      --output table || true
+    return 1
   fi
-
-  local current_service_arn
-  current_service_arn=$(aws apprunner list-services --region "${AWS_REGION}" \
-    --query "ServiceSummaryList[?ServiceName=='${service_name}'].ServiceArn | [0]" \
-    --output text)
-
-  local service_url
-  service_url=$(aws apprunner describe-service \
-    --region "${AWS_REGION}" \
-    --service-arn "${current_service_arn}" \
-    --query "Service.ServiceUrl" \
-    --output text 2>/dev/null || echo "pending")
-
-  echo "Service: ${service_name}"
-  echo "URL: https://${service_url}"
-  echo ""
 }
 
-echo "→ Authenticating with ECR..."
-aws ecr get-login-password --region "${AWS_REGION}" | \
-  docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+deploy_app() {
+  build_and_push "${APP_REPO}" "${APP_DOCKERFILE}" "${APP_TARGET}"
+  redeploy "${APP_SERVICE}"
+}
 
-deploy_service "${APP_RUNNER_SERVICE}" "${APP_ECR_REPO}" "${APP_DOCKERFILE}" "${APP_PORT}"
-deploy_service "${INGESTER_APP_RUNNER_SERVICE}" "${INGESTER_ECR_REPO}" "${INGESTER_DOCKERFILE}" "${INGESTER_PORT}"
+deploy_ingester() {
+  build_and_push "${ING_REPO}" "${ING_DOCKERFILE}" ""
+  redeploy "${ING_SERVICE}"
+}
 
-echo "=== Deployment Complete ==="
+target="${1:-all}"
+
+ecr_login
+
+case "${target}" in
+  app)
+    deploy_app
+    wait_stable "${APP_SERVICE}"
+    ;;
+  ingester)
+    deploy_ingester
+    wait_stable "${ING_SERVICE}"
+    ;;
+  all)
+    deploy_app
+    deploy_ingester
+    wait_stable "${APP_SERVICE}" &
+    APP_PID=$!
+    wait_stable "${ING_SERVICE}" &
+    ING_PID=$!
+    APP_RC=0; ING_RC=0
+    wait "${APP_PID}" || APP_RC=$?
+    wait "${ING_PID}" || ING_RC=$?
+    if [[ "${APP_RC}" -ne 0 || "${ING_RC}" -ne 0 ]]; then
+      err "One or more services failed to stabilize."
+      exit 1
+    fi
+    ;;
+  *)
+    err "Unknown target: ${target} (expected: app | ingester | all)"
+    exit 2
+    ;;
+esac
+
+ok "✓ Deploy complete: ${PRODUCT} (${target})"
+echo
+echo "App:      https://${PRODUCT}.namuh.co"
+echo "API:      https://api.${PRODUCT}.namuh.co"
+echo "Events:   https://events.${PRODUCT}.namuh.co"

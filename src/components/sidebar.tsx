@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -215,6 +216,13 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
+  const userEmail = session?.user?.email ?? "";
+  const userInitial = (
+    session?.user?.name?.[0] ??
+    session?.user?.email?.[0] ??
+    "?"
+  ).toUpperCase();
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-[250px] bg-black flex flex-col border-r border-[rgba(176,199,217,0.145)]">
@@ -270,10 +278,10 @@ export function Sidebar() {
       <div className="px-4 py-3 border-t border-[rgba(176,199,217,0.145)]">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">
-            J
+            {userInitial}
           </div>
           <span className="text-[12px] text-[#A1A4A5] truncate">
-            user@example.com
+            {userEmail || "Loading…"}
           </span>
         </div>
       </div>
